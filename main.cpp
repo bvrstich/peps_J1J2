@@ -39,6 +39,11 @@ int main(int argc,char *argv[]){
    PEPS<double> peps(D);
    peps.normalize();
 
+   global::env.calc('A',peps);
+   global::env.test();
+
+   cout << peps.energy() << endl;
+
    return 0;
 
 }

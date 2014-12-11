@@ -43,20 +43,12 @@ class Environment {
 
       void test();
 
-      const MPO<double> &gl(int) const;
-      MPO<double> &gl(int);
-
-      const MPO<double> &gr(int) const;
-      MPO<double> &gr(int);
-
       const MPO<double> &gt(int) const;
       MPO<double> &gt(int);
 
       const MPO<double> &gb(int) const;
       MPO<double> &gb(int);
 
-      const vector< MPO<double> > &gl() const;
-      const vector< MPO<double> > &gr() const;
       const vector< MPO<double> > &gt() const;
       const vector< MPO<double> > &gb() const;
 
@@ -70,9 +62,7 @@ class Environment {
 
    private:
 
-      //!stores an array environment MPO's for l(eft) , r(ight), t(op) and b(ottom)
-      vector< MPO<double> > l;
-      vector< MPO<double> > r;
+      //!stores an array environment MPO's for t(op) and b(ottom)
       vector< MPO<double> > t;
       vector< MPO<double> > b;
 
@@ -83,8 +73,6 @@ class Environment {
       int D_aux;
 
       //!flags that tell if previous guess for environment is present
-      bool flag_l;
-      bool flag_r;
       bool flag_t;
       bool flag_b;
 

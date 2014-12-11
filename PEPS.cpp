@@ -563,17 +563,17 @@ double PEPS<double>::dot(const PEPS<double> &peps_i,bool init) const {
       //construct bottom environment until half
       env.gb(0).fill('b',peps_i);
 
-      for(int i = 1;i <= half;++i)
+      for(int i = 1;i <= half + 1;++i)
          env.add_layer('b',i,peps_i);
 
-      env.gt(Ly - 2).fill('t',peps_i);
+      env.gt(Ly - 3).fill('t',peps_i);
 
-      for(int i = Ly - 3;i >= half;--i)
+      for(int i = Ly - 4;i >= half;--i)
          env.add_layer('t',i,peps_i);
 
    }
 
-   return env.gb(half).dot(env.gt(half));
+   return env.gb(half + 1).dot(env.gt(half));
 
 }
 
@@ -697,12 +697,12 @@ double PEPS<double>::energy(){
    // #################################################################
 
    // -- (1) -- || bottom row: similar to overlap calculation
-/*
+
    //first construct the right renormalized operators
-   vector< DArray<3> > R(Lx - 1);
+   vector< DArray<5> > R(Lx - 1);
 
-   contractions::init_ro(ham.gis_local(),'b',*this,R); 
-
+   contractions::init_ro('b',*this,R); 
+/*
    //left going operators: Li
    std::vector< DArray<3> > Li( delta ); 
 

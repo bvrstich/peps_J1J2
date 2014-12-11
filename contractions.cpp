@@ -22,7 +22,7 @@ namespace contractions {
     * @param rc is row or column index, col for t,b row for r,l
     */
    void update_L(char option,int rc,const PEPS<double> &peps,DArray<3> &L){
-
+/*
       if(option == 'b'){//bottom
 
          if(rc == 0){
@@ -148,7 +148,7 @@ namespace contractions {
          }
 
       }
-
+  */
    }
 
    /** 
@@ -159,7 +159,7 @@ namespace contractions {
     * @param R vector containing the right operators on exit
     */
    void init_ro(bool is_local,char option,int rc,const PEPS<double> &peps,vector< DArray<4> > &RO){
-
+/*
       if(option == 'H'){
 
          DArray<6> tmp6;
@@ -251,7 +251,7 @@ namespace contractions {
          }
 
       }
-
+  */
    }
 
    /** 
@@ -259,149 +259,35 @@ namespace contractions {
     * @param option == 'l'eft 'r'ight 'top' or 'b'ottom
     * @param R vector containing the right operators on exit
     */
-   void init_ro(bool is_local,char option,const PEPS<double> &peps,vector< DArray<3> > &R){
+   void init_ro(char option,const PEPS<double> &peps,vector< DArray<5> > &R){
 
       if(option == 'b'){
 
-         int stop;
-
-         if(is_local)
-            stop = 0;
-         else
-            stop = 1;
-
          //first the rightmost operator
          DArray<4> tmp4;
-         DArray<5> tmp5;
+         Gemm(CblasNoTrans,CblasTrans,1.0,peps(0,Lx-1),peps(0,Lx-1),0.0,tmp4);
 
-         //tmp comes out index (t,b)
-         Contract(1.0,env.gt(0)[Lx - 1],shape(1,2),env.gb(0)[Lx - 1],shape(1,2),0.0,tmp4);
+         DArray<7> tmp7;
+         Contract(1.0,tmp4,shape(1),peps(1,Lx-1),shape(3),0.0,tmp7);
 
-         //reshape tmp to a 2-index array
-         R[Lx - 2] = tmp4.reshape_clear(shape(env.gt(0)[Lx - 1].shape(0),peps(0,Lx-1).shape(0),peps(0,Lx-1).shape(0)));
+         DArray<7> tmp7bis;
+         Permute(tmp7,shape(0,1,3,4,5,2,6),tmp7bis);
 
-         //now construct the rest
-         for(int col = Lx - 2;col > stop;--col){
+         DArray<6> tmp6;
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp7bis,peps(1,Lx-1),0.0,tmp6);
 
-            tmp5.clear();
-            Contract(1.0,env.gt(0)[col],shape(3),R[col],shape(0),0.0,tmp5);
+         DArray<6> tmp6bis;
+         Permute(tmp6,shape(3,5,2,4,0,1),tmp6bis);
 
-            R[col - 1].resize(env.gt(0)[col].shape(0),peps(0,col).shape(0),peps(0,col).shape(0));
+         int M = env.gt(0)[Lx-1].shape(0);
+         int N = tmp6bis.shape(2)*tmp6bis.shape(3)*tmp6bis.shape(4)*tmp6bis.shape(5);
+         int K = tmp6bis.shape(0) * tmp6bis.shape(1);
 
-            int m = tmp5.shape(0);//rows of op(A)
-            int n = env.gb(0)[col].shape(0);//col of op(B)
-            int k = tmp5.shape(1) * tmp5.shape(2) * tmp5.shape(3) * tmp5.shape(4);
-
-            blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans,m,n,k,1.0, tmp5.data(),k, env.gb(0)[col].data(), k,0.0, R[col - 1].data(), n);
-
-         }
+         R[Lx - 2].resize(shape(M,tmp6bis.shape(2),tmp6bis.shape(3),tmp6bis.shape(4),tmp6bis.shape(5)));
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(0)[Lx-1].data(),K,tmp6bis.data(),N,0.0,R[Lx - 2].data(),N);
 
       }
       else if(option == 't'){
-
-         //first the rightmost operator
-         DArray<4> tmp4;
-         DArray<5> tmp5;
-
-         //tmp comes out index (t,b)
-         Contract(1.0,env.gt(Ly-2)[Lx - 1],shape(1,2),env.gb(Ly-2)[Lx - 1],shape(1,2),0.0,tmp4);
-
-         int stop;
-
-         if(is_local)
-            stop = 0;
-         else
-            stop = 1;
-
-         //reshape tmp to a 2-index array
-         R[Lx - 2] = tmp4.reshape_clear(shape(peps(Ly-1,Lx-1).shape(0),peps(Ly-1,Lx-1).shape(0),env.gb(Ly-2)[Lx-1].shape(0)));
-
-         //now construct the rest
-         for(int col = Lx - 2;col > stop;--col){
-
-            int m = env.gt(Ly - 2)[col].shape(0) * env.gt(Ly - 2)[col].shape(1) * env.gt(Ly - 2)[col].shape(2);//rows of op(A)
-            int n = R[col].shape(2);//col of op(B)
-            int k = R[col].shape(0) * R[col].shape(1);
-
-            tmp5.resize( shape( peps(Ly-1,col).shape(0),peps(Ly-1,col).shape(0),env.gt(Ly-2)[col].shape(1),env.gt(Ly-2)[col].shape(2),R[col].shape(2) ) );
-
-            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,m,n,k,1.0, env.gt(Ly-2)[col].data(),k, R[col].data(), n,0.0,tmp5.data(), n);
-
-            R[col - 1].clear();
-            Contract(1.0,tmp5,shape(2,3,4),env.gb(Ly-2)[col],shape(1,2,3),0.0,R[col - 1]);
-
-         }
-
-      }
-      else if(option == 'l'){
-
-         //first the rightmost operator
-         DArray<4> tmp4;
-         DArray<5> tmp5;
-
-         int stop;
-
-         if(is_local)
-            stop = 0;
-         else
-            stop = 1;
-
-         //tmp comes out index (l,r)
-         Contract(1.0,env.gl(0)[Ly - 1],shape(1,2),env.gr(0)[Ly - 1],shape(1,2),0.0,tmp4);
-
-         //reshape tmp to a 2-index array
-         R[Ly - 2] = tmp4.reshape_clear( shape(peps(Ly-1,0).shape(3),peps(Ly-1,0).shape(3),env.gr(0)[Ly-1].shape(0)));
-
-         //now construct the rest
-         for(int row = Ly - 2;row > stop;--row){
-
-            int m = env.gl(0)[row].shape(0) * env.gl(0)[row].shape(1) * env.gl(0)[row].shape(2);//rows of op(A)
-            int n = R[row].shape(2);//col of op(B)
-            int k = R[row].shape(0) * R[row].shape(1);
-
-            tmp5.resize( shape( peps(row,Lx-1).shape(3),peps(row,Lx-1).shape(3),env.gl(0)[row].shape(1),env.gl(0)[row].shape(2),R[row].shape(2) ) );
-
-            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,m,n,k,1.0, env.gl(0)[row].data(),k, R[row].data(), n,0.0,tmp5.data(), n);
-
-            R[row - 1].clear();
-            Contract(1.0,tmp5,shape(2,3,4),env.gr(0)[row],shape(1,2,3),0.0,R[row - 1]);
-
-         }
-
-      }
-      else{//right
-
-         //first the rightmost operator
-         DArray<4> tmp4;
-         DArray<5> tmp5;
-
-         int stop;
-
-         if(is_local)
-            stop = 0;
-         else
-            stop = 1;
-
-         //tmp comes out index (l,r)
-         Contract(1.0,env.gl(Lx - 2)[Ly - 1],shape(1,2),env.gr(Lx - 2)[Ly - 1],shape(1,2),0.0,tmp4);
-
-         //reshape tmp to a 2-index array
-         R[Ly - 2] = tmp4.reshape_clear(shape(env.gl(Lx - 2)[Ly - 1].shape(0),peps(Ly-1,Lx-1).shape(3),peps(Ly-1,Lx-1).shape(3)));
-
-         //now construct the rest
-         for(int row = Ly - 2;row > stop;--row){
-
-            tmp5.clear();
-            Contract(1.0,env.gl(Lx - 2)[row],shape(3),R[row],shape(0),0.0,tmp5);
-
-            int m = tmp5.shape(0);//rows of op(A)
-            int n = env.gr(Lx - 2)[row].shape(0);//col of op(B)
-            int k = tmp5.shape(1) * tmp5.shape(2) * tmp5.shape(3) * tmp5.shape(4);
-
-            R[row - 1].resize(env.gl(Lx - 2)[row].shape(0),peps(row,Lx-1).shape(3),peps(row,Lx-1).shape(3));
-            blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans,m,n,k,1.0, tmp5.data(),k, env.gr(Lx - 2)[row].data(), k,0.0, R[row - 1].data(), n);
-
-         }
 
       }
 
@@ -417,99 +303,100 @@ namespace contractions {
     * @param LO input old left renormalized operator, output new left renormalized operator
     */
    void update_L(char option,int row,int col,const PEPS<double> &peps,DArray<4> &LO){
-
-      if(option == 'H'){
+      /*
+         if(option == 'H'){
 
          if(col == 0){
 
-            //paste top environment on
-            DArray<7> tmp7;
-            Contract(1.0,env.gt(row)[0],shape(1),peps(row,0),shape(1),0.0,tmp7);
+      //paste top environment on
+      DArray<7> tmp7;
+      Contract(1.0,env.gt(row)[0],shape(1),peps(row,0),shape(1),0.0,tmp7);
 
-            DArray<8> tmp8;
-            Contract(1.0,tmp7,shape(1,4),peps(row,0),shape(1,2),0.0,tmp8);
+      DArray<8> tmp8;
+      Contract(1.0,tmp7,shape(1,4),peps(row,0),shape(1,2),0.0,tmp8);
 
-            DArray<8> tmp8bis;
-            Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
+      DArray<8> tmp8bis;
+      Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
 
-            //move to a DArray<4> object: order (top-env,(*this)-row,bottom-env)
-            LO = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),peps(row,0).shape(4),peps(row,0).shape(4),env.gb(row-1)[0].shape(3)));
+      //move to a DArray<4> object: order (top-env,(*this)-row,bottom-env)
+      LO = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),peps(row,0).shape(4),peps(row,0).shape(4),env.gb(row-1)[0].shape(3)));
 
-         }
-         else if(col < Lx - 2){//middle
+      }
+      else if(col < Lx - 2){//middle
 
-            //first attach top to left unity
-            DArray<6> tmp6;
-            Contract(1.0,env.gt(row)[col],shape(0),LO,shape(0),0.0,tmp6);
+      //first attach top to left unity
+      DArray<6> tmp6;
+      Contract(1.0,env.gt(row)[col],shape(0),LO,shape(0),0.0,tmp6);
 
-            //add peps to it, intermediary
-            DArray<7> tmp7;
-            Contract(1.0,tmp6,shape(3,0),peps(row,col),shape(0,1),0.0,tmp7);
+      //add peps to it, intermediary
+      DArray<7> tmp7;
+      Contract(1.0,tmp6,shape(3,0),peps(row,col),shape(0,1),0.0,tmp7);
 
-            //finally construct new left unity
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(2,0,4),peps(row,col),shape(0,1,2),0.0,tmp6);
+      //finally construct new left unity
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(2,0,4),peps(row,col),shape(0,1,2),0.0,tmp6);
 
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
+      DArray<6> tmp6bis;
+      Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
 
-            LO.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,LO);
+      LO.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,LO);
 
-         }
-         else{
+      }
+      else{
 
-            //no update
+      //no update
 
-         }
+      }
 
       }
       else{//Vertical
 
-         if(row == 0){
+      if(row == 0){
 
-            //paste left environment on
-            DArray<7> tmp7;
-            Contract(1.0,env.gl(col - 1)[0],shape(1),peps(0,col),shape(0),0.0,tmp7);
+      //paste left environment on
+      DArray<7> tmp7;
+      Contract(1.0,env.gl(col - 1)[0],shape(1),peps(0,col),shape(0),0.0,tmp7);
 
-            DArray<8> tmp8;
-            Contract(1.0,tmp7,shape(1,4),peps(0,col),shape(0,2),0.0,tmp8);
+      DArray<8> tmp8;
+      Contract(1.0,tmp7,shape(1,4),peps(0,col),shape(0,2),0.0,tmp8);
 
-            DArray<8> tmp8bis;
-            Contract(1.0,tmp8,shape(4,7),env.gr(col)[0],shape(1,2),0.0,tmp8bis);
+      DArray<8> tmp8bis;
+      Contract(1.0,tmp8,shape(4,7),env.gr(col)[0],shape(1,2),0.0,tmp8bis);
 
-            //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
-            LO = tmp8bis.reshape_clear(shape(env.gl(col - 1)[0].shape(3),peps(0,col).shape(1),peps(0,col).shape(1),env.gr(col)[0].shape(3)));
+      //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
+      LO = tmp8bis.reshape_clear(shape(env.gl(col - 1)[0].shape(3),peps(0,col).shape(1),peps(0,col).shape(1),env.gr(col)[0].shape(3)));
 
-         }
-         else if(row < Ly - 2){
+      }
+      else if(row < Ly - 2){
 
-            //first attach top to left unity, make intermediary
-            DArray<6> tmp6;
-            Contract(1.0,env.gl(col - 1)[row],shape(0),LO,shape(0),0.0,tmp6);
+      //first attach top to left unity, make intermediary
+      DArray<6> tmp6;
+      Contract(1.0,env.gl(col - 1)[row],shape(0),LO,shape(0),0.0,tmp6);
 
-            //add peps to it
-            DArray<7> tmp7;
-            Contract(1.0,tmp6,shape(0,3),peps(row,col),shape(0,3),0.0,tmp7);
+      //add peps to it
+      DArray<7> tmp7;
+      Contract(1.0,tmp6,shape(0,3),peps(row,col),shape(0,3),0.0,tmp7);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(0,5,2),peps(row,col),shape(0,2,3),0.0,tmp6);
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(0,5,2),peps(row,col),shape(0,2,3),0.0,tmp6);
 
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+      DArray<6> tmp6bis;
+      Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
 
-            LO.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gr(col)[row],0.0,LO);
+      LO.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gr(col)[row],0.0,LO);
 
-         }
-         else{
+   }
+      else{
 
-            //nothing
-
-         }
+         //nothing
 
       }
 
+   }
+
+   */
    }
 
 }

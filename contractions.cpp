@@ -263,28 +263,91 @@ namespace contractions {
 
       if(option == 'b'){
 
-         //first the rightmost operator
-         DArray<4> tmp4;
-         Gemm(CblasNoTrans,CblasTrans,1.0,peps(0,Lx-1),peps(0,Lx-1),0.0,tmp4);
-
          DArray<7> tmp7;
-         Contract(1.0,tmp4,shape(1),peps(1,Lx-1),shape(3),0.0,tmp7);
-
          DArray<7> tmp7bis;
-         Permute(tmp7,shape(0,1,3,4,5,2,6),tmp7bis);
 
-         DArray<6> tmp6;
-         Gemm(CblasNoTrans,CblasTrans,1.0,tmp7bis,peps(1,Lx-1),0.0,tmp6);
+         //first the rightmost operator
+         int M = peps(1,Lx-1).shape(0) * peps(1,Lx-1).shape(1) * peps(1,Lx-1).shape(2);
+         int N = env.gb(0)[Lx-1].shape(0) * env.gb(0)[Lx-1].shape(1);
+         int K = env.gb(0)[Lx-1].shape(2) * env.gb(0)[Lx-1].shape(3);
+
+         DArray<6> tmp6(D,D,d,D,D,D);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,peps(1,Lx-1).data(),K,env.gb(0)[Lx-1].data(),K,0.0,tmp6.data(),N);
 
          DArray<6> tmp6bis;
-         Permute(tmp6,shape(3,5,2,4,0,1),tmp6bis);
+         Permute(tmp6,shape(2,5,0,1,3,4),tmp6bis);
 
-         int M = env.gt(0)[Lx-1].shape(0);
-         int N = tmp6bis.shape(2)*tmp6bis.shape(3)*tmp6bis.shape(4)*tmp6bis.shape(5);
-         int K = tmp6bis.shape(0) * tmp6bis.shape(1);
+         M = peps(1,Lx-1).shape(0) * peps(1,Lx-1).shape(1);
+         N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
+         K = peps(1,Lx-1).shape(2) * peps(1,Lx-1).shape(3);
+
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(1,Lx-1).data(),K,tmp6bis.data(),N,0.0,tmp6.data(),N);
+
+         tmp6bis.clear();
+         Permute(tmp6,shape(1,3,0,2,4,5),tmp6bis);
+
+         M = env.gt(0)[Lx - 1].shape(0);
+         N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
+         K = env.gt(0)[Lx - 1].shape(1) * env.gt(0)[Lx - 1].shape(2);
 
          R[Lx - 2].resize(shape(M,tmp6bis.shape(2),tmp6bis.shape(3),tmp6bis.shape(4),tmp6bis.shape(5)));
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(0)[Lx-1].data(),K,tmp6bis.data(),N,0.0,R[Lx - 2].data(),N);
+
+         for(int i = Lx - 2;i > 0;--i){
+
+            M = R[i].shape(0) * R[i].shape(1) * R[i].shape(2);
+            N = env.gb(0)[i].shape(0) * env.gb(0)[i].shape(1) * env.gb(0)[i].shape(2);
+            K = env.gb(0)[i].shape(3);
+
+            tmp7.resize(shape( R[i].shape(0),D,D,D,D,D,D) );
+            blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,R[i].data(),K,env.gb(0)[i].data(),K,0.0,tmp7.data(),N);
+
+            tmp7bis.clear();
+            Permute(tmp7,shape(0,1,3,4,5,6,2),tmp7bis);
+
+            DArray<8> tmp8;
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp7bis,peps(1,i),0.0,tmp8);
+
+            DArray<8> tmp8bis;
+            Permute(tmp8,shape(0,5,2,3,6,7,4,1),tmp8bis);
+
+            tmp7.clear();
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp8bis,peps(1,i),0.0,tmp7);
+
+            tmp7bis.clear();
+            Permute(tmp7,shape(6,4,0,5,1,2,3),tmp7bis);
+
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[i],tmp7bis,0.0,R[i - 1]);
+
+         }
+
+         int i = 0;
+
+         M = R[i].shape(0) * R[i].shape(1) * R[i].shape(2);
+         N = env.gb(0)[i].shape(0) * env.gb(0)[i].shape(1) * env.gb(0)[i].shape(2);
+         K = env.gb(0)[i].shape(3);
+
+         tmp7.resize(shape( R[i].shape(0),D,D,1,1,D,D) );
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,R[i].data(),K,env.gb(0)[i].data(),K,0.0,tmp7.data(),N);
+
+         tmp7bis.clear();
+         Permute(tmp7,shape(0,1,3,4,5,6,2),tmp7bis);
+
+         DArray<8> tmp8;
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp7bis,peps(1,i),0.0,tmp8);
+
+         DArray<8> tmp8bis;
+         Permute(tmp8,shape(0,5,2,3,6,7,4,1),tmp8bis);
+
+         tmp7.clear();
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp8bis,peps(1,i),0.0,tmp7);
+
+         tmp7bis.clear();
+         Permute(tmp7,shape(6,4,0,5,1,2,3),tmp7bis);
+
+         DArray<5> test;
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[i],tmp7bis,0.0,test);
+         cout << test << endl;
 
       }
       else if(option == 't'){

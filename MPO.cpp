@@ -211,7 +211,7 @@ void MPO<double>::fill(const char option,const PEPS<double> &peps){
       }
 
    }
-   else if(option == 't'){
+   else{
 
       enum {i,j,k,l,m,n,o,p,q};
 
@@ -223,38 +223,6 @@ void MPO<double>::fill(const char option,const PEPS<double> &peps){
          tmp.share_mem( (*this)[col] );
 
          Contract(1.0,peps(Ly - 1,col),shape(i,j,k,l,m),peps(Ly - 1,col),shape(n,o,k,p,q),0.0,tmp,shape(i,n,j,o,l,p,m,q));
-
-      }
-
-   }
-   else if(option == 'r'){
-
-      enum {i,j,k,l,m,n,o,p,q};
-
-      DArray<8> tmp;
-
-      //share the pointer
-      for(int row = 0;row < Ly;row++){
-
-         tmp.share_mem( (*this)[row] );
-
-         Contract(1.0,peps(row,Lx - 1),shape(i,j,k,l,m),peps(row,Lx - 1),shape(n,o,k,p,q),0.0,tmp,shape(l,p,i,n,m,q,j,o));
-
-      }
-
-   }
-   else{//left!
-
-      enum {i,j,k,l,m,n,o,p,q};
-
-      DArray<8> tmp;
-
-      //share the pointer
-      for(int row = 0;row < Ly;row++){
-
-         tmp.share_mem( (*this)[row] );
-
-         Contract(1.0,peps(row,0),shape(i,j,k,l,m),peps(row,0),shape(n,o,k,p,q),0.0,tmp,shape(l,p,i,n,m,q,j,o));
 
       }
 

@@ -281,6 +281,7 @@ namespace contractions {
          N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
          K = peps(1,Lx-1).shape(2) * peps(1,Lx-1).shape(3);
 
+         tmp6.resize( shape(D,D,tmp6bis.shape(2),tmp6bis.shape(3),tmp6bis.shape(4),tmp6bis.shape(5)) );
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(1,Lx-1).data(),K,tmp6bis.data(),N,0.0,tmp6.data(),N);
 
          tmp6bis.clear();

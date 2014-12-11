@@ -558,22 +558,42 @@ double PEPS<double>::dot(const PEPS<double> &peps_i,bool init) const {
 
    int half = Ly/2;
 
+   int b_stop = half+1;
+   int t_stop = half;
+
+   if(Ly/2 >= Ly - 3){
+
+      if(Ly == 4){
+
+         b_stop = 1;
+         t_stop = 0;
+
+      }
+      else if( Ly == 6 ){
+
+         b_stop = 2;
+         t_stop = 1;
+
+      }
+
+   }
+
    if(!init){
 
       //construct bottom environment until half
       env.gb(0).fill('b',peps_i);
 
-      for(int i = 1;i <= half + 1;++i)
+      for(int i = 1;i <= b_stop;++i)
          env.add_layer('b',i,peps_i);
 
       env.gt(Ly - 3).fill('t',peps_i);
 
-      for(int i = Ly - 4;i >= half;--i)
+      for(int i = Ly - 4;i >= t_stop;--i)
          env.add_layer('t',i,peps_i);
 
    }
 
-   return env.gb(half + 1).dot(env.gt(half));
+   return env.gb(b_stop).dot(env.gt(t_stop));
 
 }
 

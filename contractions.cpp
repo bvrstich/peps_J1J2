@@ -322,34 +322,6 @@ namespace contractions {
 
          }
 
-         int i = 0;
-
-         M = R[i].shape(0) * R[i].shape(1) * R[i].shape(2);
-         N = env.gb(0)[i].shape(0) * env.gb(0)[i].shape(1) * env.gb(0)[i].shape(2);
-         K = env.gb(0)[i].shape(3);
-
-         tmp7.resize(shape( R[i].shape(0),D,D,1,1,D,D) );
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,R[i].data(),K,env.gb(0)[i].data(),K,0.0,tmp7.data(),N);
-
-         tmp7bis.clear();
-         Permute(tmp7,shape(0,1,3,4,5,6,2),tmp7bis);
-
-         DArray<8> tmp8;
-         Gemm(CblasNoTrans,CblasTrans,1.0,tmp7bis,peps(1,i),0.0,tmp8);
-
-         DArray<8> tmp8bis;
-         Permute(tmp8,shape(0,5,2,3,6,7,4,1),tmp8bis);
-
-         tmp7.clear();
-         Gemm(CblasNoTrans,CblasTrans,1.0,tmp8bis,peps(1,i),0.0,tmp7);
-
-         tmp7bis.clear();
-         Permute(tmp7,shape(6,4,0,5,1,2,3),tmp7bis);
-
-         DArray<5> test;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[i],tmp7bis,0.0,test);
-         cout << test << endl;
-
       }
       else if(option == 't'){
 

@@ -33,8 +33,6 @@ namespace global{
 
    Environment env;
 
-   Trotter trot;
-
    /**
     * @param D_in virtual dimension of the trial
     * @param d_in physical dimension
@@ -54,9 +52,7 @@ namespace global{
       D_aux = D_aux_in;
 
       //set the interaction
-      ham.set_heisenberg(true);
-
-      trot = Trotter(tau);
+      ham.set_J1J2(true);
 
       //identity matrix
       I.resize(d,d);
@@ -91,8 +87,6 @@ namespace global{
     * @param tau timestep
     */
    void stau(double tau){
-
-      trot = Trotter(tau);
 
    }
 

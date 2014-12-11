@@ -697,7 +697,7 @@ double PEPS<double>::energy(){
    // #################################################################
 
    // -- (1) -- || bottom row: similar to overlap calculation
-
+/*
    //first construct the right renormalized operators
    vector< DArray<3> > R(Lx - 1);
 
@@ -1538,7 +1538,8 @@ double PEPS<double>::energy(){
    }
 
    return val;
-
+*/
+   return 0.0;
 }
 
 //forward declarations for types to be used!

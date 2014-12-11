@@ -17,7 +17,6 @@ using std::complex;
 using namespace btas;
 
 class Environment;
-class Trotter;
 
 namespace global {
 
@@ -50,9 +49,6 @@ namespace global {
 
    //!Environment object, needed for basically everything when calculating
    extern Environment env;
-
-   //!Trotter object
-   extern Trotter trot;
 
    //!initializer
    void init(int,int,int,int,int,double);

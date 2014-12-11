@@ -17,7 +17,4 @@
 
 #include "Environment.h"
 
-#include "Trotter.h"
-
 #include "contractions.h"
-#include "propagate.h"

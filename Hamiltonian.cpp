@@ -28,11 +28,7 @@ Hamiltonian::Hamiltonian(const Hamiltonian &ham_c){
    this->L = ham_c.gL();
    this->R = ham_c.gR();
 
-   this->B = ham_c.gB();
-
    this->coef = ham_c.gcoef();
-
-   this->is_local = ham_c.gis_local();
 
 }
 
@@ -47,15 +43,6 @@ Hamiltonian::~Hamiltonian(){ }
 int Hamiltonian::gdelta() const {
 
    return delta;
-
-}
-
-/**
- * @return the flag, if true there is local interaction, if false not
- */
-bool Hamiltonian::gis_local() const {
-
-   return is_local;
 
 }
 
@@ -99,15 +86,6 @@ const DArray<2> &Hamiltonian::gR(int i) const {
 }
 
 /**
- * @return the local operator
- */
-const DArray<2> &Hamiltonian::gB() const {
-
-   return B;
-
-}
-
-/**
  * @return the array of 'delta' left operators
  */
 const std::vector< DArray<2> > &Hamiltonian::gL() const {
@@ -129,11 +107,9 @@ const std::vector< DArray<2> > &Hamiltonian::gR() const {
  * initialize the operators on the nn-Heisenberg model
  * @param ladder if true, use ladder operators (+,-,z), if false, use x,y,z
  */
-void Hamiltonian::set_heisenberg(bool ladder) {
+void Hamiltonian::set_J1J2(bool ladder) {
 
    delta = 3;
-
-   is_local = false;
 
    L.resize(delta);
    R.resize(delta);
@@ -214,47 +190,5 @@ void Hamiltonian::set_heisenberg(bool ladder) {
       coef[2] = 1.0;//minus sign because of the Marshall sign rule
 
    }
-
-}
-
-/**
- * initialize the operators on the nn-Heisenberg model
- * @param B_in strength of the magnetic field in the x direction
- */
-void Hamiltonian::set_transverse_field_ising(double B_in) {
-
-   delta = 1;
-
-   is_local = true;
-
-   L.resize(delta);
-   R.resize(delta);
-
-   coef.resize(delta);
-
-   L[0].resize(global::d,global::d); //S+
-   R[0].resize(global::d,global::d); //S-
-
-   L[0] = 0.0;
-   R[0] = 0.0;
-
-   //Sz
-   L[0](0,0) = -1.0;
-   L[0](1,1) = 1.0;
-
-   R[0](0,0) = -1.0;
-   R[0](1,1) = 1.0;
-
-   //coefficients:
-   coef[0] = -1.0;
-
-   //local term
-   B.resize(global::d,global::d); //Sx
-
-   B = 0.0;
-
-   //Sx
-   B(0,1) = B_in;
-   B(1,0) = B_in;
 
 }

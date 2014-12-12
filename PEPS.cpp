@@ -758,14 +758,14 @@ double PEPS<double>::energy(){
 
    //construct left hamiltonian operators, first upper sites
    for(int i = 0;i < delta;++i){
-
+   
       //contract peps with the operator
       peps_op.clear();
       Contract(1.0,ham.gL(i),shape(j,k),(*this)(1,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
       //paste on the upper site
       M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2);
-      N = peps_op.shape(1) * peps_op.shape(2);
+      N = peps_op.shape(3) * peps_op.shape(4);
       K = tmp5bis.shape(3) * tmp5bis.shape(4);
 
       tmp6.resize( shape(tmp5bis.shape(0),tmp5bis.shape(1),tmp5bis.shape(2),1,D,D) );
@@ -779,7 +779,7 @@ double PEPS<double>::energy(){
       N = env.gb(0)[0].shape(3);
       K = env.gb(0)[0].shape(0) * env.gb(0)[0].shape(1) * env.gb(0)[0].shape(2);
 
-      Li_u[i].resize( shape(tmp5bis.shape(0),tmp5bis.shape(1),tmp5bis.shape(2),D,D) );
+      Li_u[i].resize( shape(tmp6bis.shape(0),tmp6bis.shape(1),tmp6bis.shape(2),D,D) );
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp6bis.data(),K,env.gb(0)[0].data(),N,0.0,Li_u[i].data(),N);
 
       //vertical energy contribution: first peps(0,0) with operator to tmp6bis
@@ -814,7 +814,7 @@ double PEPS<double>::energy(){
 
    //Now do the bottom left operators: paste on the second 'regular' peps
    M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2);
-   N = (*this)(1,0).shape(1) * (*this)(1,0).shape(2);
+   N = (*this)(1,0).shape(3) * (*this)(1,0).shape(4);
    K = tmp5bis.shape(3) * tmp5bis.shape(4);
 
    tmp5.resize( shape(tmp5bis.shape(0),tmp5bis.shape(1),tmp5bis.shape(2),D,D) );
@@ -906,22 +906,9 @@ double PEPS<double>::energy(){
       val += ham.gcoef(i) * global::J2 * Dot(Li_u[i],R[col]);
 
    }
+
+   //Left down - close down with a diagonal and horizontal term!
 /*
-   //local term:
-   if(ham.gis_local()){
-
-      //first contract with the peps with right operators
-      Contract(1.0,ham.gB(),shape(1),(*this)(0,col),shape(2),0.0,peps_op);
-
-      // paste the operator peps' to intermediary
-      tmp5.clear();
-      Contract(1.0,tmp6,shape(1,2,4),peps_op,shape(2,4,0),0.0,tmp5);
-
-      //contract with left unit
-      val += blas::dot(R[col - 1].size(),R[col - 1].data(),1,tmp5.data(),1);
-
-   }
-
    //construct left renormalized operators for next site: first construct intermediary
    tmp5.clear();
    Contract(1.0,R[col - 1],shape(0),env.gt(0)[col],shape(0),0.0,tmp5);

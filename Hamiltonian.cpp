@@ -128,7 +128,7 @@ void Hamiltonian::set_J1J2(bool ladder) {
 
       L[0] = 0.0; L[1] = 0.0; L[2] = 0.0;
       R[0] = 0.0; R[1] = 0.0; R[2] = 0.0;
-
+/*
       //S+
       L[0](1,0) = 1.0;
       R[1](1,0) = 1.0;
@@ -147,6 +147,33 @@ void Hamiltonian::set_J1J2(bool ladder) {
       //coefficients:
       coef[0] = -0.5;//minus sign because of the Marshall sign rule
       coef[1] = -0.5;//minus sign because of the Marshall sign rule
+      coef[2] = 1.0;//minus sign because of the Marshall sign rule
+*/
+      //test
+      //
+      //unity
+      L[0](0,0) = 1.0;
+      L[1](0,0) = 1.0;
+      L[2](0,0) = 1.0;
+      R[0](0,0) = 1.0;
+      R[1](0,0) = 1.0;
+      R[2](0,0) = 1.0;
+
+      L[0](1,1) = 1.0;
+      L[1](1,1) = 1.0;
+      L[2](1,1) = 1.0;
+      R[0](1,1) = 1.0;
+      R[1](1,1) = 1.0;
+      R[2](1,1) = 1.0;
+
+/*
+      //coefficients:
+      coef[0] = -0.5;//minus sign because of the Marshall sign rule
+      coef[1] = -0.5;//minus sign because of the Marshall sign rule
+      coef[2] = 1.0;//minus sign because of the Marshall sign rule
+*/
+      coef[0] = 1.0;//minus sign because of the Marshall sign rule
+      coef[1] = 1.0;//minus sign because of the Marshall sign rule
       coef[2] = 1.0;//minus sign because of the Marshall sign rule
 
    }

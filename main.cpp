@@ -28,13 +28,14 @@ int main(int argc,char *argv[]){
    int d = atoi(argv[2]);//physical dimension
    int D = atoi(argv[3]);//virtual dimension
    int D_aux = atoi(argv[4]);//virtual dimension
+   int J2 = atoi(argv[5]);
 
    bool update = true;
    double tau = 0.01;
    int n_steps = 10;
 
    //initialize some statics dimensions
-   global::init(D,D_aux,d,L,L,tau);
+   global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
    peps.normalize();

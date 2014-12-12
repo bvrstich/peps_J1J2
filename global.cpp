@@ -25,6 +25,8 @@ namespace global{
 
    int comp_sweeps;
 
+   double J2;
+
    Random RN;
 
    DArray<2> I;
@@ -38,9 +40,10 @@ namespace global{
     * @param d_in physical dimension
     * @param Lx_in x dimension of the square lattice
     * @param Ly_in y dimension of the square lattice
+    * @param J2_in input next-nearest neighbour coupling
     * @param tau the time step of the imaginary time evolution
     */
-   void init(int D_in,int D_aux_in,int d_in,int Lx_in,int Ly_in,double tau){
+   void init(int D_in,int D_aux_in,int d_in,int Lx_in,int Ly_in,int J2_in,double tau){
 
       Lx = Lx_in;
       Ly = Ly_in;
@@ -50,6 +53,8 @@ namespace global{
       D = D_in;
 
       D_aux = D_aux_in;
+
+      J2 = 0.1*J2_in;
 
       //set the interaction
       ham.set_J1J2(true);

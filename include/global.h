@@ -38,6 +38,9 @@ namespace global {
    //!auxiliary bond dimension of the tensors
    extern int D_aux;
 
+   //!next-nearest neigbour coupling
+   extern double J2;
+
    //!hamiltonian object, containing nn-interaction operators and coefficients
    extern Hamiltonian ham;
 
@@ -51,7 +54,7 @@ namespace global {
    extern Environment env;
 
    //!initializer
-   void init(int,int,int,int,int,double);
+   void init(int,int,int,int,int,int,double);
 
    //!set the timestep
    void stau(double);

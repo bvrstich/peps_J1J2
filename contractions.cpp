@@ -153,105 +153,110 @@ namespace contractions {
 
    /** 
     * init the right renormalized operator for the middle rows: 
-    * @param option 'H'orizontal or 'V'ertical
-    * @param rc 'row' index for Horizontal, 'col' index for Vertical
+    * @param row index of the lowest row
     * @param peps The PEPS object
     * @param R vector containing the right operators on exit
     */
-   void init_ro(bool is_local,char option,int rc,const PEPS<double> &peps,vector< DArray<4> > &RO){
+   void init_ro(int row,const PEPS<double> &peps,vector< DArray<6> > &RO){
+
+      DArray<5> tmp5;
+      DArray<5> tmp5bis;
+
+      DArray<7> tmp7;
+      DArray<7> tmp7bis;
+
+      DArray<8> tmp8;
+      DArray<8> tmp8bis;
+
+      DArray<9> tmp9;
+      DArray<9> tmp9bis;
+
+      //first rightmost site: attach peps Lx - 1 to bottom
+      Gemm(CblasNoTrans,CblasTrans,1.0,peps(row,Lx-1),env.gb(row-1)[Lx-1],0.0,tmp5);
+
+      Permute(tmp5,shape(2,4,0,3,1),tmp5bis);
+
+      //add second lowest peps
+      int M = peps(row,Lx-1).shape(0) * peps(row,Lx-1).shape(1);
+      int N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
+      int K =  peps(row,Lx-1).shape(2) * peps(row,Lx-1).shape(3);
+
+      tmp5.resize(shape(D,D,D,env.gb(row-1)[Lx-1].shape(0),D));
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(row,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp5.data(),N);
+      
+      //add one row up peps
+      M = peps(row+1,Lx-1).shape(0) * peps(row+1,Lx-1).shape(1) * peps(row+1,Lx-1).shape(2);
+      N = env.gb(row-1)[Lx-1].shape(0) * D * D * D;
+      K = peps(row+1,Lx-1).shape(3);
+
+      tmp7.resize( shape(D,D,d,D,D,D,env.gb(row-1)[Lx-1].shape(0)) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,peps(row+1,Lx-1).data(),K,tmp5.data(),K,0.0,tmp7.data(),N);
+
+      Permute(tmp7,shape(2,5,0,1,3,4,6),tmp7bis);
+
+      //and another
+      M = peps(row+1,Lx-1).shape(0) * peps(row+1,Lx-1).shape(1);
+      N = env.gb(row-1)[Lx-1].shape(0) * D * D * D * D;
+      K = peps(row+1,Lx-1).shape(2) * peps(row+1,Lx-1).shape(3);;
+
+      tmp7.resize( shape(D,D,D,D,D,D,env.gb(row-1)[Lx-1].shape(0)) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,peps(row+1,Lx-1).data(),K,tmp7bis.data(),K,0.0,tmp7.data(),N);
+
+      tmp7bis.clear();
+      Permute(tmp7,shape(1,3,0,2,4,5,6),tmp7bis);
+
+      //finally top environment
+      M = env.gt(row)[Lx-1].shape(0);
+      N = env.gb(row-1)[Lx-1].shape(0) * D * D * D * D;
+      K = env.gt(row)[Lx-1].shape(1) * env.gt(row)[Lx-1].shape(2);
+
+      RO[Lx - 2].resize(env.gt(row)[Lx-1].shape(0),D,D,D,D,env.gb(row-1)[Lx-1].shape(0));
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(row)[Lx-1].data(),K,tmp7bis.data(),N,0.0,RO[Lx - 2].data(),N);
+
 /*
-      if(option == 'H'){
+      //now move from right to left, constructing the rest
+      for(int col = Lx - 2;col > 0;--col){
 
-         DArray<6> tmp6;
-         DArray<6> tmp6bis;
-         DArray<7> tmp7;
-         DArray<8> tmp8;
-         DArray<8> tmp8bis;
+         //first add bottom to right unity
+         tmp8.clear();
+         Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],RO[col],0.0,tmp8);
 
-         int stop;
+         tmp8bis.clear();
+         Permute(tmp8,shape(2,7,0,1,3,4,5,6),tmp8bis);
 
-         if(is_local)
-            stop = 0;
-         else
-            stop = 1;
+         //add regular peps on lower site
+         tmp9.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row,col),tmp8bis,0.0,tmp9);
 
-         //paste top peps 'operators'
-         Contract(1.0,env.gt(rc)[Lx - 1],shape(1),peps(rc,Lx-1),shape(1),0.0,tmp7);
+         tmp9bis.clear();
+         Permute(tmp9,shape(2,4,8,0,1,3,5,6,7),tmp9bis);
 
-         Contract(1.0,tmp7,shape(1,4),peps(rc,Lx-1),shape(1,2),0.0,tmp8);
+         //and another regular peps on lower site
+         tmp8.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row,col),tmp9bis,0.0,tmp8);
 
-         Contract(1.0,tmp8,shape(3,6),env.gb(rc-1)[Lx-1],shape(1,2),0.0,tmp8bis);
+         tmp8bis.clear();
+         Permute(tmp8,shape(3,7,1,6,0,2,4,5),tmp8bis);
 
-         //move to a DArray<3> object
-         RO[Lx - 2] = tmp8bis.reshape_clear(shape(env.gt(rc)[Lx - 1].shape(0),peps(rc,Lx-1).shape(0),peps(rc,Lx-1).shape(0),env.gb(rc-1)[Lx - 1].shape(0)));
+         //add regular peps on upper site
+         tmp9.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,col),tmp8bis,0.0,tmp9);
 
-         //now construct the middle operators
-         for(int col = Lx - 2;col > stop;--col){
+         tmp9bis.clear();
+         Permute(tmp9,shape(2,3,4,0,1,5,6,7,8),tmp9bis);
 
-            tmp6.clear();
-            Contract(1.0,env.gt(rc)[col],shape(3),RO[col],shape(0),0.0,tmp6);
+         tmp8.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,col),tmp9bis,0.0,tmp8);
 
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(1,3),peps(rc,col),shape(1,4),0.0,tmp7);
+         tmp8bis.clear();
+         Permute(tmp8,shape(1,3,7,0,2,4,5,6),tmp8bis);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,5),peps(rc,col),shape(1,4,2),0.0,tmp6);
+         RO[col - 1].clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp8bis,0.0,RO[col-1]);
 
-            tmp6bis.clear();
-            Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
-
-            RO[col - 1].clear();
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,env.gb(rc - 1)[col],0.0,RO[col - 1]);
-
-         }
 
       }
-      else{//vertical, columns
-
-         DArray<6> tmp6;
-         DArray<6> tmp6bis;
-         DArray<7> tmp7;
-         DArray<8> tmp8;
-         DArray<8> tmp8bis;
-
-         int stop;
-
-         if(is_local)
-            stop = 0;
-         else
-            stop = 1;
-
-         Contract(1.0,env.gl(rc - 1)[Ly - 1],shape(1),peps(Ly-1,rc),shape(0),0.0,tmp7);
-
-         Contract(1.0,tmp7,shape(1,4),peps(Ly-1,rc),shape(0,2),0.0,tmp8);
-
-         Contract(1.0,tmp8,shape(4,7),env.gr(rc)[Ly-1],shape(1,2),0.0,tmp8bis);
-
-         //move to a DArray<3> object
-         RO[Ly - 2] = tmp8bis.reshape_clear(shape(env.gl(rc - 1)[Ly - 1].shape(0),peps(Ly-1,rc).shape(3),peps(Ly-1,rc).shape(3),env.gr(rc)[Ly - 1].shape(0)));
-
-         //now construct the middle operators
-         for(int row = Ly - 2;row > stop;--row){
-
-            tmp6.clear();
-            Contract(1.0,env.gl(rc - 1)[row],shape(3),RO[row],shape(0),0.0,tmp6);
-
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(1,3),peps(row,rc),shape(0,1),0.0,tmp7);
-
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,4),peps(row,rc),shape(0,1,2),0.0,tmp6);
-
-            tmp6bis.clear();
-            Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
-
-            RO[row-1].clear();
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,env.gr(rc)[row],0.0,RO[row - 1]);
-
-         }
-
-      }
-  */
+*/
    }
 
    /** 

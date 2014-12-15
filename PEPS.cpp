@@ -740,6 +740,7 @@ double PEPS<double>::energy(){
 
    DArray<8> tmp8;
    DArray<8> tmp8bis;
+   DArray<8> perm8;
 
    int M,N,K;
 
@@ -966,70 +967,120 @@ double PEPS<double>::energy(){
 
       Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_d[i]);
 
-      val += ham.gcoef(i) * global::J2 * Dot(Li_d[i],R[col]);
+      val += ham.gcoef(i) * Dot(Li_d[i],R[col]);
 
    }
-   /*
-   //construct left renormalized operators for next site: first construct intermediary
-   tmp5.clear();
-   Contract(1.0,R[col - 1],shape(0),env.gt(0)[col],shape(0),0.0,tmp5);
 
-   tmp6.clear();
-   Contract(1.0,tmp5,shape(0,2),(*this)(0,col),shape(0,1),0.0,tmp6);
+   //now construct left going operators and evaluate the vertical term
+   
+   //first add top to left unity R[col - 1]:
+   tmp7.clear();
+   Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(0)[col],R[col - 1],0.0,tmp7);
 
-   // construct new left operators
+   tmp7bis.clear();
+   Permute(tmp7,shape(1,2,4,5,6,3,0),tmp7bis);
+
+   //add peps
+   tmp8.clear();
+   Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp7bis,(*this)(1,col),0.0,tmp8);
+
+   perm8.clear();
+   Permute(tmp8,shape(1,3,4,6,7,2,0,5),perm8);
+
+   //add upper operator for Lu_i and vertical contribution
    for(int i = 0;i < delta;++i){
 
-   Contract(1.0,ham.gL(i),shape(1),(*this)(0,col),shape(2),0.0,peps_op);
+      //add left operator on top site
+      peps_op.clear();
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-   tmp5.clear();
-   Contract(1.0,tmp6,shape(3,0,1),peps_op,shape(0,1,2),0.0,tmp5);
+      tmp7.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,perm8,peps_op,0.0,tmp7);
 
-   Li[i] = tmp5.reshape_clear(shape(env.gt(0)[col].shape(3),(*this)(0,col).shape(4),(*this)(0,col).shape(4)));
+      tmp7bis.clear();
+      Permute(tmp7,shape(0,4,6,2,5,1,3),tmp7bis);
+
+      //paste bottom regular peps on
+      tmp8.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp7bis,(*this)(0,col),0.0,tmp8);
+
+      tmp8bis.clear();
+      Permute(tmp8,shape(0,1,2,7,3,4,5,6),tmp8bis);
+
+      //1) first make the vertical energy contribution
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_u[i]);
+
+      val += ham.gcoef(i) * Dot(Li_u[i],R[col]);
+
+      //2) the construct the 'real' Lu_i
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,(*this)(0,col),0.0,Li_u[i]);
 
    }
 
-   // 4) finally construct new unity on the left
-   Contract(1.0,tmp6,shape(0,1,3),(*this)(0,col),shape(0,1,2),0.0,tmp5);
-   R[col] = tmp5.reshape_clear(shape(env.gt(0)[col].shape(3),(*this)(0,col).shape(4),(*this)(0,col).shape(4)));
+   //finally the lower operator Ld_i
+   for(int i = 0;i < delta;++i){
 
+      tmp7.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,perm8,(*this)(1,col),0.0,tmp7);
+
+      tmp7bis.clear();
+      Permute(tmp7,shape(0,4,6,2,5,1,3),tmp7bis);
+
+      //paste bottom regular peps on
+      tmp8.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp7bis,(*this)(0,col),0.0,tmp8);
+
+      tmp8bis.clear();
+      Permute(tmp8,shape(0,1,2,7,3,4,5,6),tmp8bis);
+
+      //construct lower left operator
+      peps_op.clear();
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(0,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_d[i]);
+
+   }
+   
    //}
-
+/*
    //last site of bottom row: close down the left operators
 
    //contract with left operators for energy contribution
    for(int i = 0;i < delta;++i){
 
-   //first contract with the peps with the right hamiltonian operators
-   peps_op.clear();
-   Contract(1.0,ham.gR(i),shape(1),(*this)(0,Lx-1),shape(2),0.0,peps_op);
+      //first contract with the peps with the right hamiltonian operators
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(1),(*this)(0,Lx-1),shape(2),0.0,peps_op);
 
-   //add top to left operator
-   tmp5.clear();
-   Contract(1.0,Li[i],shape(0),env.gt(0)[Lx - 1],shape(0),0.0,tmp5);
+      //add top to left operator
+      tmp5.clear();
+      Contract(1.0,Li[i],shape(0),env.gt(0)[Lx - 1],shape(0),0.0,tmp5);
 
-   tmp6.clear();
-   Contract(1.0,(*this)(0,Lx-1),shape(0,1),tmp5,shape(0,2),0.0,tmp6);
+      tmp6.clear();
+      Contract(1.0,(*this)(0,Lx-1),shape(0,1),tmp5,shape(0,2),0.0,tmp6);
 
-   val += ham.gcoef(i) * blas::dot(tmp6.size(), tmp6.data(), 1, peps_op.data(), 1);
+      val += ham.gcoef(i) * blas::dot(tmp6.size(), tmp6.data(), 1, peps_op.data(), 1);
 
    }
 
    //local term:
    if(ham.gis_local()){
 
-   //first contract with the peps with the right hamiltonian operators
-   peps_op.clear();
-   Contract(1.0,ham.gB(),shape(1),(*this)(0,Lx-1),shape(2),0.0,peps_op);
+      //first contract with the peps with the right hamiltonian operators
+      peps_op.clear();
+      Contract(1.0,ham.gB(),shape(1),(*this)(0,Lx-1),shape(2),0.0,peps_op);
 
-   //add top to left operator
-   tmp5.clear();
-   Contract(1.0,R[Lx - 2],shape(0),env.gt(0)[Lx - 1],shape(0),0.0,tmp5);
+      //add top to left operator
+      tmp5.clear();
+      Contract(1.0,R[Lx - 2],shape(0),env.gt(0)[Lx - 1],shape(0),0.0,tmp5);
 
-   tmp6.clear();
-   Contract(1.0,(*this)(0,Lx-1),shape(0,1),tmp5,shape(0,2),0.0,tmp6);
+      tmp6.clear();
+      Contract(1.0,(*this)(0,Lx-1),shape(0,1),tmp5,shape(0,2),0.0,tmp6);
 
-   val += blas::dot(tmp6.size(), tmp6.data(), 1, peps_op.data(), 1);
+      val += blas::dot(tmp6.size(), tmp6.data(), 1, peps_op.data(), 1);
 
    }
 

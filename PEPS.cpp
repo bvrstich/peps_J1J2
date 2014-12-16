@@ -731,12 +731,14 @@ double PEPS<double>::energy(){
    //some storage stuff:
    DArray<5> tmp5;
    DArray<5> tmp5bis;
+   DArray<5> perm5;
 
    DArray<6> tmp6;
    DArray<6> tmp6bis;
 
    DArray<7> tmp7;
    DArray<7> tmp7bis;
+   DArray<7> perm7;
 
    DArray<8> tmp8;
    DArray<8> tmp8bis;
@@ -1182,7 +1184,7 @@ double PEPS<double>::energy(){
       peps_op.clear();
       Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-      val += blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
+      val += ham.gcoef(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
 
    }
 
@@ -1191,8 +1193,9 @@ double PEPS<double>::energy(){
    //Right renormalized operators
    vector< DArray<6> > RO(Lx - 1);
 
-   //array of delta left renormalized operators needed
-   std::vector< DArray<6> > LOi(delta);
+   //array of delta left upper and lower renormalized operators needed
+   std::vector< DArray<6> > LOi_u(delta);
+   std::vector< DArray<6> > LOi_d(delta);
 
    //for(int row = 1;row < Ly - 2;++row){
    int row = 1;
@@ -1204,35 +1207,88 @@ double PEPS<double>::energy(){
    
    //start with the first site, evaluate the vertical term and the left going terms
 
-   //paste regular peps on top environment
+   //paste upper row regular peps on top environment
    tmp5.clear();
-   Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[0],(*this)(row,0),0.0,tmp5);
+   Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[0],(*this)(row+1,0),0.0,tmp5);
 
-   tmp5bis.clear();
-   Permute(tmp5,shape(1,3,4,0,2),tmp5bis);
+   perm5.clear();
+   Permute(tmp5,shape(1,3,4,0,2),perm5);
 
-   //construct  Left-Up operator and vertical energy contribution
+   //construct Left-Up operator and vertical energy contribution
    for(int i = 0;i < delta;++i){
 
+      //paste operator on upper row peps
       peps_op.clear();
-      Contract(1.0,ham.gL(i),shape(j,k),(*this)(row,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(row+1,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-      M = 
-         N
-         K
+      //and add onto perm5
+      M = perm5.shape(0) * perm5.shape(1) * perm5.shape(2);
+      N = peps_op.shape(3) * peps_op.shape(4);
+      K = peps_op.shape(1) * peps_op.shape(2);
 
-      // add peps_i's to intermediate
-      tmp8.clear();
-      Contract(1.0,tmp7,shape(4,1),peps_op,shape(0,2),0.0,tmp8);
+      tmp5.resize( shape(env.gt(row)[0].shape(3),D,D,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm5.data(),K,peps_op.data(),N,0.0,tmp5.data(),N);
 
-      tmp8bis.clear();
-      Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
+      tmp5bis.clear();
+      Permute(tmp5,shape(0,2,4,3,1),tmp5bis);
 
-      //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
-      LOi[i] = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),(*this)(row,0).shape(4),(*this)(row,0).shape(4),env.gb(row-1)[0].shape(3)));
+      //paste lower row regular peps on
+      M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2) * tmp5bis.shape(3);
+      N = (*this)(row,0).shape(2) * (*this)(row,0).shape(3) * (*this)(row,0).shape(4);
+      K = tmp5bis.shape(4);
+
+      tmp7.resize( shape(env.gt(row)[0].shape(3),D,D,D,d,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,(*this)(row,0).data(),N,0.0,tmp7.data(),N);
+
+      perm7.clear();
+      Permute(tmp7,shape(0,1,2,5,6,3,4),perm7);
+
+      //first evaluate vertical energy contribution
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      //add on lower site peps with operator
+      M = perm7.shape(0) * perm7.shape(1) * perm7.shape(2) * perm7.shape(3) * perm7.shape(4);
+      N = (*this)(row,0).shape(3) * (*this)(row,0).shape(4);
+      K = perm7.shape(5) * perm7.shape(6);
+
+      tmp7.resize( shape(env.gt(row)[0].shape(3),D,D,D,D,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm7.data(),K,peps_op.data(),N,0.0,tmp7.data(),N);
+
+      tmp7bis.clear();
+      Permute(tmp7,shape(0,1,2,4,6,3,5),tmp7bis);
+
+      M = tmp7bis.shape(0) * tmp7bis.shape(1) * tmp7bis.shape(2) * tmp7bis.shape(3) * tmp7bis.shape(4);
+      N = env.gb(row-1)[0].shape(3);
+      K = tmp7bis.shape(5) * tmp7bis.shape(6);
+
+      LOi_u[i].resize( shape(env.gt(row)[0].shape(3),D,D,D,D,env.gb(row-1)[0].shape(3)) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp7bis.data(),K,env.gb(row-1)[0].data(),N,0.0,LOi_u[i].data(),N);
+
+      //vertical energy
+      val += ham.gcoef(i) * Dot(LOi_u[i],RO[0]);
+
+      //then construct leftgoing upper operator
+
+      //add on lower site peps with operator
+      M = perm7.shape(0) * perm7.shape(1) * perm7.shape(2) * perm7.shape(3) * perm7.shape(4);
+      N = (*this)(row,0).shape(3) * (*this)(row,0).shape(4);
+      K = perm7.shape(5) * perm7.shape(6);
+
+      tmp7.resize( shape(env.gt(row)[0].shape(3),D,D,D,D,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm7.data(),K,(*this)(row,0).data(),N,0.0,tmp7.data(),N);
+
+      tmp7bis.clear();
+      Permute(tmp7,shape(0,1,2,4,6,3,5),tmp7bis);
+
+      M = tmp7bis.shape(0) * tmp7bis.shape(1) * tmp7bis.shape(2) * tmp7bis.shape(3) * tmp7bis.shape(4);
+      N = env.gb(row-1)[0].shape(3);
+      K = tmp7bis.shape(5) * tmp7bis.shape(6);
+
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp7bis.data(),K,env.gb(row-1)[0].data(),N,0.0,LOi_u[i].data(),N);
 
    }
-
+/*
    // 4) 1 -- finally construct left renormalized operator with unity
    Contract(1.0,tmp7,shape(1,4),(*this)(row,0),shape(1,2),0.0,tmp8);
    Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);

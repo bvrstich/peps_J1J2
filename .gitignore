@@ -8,7 +8,7 @@
 *.gif
 *.svg
 callgrind.out.*
-peps_J1J2
+peps
 tags
 docs/
 test

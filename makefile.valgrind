@@ -16,8 +16,6 @@ CPPSRC	= main.cpp\
            MPS.cpp\
            MPO.cpp\
            Environment.cpp\
-           Trotter.cpp\
-           propagate.cpp\
            contractions.cpp\
            btas_defs.cpp
 

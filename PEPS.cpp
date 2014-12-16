@@ -1199,183 +1199,174 @@ double PEPS<double>::energy(){
 
    //first create right renormalized operator
    contractions::init_ro(row,*this,RO);
-/*
-      // --- now move from left to right to get the expecation value of the interactions ---
 
+   // --- now move from left to right to get the expecation value of the interactions ---
+   
+   //start with the first site, evaluate the vertical term and the left going terms
 
-      //paste top environment on
-      tmp7.clear();
-      Contract(1.0,env.gt(row)[0],shape(1),(*this)(row,0),shape(1),0.0,tmp7);
+   //paste regular peps on top environment
+   tmp5.clear();
+   Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[0],(*this)(row,0),0.0,tmp5);
 
-      //get the local energy term first
-      if(ham.gis_local()){
+   tmp5bis.clear();
+   Permute(tmp5,shape(1,3,4,0,2),tmp5bis);
 
-         peps_op.clear();
-         Contract(1.0,ham.gB(),shape(1),(*this)(row,0),shape(2),0.0,peps_op);
+   //construct  Left-Up operator and vertical energy contribution
+   for(int i = 0;i < delta;++i){
 
-         // add peps_op to intermediate
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(4,1),peps_op,shape(0,2),0.0,tmp8);
+      peps_op.clear();
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(row,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
+      M = 
+         N
+         K
 
-         val += blas::dot(RO[0].size(), RO[0].data(), 1, tmp8bis.data(), 1);
+      // add peps_i's to intermediate
+      tmp8.clear();
+      Contract(1.0,tmp7,shape(4,1),peps_op,shape(0,2),0.0,tmp8);
 
-      }
-
-      // --- Construct the left going operators for the first site -----
-      for(int i = 0;i < delta;++i){
-
-         peps_op.clear();
-         Contract(1.0,ham.gL(i),shape(1),(*this)(row,0),shape(2),0.0,peps_op);
-
-         // add peps_i's to intermediate
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(4,1),peps_op,shape(0,2),0.0,tmp8);
-
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
-
-         //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
-         LOi[i] = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),(*this)(row,0).shape(4),(*this)(row,0).shape(4),env.gb(row-1)[0].shape(3)));
-
-      }
-
-      // 4) 1 -- finally construct left renormalized operator with unity
-      Contract(1.0,tmp7,shape(1,4),(*this)(row,0),shape(1,2),0.0,tmp8);
+      tmp8bis.clear();
       Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
 
       //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
-      RO[0] = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),(*this)(row,0).shape(4),(*this)(row,0).shape(4),env.gb(row-1)[0].shape(3)));
+      LOi[i] = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),(*this)(row,0).shape(4),(*this)(row,0).shape(4),env.gb(row-1)[0].shape(3)));
 
-      // --- now for the middle sites, close down the operators on the left and construct new ones --- 
-      for(int col = 1;col < Lx - 1;++col){
+   }
 
-         //add top and one peps to the right side
-         tmp6.clear();
-         Contract(1.0,env.gt(row)[col],shape(3),RO[col],shape(0),0.0,tmp6);
+   // 4) 1 -- finally construct left renormalized operator with unity
+   Contract(1.0,tmp7,shape(1,4),(*this)(row,0),shape(1,2),0.0,tmp8);
+   Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
 
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(1,3),(*this)(row,col),shape(1,4),0.0,tmp7);
+   //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
+   RO[0] = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),(*this)(row,0).shape(4),(*this)(row,0).shape(4),env.gb(row-1)[0].shape(3)));
 
-         for(int i = 0;i < delta;++i){
+   // --- now for the middle sites, close down the operators on the left and construct new ones --- 
+   for(int col = 1;col < Lx - 1;++col){
 
-            //contract the peps with right operators: peps_i's
-            peps_op.clear();
-            Contract(1.0,ham.gR(i),shape(1),(*this)(row,col),shape(2),0.0,peps_op);
+      //add top and one peps to the right side
+      tmp6.clear();
+      Contract(1.0,env.gt(row)[col],shape(3),RO[col],shape(0),0.0,tmp6);
 
-            //close down the LOi's with peps_i's
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,5),peps_op,shape(2,4,0),0.0,tmp6);
+      tmp7.clear();
+      Contract(1.0,tmp6,shape(1,3),(*this)(row,col),shape(1,4),0.0,tmp7);
 
-            tmp6bis.clear();
-            Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
-
-            RO[col].clear();
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,RO[col]);
-
-            //expectation value:
-            val += ham.gcoef(i) * Dot(LOi[i],RO[col]);
-
-         }
-
-         //add local term
-         if(ham.gis_local()){
-
-            //contract the peps with right operators: peps_i's
-            peps_op.clear();
-            Contract(1.0,ham.gB(),shape(1),(*this)(row,col),shape(2),0.0,peps_op);
-
-            //close down the left unit with peps_op
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,5),peps_op,shape(2,4,0),0.0,tmp6);
-
-            tmp6bis.clear();
-            Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
-
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,RO[col]);
-
-            //expectation value:
-            val += Dot(RO[col],RO[col-1]);
-
-         }
-
-         // now construct the new left going renormalized operators
-
-         //first attach top to left unity
-         tmp6.clear();
-         Contract(1.0,env.gt(row)[col],shape(0),RO[col-1],shape(0),0.0,tmp6);
-
-         //add peps to it, intermediary
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(3,0),(*this)(row,col),shape(0,1),0.0,tmp7);
-
-         //paste left operators to intermediary to make new left operators
-         for(int i = 0;i < delta;++i){
-
-            Contract(1.0,ham.gL(i),shape(1),(*this)(row,col),shape(2),0.0,peps_op);
-
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(4,2,0),peps_op,shape(0,1,2),0.0,tmp6);
-
-            tmp6bis.clear();
-            Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
-
-            LOi[i].clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,LOi[i]);
-
-         }
-
-         //finally construct new left unity
-         Contract(1.0,tmp7,shape(2,0,4),(*this)(row,col),shape(0,1,2),0.0,tmp6);
-         Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
-
-         RO[col].clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,RO[col]);
-
-      }
-
-      //last site on the right: close down on the incomings
       for(int i = 0;i < delta;++i){
 
+         //contract the peps with right operators: peps_i's
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(1),(*this)(row,Lx - 1),shape(2),0.0,peps_op);
+         Contract(1.0,ham.gR(i),shape(1),(*this)(row,col),shape(2),0.0,peps_op);
 
+         //close down the LOi's with peps_i's
          tmp6.clear();
-         Contract(1.0,env.gt(row)[Lx - 1],shape(0),LOi[i],shape(0),0.0,tmp6);
+         Contract(1.0,tmp7,shape(1,2,5),peps_op,shape(2,4,0),0.0,tmp6);
 
-         //add peps to it
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(3,0),(*this)(row,Lx - 1),shape(0,1),0.0,tmp7);
+         tmp6bis.clear();
+         Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
 
-         tmp6.clear();
-         Contract(1.0,tmp7,shape(4,2,0),peps_op,shape(0,1,2),0.0,tmp6);
+         RO[col].clear();
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,RO[col]);
 
-         val += ham.gcoef(i) * blas::dot(tmp6.size(), tmp6.data(), 1, env.gb(row-1)[Lx-1].data(), 1);
+         //expectation value:
+         val += ham.gcoef(i) * Dot(LOi[i],RO[col]);
 
       }
 
+      //add local term
       if(ham.gis_local()){
 
+         //contract the peps with right operators: peps_i's
          peps_op.clear();
-         Contract(1.0,ham.gB(),shape(1),(*this)(row,Lx - 1),shape(2),0.0,peps_op);
+         Contract(1.0,ham.gB(),shape(1),(*this)(row,col),shape(2),0.0,peps_op);
 
+         //close down the left unit with peps_op
          tmp6.clear();
-         Contract(1.0,env.gt(row)[Lx - 1],shape(0),RO[Lx - 2],shape(0),0.0,tmp6);
+         Contract(1.0,tmp7,shape(1,2,5),peps_op,shape(2,4,0),0.0,tmp6);
 
-         //add peps to it
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(3,0),(*this)(row,Lx - 1),shape(0,1),0.0,tmp7);
+         tmp6bis.clear();
+         Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
+
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,RO[col]);
+
+         //expectation value:
+         val += Dot(RO[col],RO[col-1]);
+
+      }
+
+      // now construct the new left going renormalized operators
+
+      //first attach top to left unity
+      tmp6.clear();
+      Contract(1.0,env.gt(row)[col],shape(0),RO[col-1],shape(0),0.0,tmp6);
+
+      //add peps to it, intermediary
+      tmp7.clear();
+      Contract(1.0,tmp6,shape(3,0),(*this)(row,col),shape(0,1),0.0,tmp7);
+
+      //paste left operators to intermediary to make new left operators
+      for(int i = 0;i < delta;++i){
+
+         Contract(1.0,ham.gL(i),shape(1),(*this)(row,col),shape(2),0.0,peps_op);
 
          tmp6.clear();
          Contract(1.0,tmp7,shape(4,2,0),peps_op,shape(0,1,2),0.0,tmp6);
 
-         val += blas::dot(tmp6.size(), tmp6.data(), 1, env.gb(row-1)[Lx-1].data(), 1);
+         tmp6bis.clear();
+         Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
+
+         LOi[i].clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,LOi[i]);
 
       }
 
-//   }
+      //finally construct new left unity
+      Contract(1.0,tmp7,shape(2,0,4),(*this)(row,col),shape(0,1,2),0.0,tmp6);
+      Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
+
+      RO[col].clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,RO[col]);
+
+   }
+
+   //last site on the right: close down on the incomings
+   for(int i = 0;i < delta;++i){
+
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(1),(*this)(row,Lx - 1),shape(2),0.0,peps_op);
+
+      tmp6.clear();
+      Contract(1.0,env.gt(row)[Lx - 1],shape(0),LOi[i],shape(0),0.0,tmp6);
+
+      //add peps to it
+      tmp7.clear();
+      Contract(1.0,tmp6,shape(3,0),(*this)(row,Lx - 1),shape(0,1),0.0,tmp7);
+
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(4,2,0),peps_op,shape(0,1,2),0.0,tmp6);
+
+      val += ham.gcoef(i) * blas::dot(tmp6.size(), tmp6.data(), 1, env.gb(row-1)[Lx-1].data(), 1);
+
+   }
+
+   if(ham.gis_local()){
+
+      peps_op.clear();
+      Contract(1.0,ham.gB(),shape(1),(*this)(row,Lx - 1),shape(2),0.0,peps_op);
+
+      tmp6.clear();
+      Contract(1.0,env.gt(row)[Lx - 1],shape(0),RO[Lx - 2],shape(0),0.0,tmp6);
+
+      //add peps to it
+      tmp7.clear();
+      Contract(1.0,tmp6,shape(3,0),(*this)(row,Lx - 1),shape(0,1),0.0,tmp7);
+
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(4,2,0),peps_op,shape(0,1,2),0.0,tmp6);
+
+      val += blas::dot(tmp6.size(), tmp6.data(), 1, env.gb(row-1)[Lx-1].data(), 1);
+
+   }
+
+   //   }
 
    // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 

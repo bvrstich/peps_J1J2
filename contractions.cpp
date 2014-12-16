@@ -255,47 +255,6 @@ namespace contractions {
 
       }
 
-      int col = 0;
-
-      //first add bottom to right unity
-      tmp8.clear();
-      Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],RO[col],0.0,tmp8);
-
-      tmp8bis.clear();
-      Permute(tmp8,shape(2,7,0,1,3,4,5,6),tmp8bis);
-
-      //add regular peps on lower site
-      tmp9.clear();
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row,col),tmp8bis,0.0,tmp9);
-
-      tmp9bis.clear();
-      Permute(tmp9,shape(2,4,8,0,1,3,5,6,7),tmp9bis);
-
-      //and another regular peps on lower site
-      tmp8.clear();
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row,col),tmp9bis,0.0,tmp8);
-
-      tmp8bis.clear();
-      Permute(tmp8,shape(3,7,1,6,0,2,4,5),tmp8bis);
-
-      //add regular peps on upper site
-      tmp9.clear();
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,col),tmp8bis,0.0,tmp9);
-
-      tmp9bis.clear();
-      Permute(tmp9,shape(2,3,4,0,1,5,6,7,8),tmp9bis);
-
-      tmp8.clear();
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,col),tmp9bis,0.0,tmp8);
-
-      tmp8bis.clear();
-      Permute(tmp8,shape(1,3,7,0,2,4,5,6),tmp8bis);
-
-      DArray<6> test;
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp8bis,0.0,test);
-
-      cout << test << endl;
-
    }
 
    /** 

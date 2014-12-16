@@ -244,12 +244,14 @@ namespace contractions {
          tmp9bis.clear();
          Permute(tmp9,shape(2,3,4,0,1,5,6,7,8),tmp9bis);
 
+         //yet another regular on upper site
          tmp8.clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,col),tmp9bis,0.0,tmp8);
 
          tmp8bis.clear();
          Permute(tmp8,shape(1,3,7,0,2,4,5,6),tmp8bis);
 
+         //finally top environment for closure
          RO[col - 1].clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp8bis,0.0,RO[col-1]);
 

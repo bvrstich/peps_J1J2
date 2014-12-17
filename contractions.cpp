@@ -261,7 +261,7 @@ namespace contractions {
 
    /** 
     * init the right renormalized operator for the top or bottom row, or left or right column
-    * @param option == 'l'eft 'r'ight 'top' or 'b'ottom
+    * @param option == 't'op or 'b'ottom
     * @param R vector containing the right operators on exit
     */
    void init_ro(char option,const PEPS<double> &peps,vector< DArray<5> > &R){
@@ -328,12 +328,72 @@ namespace contractions {
          }
 
       }
-      else if(option == 't'){
+      else{ //top 2 rows
+
+         //attach bottom environment to lower peps
+         DArray<5> tmp5;
+         Gemm(CblasNoTrans,CblasTrans,1.0,peps(Ly-2,Lx-1),env.gb(Ly-3)[Lx-1],0.0,tmp5);
+
+         DArray<5> tmp5bis;
+         Permute(tmp5,shape(2,4,0,1,3),tmp5bis);
+
+         //another lower regular peps on top
+         int M = peps(Ly-2,Lx-1).shape(0) * peps(Ly-2,Lx-1).shape(1);
+         int N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
+         int K = peps(Ly-2,Lx-1).shape(2) * peps(Ly-2,Lx-1).shape(3);
+
+         tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(Ly-2,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp5.data(),N);
+
+         tmp5bis.clear();
+         Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
+
+         //finally add top!
+         M = env.gt(Ly-3)[Lx-1].shape(0);
+         N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
+         K = env.gt(Ly-3)[Lx-1].shape(1) * env.gt(Ly-3)[Lx-1].shape(2) * env.gt(Ly-3)[Lx-1].shape(3);
+
+         R[Lx-2].resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(Ly-3)[Lx-1].data(),K,tmp5bis.data(),N,0.0,R[Lx-2].data(),N);
+
+         DArray<7> tmp7;
+         DArray<7> tmp7bis;
+
+         DArray<8> tmp8;
+         DArray<8> tmp8bis;
+
+         for(int col = Lx - 2;col > 0;--col){
+
+            tmp7.clear();
+            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Ly-3)[col],R[col],0.0,tmp7);
+
+            tmp7bis.clear();
+            Permute(tmp7,shape(2,6,0,1,3,4,5),tmp7bis);
+
+            tmp8.clear();
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(Ly-2,col),tmp7bis,0.0,tmp8);
+
+            tmp8bis.clear();
+            Permute(tmp8,shape(2,4,7,0,1,3,5,6),tmp8bis);
+
+            tmp7.clear();
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(Ly-2,col),tmp8bis,0.0,tmp7);
+
+            tmp7bis.clear();
+            Permute(tmp7,shape(1,3,5,6,0,2,4),tmp7bis);
+
+            M = env.gt(Ly-3)[col].shape(0);
+            N = tmp7bis.shape(4) * tmp7bis.shape(5) * tmp7bis.shape(6);
+            K = env.gt(Ly-3)[col].shape(1) * env.gt(Ly-3)[col].shape(2) * env.gt(Ly-3)[col].shape(3);
+
+            R[col - 1].resize(shape( D,D,D,D,env.gb(Ly-3)[col].shape(0) ) );
+            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(Ly-3)[col].data(),K,tmp7bis.data(),N,0.0,R[col - 1].data(),N);
+
+         }
 
       }
 
    }
-
 
    /**
     * update left renormalized operator on site (row,col )

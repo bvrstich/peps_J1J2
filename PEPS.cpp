@@ -1361,8 +1361,6 @@ double PEPS<double>::energy(){
       // --- now for the middle sites, close down the operators on the left and construct new ones --- 
       for(int col = 1;col < Lx - 1;++col){
 
-         cout << row << "\t" << col << endl;
-
          //close down the left up and down operators with two diagonal and one horizontal contribution
          tmp8.clear();
          Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],RO[col],0.0,tmp8);
@@ -1699,12 +1697,12 @@ double PEPS<double>::energy(){
       }
 
    }
-/*
+
    // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 
    //first construct the right renormalized operators
-   contractions::init_ro(ham.gis_local(),'t',*this,R);
-
+   contractions::init_ro('t',*this,R);
+/*
    //construct the left operator with two open physical bonds
    tmp5.clear();
    Contract(1.0,(*this)(Ly-1,0),shape(0,3),env.gb(Ly-2)[0],shape(0,2),0.0,tmp5);

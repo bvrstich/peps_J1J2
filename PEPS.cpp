@@ -729,12 +729,16 @@ double PEPS<double>::energy(){
 
 
    //some storage stuff:
+   DArray<4> tmp4;
+   DArray<4> tmp4bis;
+
    DArray<5> tmp5;
    DArray<5> tmp5bis;
    DArray<5> perm5;
 
    DArray<6> tmp6;
    DArray<6> tmp6bis;
+   DArray<6> perm6;
 
    DArray<7> tmp7;
    DArray<7> tmp7bis;
@@ -1319,7 +1323,7 @@ double PEPS<double>::energy(){
 
          //add on lower site peps with operator
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gL(i),shape(j,k),(*this)(row,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          M = perm7.shape(0) * perm7.shape(1) * perm7.shape(2) * perm7.shape(3) * perm7.shape(4);
          N = (*this)(row,0).shape(3) * (*this)(row,0).shape(4);
@@ -1702,109 +1706,207 @@ double PEPS<double>::energy(){
 
    //first construct the right renormalized operators
    contractions::init_ro('t',*this,R);
-/*
-   //construct the left operator with two open physical bonds
-   tmp5.clear();
-   Contract(1.0,(*this)(Ly-1,0),shape(0,3),env.gb(Ly-2)[0],shape(0,2),0.0,tmp5);
 
-   tmp5bis.clear();
-   Permute(tmp5,shape(1,0,3,2,4),tmp5bis);
-
-   //add local energy term
-   if(ham.gis_local()){
-
-      peps_op.clear();
-      Contract(1.0,ham.gB(),shape(1),(*this)(Ly-1,0),shape(2),0.0,peps_op);
-
-      tmp4.clear();
-      Contract(1.0,peps_op,shape(0,2,3),tmp5bis,shape(0,1,2),0.0,tmp4);
-
-      val += blas::dot(tmp4.size(), tmp4.data(), 1, R[0].data(), 1);
-
-   }
-
-   //multiply intermediate with Left hamiltonian operators
+   //construct the left going operators and the vertical energy contribution
+   
+   //first construct Left Up operator and vertcial energy
    for(int i = 0;i < delta;++i){
 
       peps_op.clear();
-      Contract(1.0,ham.gL(i),shape(1),(*this)(Ly-1,0),shape(2),0.0,peps_op);
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(Ly-1,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-      tmp4.clear();
-      Contract(1.0,peps_op,shape(0,2,3),tmp5bis,shape(0,1,2),0.0,tmp4);
+      //connect upper regular and operator peps together
+      Gemm(CblasTrans,CblasNoTrans,1.0,(*this)(Ly-1,0),peps_op,0.0,tmp4);
 
-      Li[i] = tmp4.reshape_clear(shape(tmp4.shape(1),tmp4.shape(2),tmp4.shape(3)));
+      tmp4bis.clear();
+      Permute(tmp4,shape(1,3,2,0),tmp4bis);
+
+      //paste on lower regular peps
+      M = tmp4bis.shape(0) * tmp4bis.shape(1) * tmp4bis.shape(2);
+      N = (*this)(Ly-2,0).shape(2) * (*this)(Ly-2,0).shape(3) * (*this)(Ly-2,0).shape(4);
+      K = tmp4bis.shape(3);
+
+      tmp6.resize( shape(D,D,D,d,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp4bis.data(),K,(*this)(Ly-2,0).data(),N,0.0,tmp6.data(),N);
+
+      perm6.clear();
+      Permute(tmp6,shape(0,1,4,5,2,3),perm6);
+
+      //first do vertical energy contribution: operator on lower site
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      M = perm6.shape(0) * perm6.shape(1) * perm6.shape(2) * perm6.shape(3);
+      N = (*this)(Ly-2,0).shape(3) * (*this)(Ly-2,0).shape(4);
+      K = perm6.shape(4) * perm6.shape(5);
+
+      tmp6.resize( shape(D,D,D,D,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm6.data(),K,peps_op.data(),N,0.0,tmp6.data(),N);
+
+      tmp6bis.clear();
+      Permute(tmp6,shape(0,1,3,5,2,4),tmp6bis);
+
+      //finally contract with bottom environment
+      M = tmp6bis.shape(0) * tmp6bis.shape(1) * tmp6bis.shape(2) * tmp6bis.shape(3);
+      N = env.gb(Ly-3)[0].shape(3);
+      K = tmp6bis.shape(4) * tmp6bis.shape(5);
+
+      Li_u[i].resize( shape(D,D,D,D,env.gb(Ly-3)[0].shape(3)) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp6bis.data(),K,env.gb(Ly-3)[0].data(),N,0.0,Li_u[i].data(),N);
+
+      //vertical energy:
+      val += ham.gcoef(i) * Dot(Li_u[i],R[0]);
+
+      //now construct the left up going operator: add regular lower peps to intermediate perm6
+      M = perm6.shape(0) * perm6.shape(1) * perm6.shape(2) * perm6.shape(3);
+      N = (*this)(Ly-2,0).shape(3) * (*this)(Ly-2,0).shape(4);
+      K = perm6.shape(4) * perm6.shape(5);
+
+      tmp6.resize( shape(D,D,D,D,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm6.data(),K,(*this)(Ly-2,0).data(),N,0.0,tmp6.data(),N);
+
+      tmp6bis.clear();
+      Permute(tmp6,shape(0,1,3,5,2,4),tmp6bis);
+
+      //finally contract with bottom environment
+      M = tmp6bis.shape(0) * tmp6bis.shape(1) * tmp6bis.shape(2) * tmp6bis.shape(3);
+      N = env.gb(Ly-3)[0].shape(3);
+      K = tmp6bis.shape(4) * tmp6bis.shape(5);
+
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp6bis.data(),K,env.gb(Ly-3)[0].data(),N,0.0,Li_u[i].data(),N);
 
    }
 
-   //and finally unity
-   Contract(1.0,(*this)(Ly-1,0),shape(2,1,3),tmp5bis,shape(0,1,2),0.0,tmp4);
-   R[0] = tmp4.reshape_clear(shape(tmp4.shape(1),tmp4.shape(2),tmp4.shape(3)));
+   //then construct lower left operator and unity
+   Gemm(CblasTrans,CblasNoTrans,1.0,(*this)(Ly-1,0),(*this)(Ly-1,0),0.0,tmp4);
+
+   tmp4bis.clear();
+   Permute(tmp4,shape(1,3,2,0),tmp4bis);
+
+   //paste on lower regular peps
+   M = tmp4bis.shape(0) * tmp4bis.shape(1) * tmp4bis.shape(2);
+   N = (*this)(Ly-2,0).shape(2) * (*this)(Ly-2,0).shape(3) * (*this)(Ly-2,0).shape(4);
+   K = tmp4bis.shape(3);
+
+   tmp6.resize( shape(D,D,D,d,D,D) );
+   blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp4bis.data(),K,(*this)(Ly-2,0).data(),N,0.0,tmp6.data(),N);
+
+   perm6.clear();
+   Permute(tmp6,shape(0,1,4,5,2,3),perm6);
+
+   //construct lower left operator
+   for(int i = 0;i < delta;++i){
+
+      //first do vertical energy contribution: operator on lower site
+      peps_op.clear();
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(Ly-2,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      //attach to perm6
+      M = perm6.shape(0) * perm6.shape(1) * perm6.shape(2) * perm6.shape(3);
+      N = (*this)(Ly-2,0).shape(3) * (*this)(Ly-2,0).shape(4);
+      K = perm6.shape(4) * perm6.shape(5);
+
+      tmp6.resize( shape(D,D,D,D,D,D) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm6.data(),K,peps_op.data(),N,0.0,tmp6.data(),N);
+
+      tmp6bis.clear();
+      Permute(tmp6,shape(0,1,3,5,2,4),tmp6bis);
+
+      //finally contract with bottom environment to get Left Down
+      M = tmp6bis.shape(0) * tmp6bis.shape(1) * tmp6bis.shape(2) * tmp6bis.shape(3);
+      N = env.gb(Ly-3)[0].shape(3);
+      K = tmp6bis.shape(4) * tmp6bis.shape(5);
+
+      Li_d[i].resize( shape(D,D,D,D,env.gb(Ly-3)[0].shape(3)) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp6bis.data(),K,env.gb(Ly-3)[0].data(),N,0.0,Li_d[i].data(),N);
+
+   }
+
+   //and finally unity,  add regular lower peps to intermediate perm6
+   M = perm6.shape(0) * perm6.shape(1) * perm6.shape(2) * perm6.shape(3);
+   N = (*this)(Ly-2,0).shape(3) * (*this)(Ly-2,0).shape(4);
+   K = perm6.shape(4) * perm6.shape(5);
+
+   tmp6.resize( shape(D,D,D,D,D,D) );
+   blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,perm6.data(),K,(*this)(Ly-2,0).data(),N,0.0,tmp6.data(),N);
+
+   tmp6bis.clear();
+   Permute(tmp6,shape(0,1,3,5,2,4),tmp6bis);
+
+   //finally contract with bottom environment
+   M = tmp6bis.shape(0) * tmp6bis.shape(1) * tmp6bis.shape(2) * tmp6bis.shape(3);
+   N = env.gb(Ly-3)[0].shape(3);
+   K = tmp6bis.shape(4) * tmp6bis.shape(5);
+
+   blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp6bis.data(),K,env.gb(Ly-3)[0].data(),N,0.0,R[0].data(),N);
+
+   /*
 
    //middle of the chain:
    for(int col = 1;col < Lx-1;++col){
 
-      //close down the left renormalized terms from the previous site
+   //close down the left renormalized terms from the previous site
 
-      //construct the intermediate contraction (paste top right)
-      tmp5.clear();
-      Contract(1.0,env.gb(Ly-2)[col],shape(3),R[col],shape(2),0.0,tmp5);
+   //construct the intermediate contraction (paste top right)
+   tmp5.clear();
+   Contract(1.0,env.gb(Ly-2)[col],shape(3),R[col],shape(2),0.0,tmp5);
 
-      //and upper peps to tmp5
-      tmp6.clear();
-      Contract(1.0,(*this)(Ly-1,col),shape(3,4),tmp5,shape(2,4),0.0,tmp6);
+   //and upper peps to tmp5
+   tmp6.clear();
+   Contract(1.0,(*this)(Ly-1,col),shape(3,4),tmp5,shape(2,4),0.0,tmp6);
 
-      //paste right hamiltonian operators to intermediary an contract with left renormalized operator
-      for(int i = 0;i < delta;++i){
+   //paste right hamiltonian operators to intermediary an contract with left renormalized operator
+   for(int i = 0;i < delta;++i){
 
-         peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(1),(*this)(Ly - 1,col),shape(2),0.0,peps_op);
+   peps_op.clear();
+   Contract(1.0,ham.gR(i),shape(1),(*this)(Ly - 1,col),shape(2),0.0,peps_op);
 
-         tmp5.clear();
-         Contract(1.0,peps_op,shape(0,3,4),tmp6,shape(2,4,5),0.0,tmp5);
+   tmp5.clear();
+   Contract(1.0,peps_op,shape(0,3,4),tmp6,shape(2,4,5),0.0,tmp5);
 
-         //contract with left hamiltonian operator
-         val += ham.gcoef(i) * blas::dot(Li[i].size(), Li[i].data(), 1, tmp5.data(), 1);
+   //contract with left hamiltonian operator
+   val += ham.gcoef(i) * blas::dot(Li[i].size(), Li[i].data(), 1, tmp5.data(), 1);
 
-      }
+   }
 
-      //add local hamiltonian term
-      if(ham.gis_local()){
+   //add local hamiltonian term
+   if(ham.gis_local()){
 
-         peps_op.clear();
-         Contract(1.0,ham.gB(),shape(1),(*this)(Ly - 1,col),shape(2),0.0,peps_op);
+   peps_op.clear();
+   Contract(1.0,ham.gB(),shape(1),(*this)(Ly - 1,col),shape(2),0.0,peps_op);
 
-         tmp5.clear();
-         Contract(1.0,peps_op,shape(0,3,4),tmp6,shape(2,4,5),0.0,tmp5);
+   tmp5.clear();
+   Contract(1.0,peps_op,shape(0,3,4),tmp6,shape(2,4,5),0.0,tmp5);
 
-         //contract with left hamiltonian operator
-         val += blas::dot(R[col-1].size(), R[col-1].data(), 1, tmp5.data(), 1);
+   //contract with left hamiltonian operator
+   val += blas::dot(R[col-1].size(), R[col-1].data(), 1, tmp5.data(), 1);
 
-      }
+   }
 
-      //construct left renormalized operators for next site: first construct intermediary
-      tmp5.clear();
-      Contract(1.0,env.gb(Ly-2)[col],shape(0),R[col-1],shape(2),0.0,tmp5);
+   //construct left renormalized operators for next site: first construct intermediary
+   tmp5.clear();
+   Contract(1.0,env.gb(Ly-2)[col],shape(0),R[col-1],shape(2),0.0,tmp5);
 
-      tmp6.clear();
-      Contract(1.0,(*this)(Ly-1,col),shape(3,0),tmp5,shape(1,4),0.0,tmp6);
+   tmp6.clear();
+   Contract(1.0,(*this)(Ly-1,col),shape(3,0),tmp5,shape(1,4),0.0,tmp6);
 
-      //now paste on left hamiltonian operators 
-      for(int i = 0;i < delta;++i){
+   //now paste on left hamiltonian operators 
+   for(int i = 0;i < delta;++i){
 
-         Contract(1.0,ham.gL(i),shape(1),(*this)(Ly - 1,col),shape(2),0.0,peps_op);
+   Contract(1.0,ham.gL(i),shape(1),(*this)(Ly - 1,col),shape(2),0.0,peps_op);
 
-         tmp5.clear();
-         Contract(1.0,peps_op,shape(0,3,1),tmp6,shape(1,3,5),0.0,tmp5);
+   tmp5.clear();
+   Contract(1.0,peps_op,shape(0,3,1),tmp6,shape(1,3,5),0.0,tmp5);
 
-         Li[i] = tmp5.reshape_clear(shape((*this)(Ly-1,col).shape(4),(*this)(Ly-1,col).shape(4),env.gb(Ly-2)[col].shape(3)));
+   Li[i] = tmp5.reshape_clear(shape((*this)(Ly-1,col).shape(4),(*this)(Ly-1,col).shape(4),env.gb(Ly-2)[col].shape(3)));
 
-      }
+   }
 
-      //finally construct new unity on the left
-      tmp5.clear();
-      Contract(1.0,(*this)(Ly-1,col),shape(2,3,0),tmp6,shape(1,3,5),0.0,tmp5);
+   //finally construct new unity on the left
+   tmp5.clear();
+   Contract(1.0,(*this)(Ly-1,col),shape(2,3,0),tmp6,shape(1,3,5),0.0,tmp5);
 
-      R[col] = tmp5.reshape_clear(shape((*this)(Ly-1,col).shape(4),(*this)(Ly-1,col).shape(4),env.gb(Ly-2)[col].shape(3)));
+   R[col] = tmp5.reshape_clear(shape((*this)(Ly-1,col).shape(4),(*this)(Ly-1,col).shape(4),env.gb(Ly-2)[col].shape(3)));
 
    }
 

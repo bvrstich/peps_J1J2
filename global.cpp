@@ -68,7 +68,7 @@ namespace global{
       I(1,1) = 1.0;
 
       //set the number of sweeps to 1
-      comp_sweeps = 1;
+      comp_sweeps = 2;
 
       //initialize/allocate the environment
       env = Environment(D_in,D_aux,comp_sweeps);

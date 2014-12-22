@@ -260,7 +260,7 @@ namespace contractions {
    }
 
    /** 
-    * init the right renormalized operator for the top or bottom row, or left or right column
+    * init the right renormalized operator for the top or bottom row
     * @param option == 't'op or 'b'ottom
     * @param R vector containing the right operators on exit
     */

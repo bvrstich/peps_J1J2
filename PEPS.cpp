@@ -1859,9 +1859,9 @@ double PEPS<double>::energy(){
       //close down left up LU \ RD and horizontal, and make vertical contribution
       for(int i = 0;i < delta;++i){
 
-         //add operator to lower site peps
+         //add operator to lower site peps: hermitian adjoint because of change of direction
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gR(i),shape(k,j),(*this)(Ly-2,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          tmp7.clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,perm8,0.0,tmp7);
@@ -1876,9 +1876,9 @@ double PEPS<double>::energy(){
          tmp8bis.clear();
          Permute(tmp8,shape(1,2,6,7,0,3,4,5),tmp8bis);
 
-         //add operator on upper peps for vertical contribution
+         //add operator on upper peps for vertical contribution: hermitian adjoint
          peps_op.clear();
-         Contract(1.0,ham.gL(i),shape(j,k),(*this)(Ly-1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gL(i),shape(k,j),(*this)(Ly-1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          tmp5.clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,tmp8bis,0.0,tmp5);
@@ -1896,7 +1896,7 @@ double PEPS<double>::energy(){
 
       }
 
-      //close down the Left Down diagonal:
+      //close down the Left-Down diagonal and upper horizontal:
       for(int i = 0;i < delta;++i){
 
          //add regular lower site peps to intermediate perm8
@@ -1909,13 +1909,16 @@ double PEPS<double>::energy(){
 
          Permute(tmp8,shape(1,2,6,7,0,3,4,5),tmp8bis);
 
-         //add operator on upper peps for diagonal energy evaluation
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         //add operator on upper peps for diagonal energy evaluation: hermitian adjoint
+         Contract(1.0,ham.gR(i),shape(k,j),(*this)(Ly-1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,tmp8bis,0.0,tmp5);
 
-         //and Left Down / Right Up diagonal:
+         //Left Down / Right Up diagonal:
          val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_d[i]);
+
+         //upper horizontal with Left-Up
+         val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_u[i]);
 
       }
 
@@ -2019,36 +2022,109 @@ double PEPS<double>::energy(){
    tmp5.clear();
    Gemm(CblasNoTrans,CblasTrans,1.0,(*this)(Ly-2,Lx-1),env.gb(Ly-3)[Lx-1],0.0,tmp5);
 
-   tmp5bis.clear();
-   Permute(tmp5,shape(2,4,0,1,3),tmp5bis);
+   perm5.clear();
+   Permute(tmp5,shape(2,4,0,1,3),perm5);
 
    //first close down Left-Up diagonal, horizontal and construct vertical
    for(int i = 0;i < delta;++i){
 
-      //add operator on lower peps and contract with tmp5:
+      //add operator on lower peps and contract with tmp5: (notice that the hermitian adjoint of the operator is applied, since the order of operations is reversed)
       peps_op.clear();
-      Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+      Contract(1.0,ham.gR(i),shape(k,j),(*this)(Ly-2,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
       
       M = (*this)(Ly-2,Lx-1).shape(0) * (*this)(Ly-2,Lx-1).shape(1);
-      N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
+      N = perm5.shape(2) * perm5.shape(3) * perm5.shape(4);
       K = (*this)(Ly-2,Lx-1).shape(2) * (*this)(Ly-2,Lx-1).shape(3);
 
       tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps_op.data(),K,tmp5bis.data(),N,0.0,tmp5.data(),N);
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps_op.data(),K,perm5.data(),N,0.0,tmp5.data(),N);
 
       tmp5bis.clear();
-      Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
+      Permute(tmp5,shape(3,0,1,2,4),tmp5bis);
 
-      //finally add top!
-      M = env.gt(Ly-3)[Lx-1].shape(0);
-      N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
-      K = env.gt(Ly-3)[Lx-1].shape(1) * env.gt(Ly-3)[Lx-1].shape(2) * env.gt(Ly-3)[Lx-1].shape(3);
+      //add regular upper peps to block
+      M = (*this)(Ly-1,Lx-1).shape(0) * (*this)(Ly-1,Lx-1).shape(2);
+      N = tmp5bis.shape(1) * tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
+      K = (*this)(Ly-1,Lx-1).shape(3);
 
-      R[Lx-2].resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(Ly-3)[Lx-1].data(),K,tmp5bis.data(),N,0.0,R[Lx-2].data(),N);
+      tmp6.resize(shape( D,d,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,(*this)(Ly-1,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp6.data(),N);
+
+      tmp6bis.clear();
+      Permute(tmp6,shape(1,3,0,2,4,5),tmp6bis);
+
+      //now for the vertical energy contribution, add operator on upper peps: again hermitian adjoint
+      peps_op.clear();
+      Contract(1.0,ham.gL(i),shape(k,j),(*this)(Ly-1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      M = (*this)(Ly-1,Lx-1).shape(0);
+      N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
+      K = tmp6bis.shape(0) * tmp6bis.shape(1);
+
+      tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps_op.data(),K,tmp6bis.data(),N,0.0,tmp5.data(),N);
+
+      val += ham.gcoef(i) * Dot(tmp5,R[Lx-2]);
+
+      //for horizontal and Left-Up closure, add regular upper peps to intermediate
+      M = (*this)(Ly-1,Lx-1).shape(0);
+      N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
+      K = tmp6bis.shape(0) * tmp6bis.shape(1);
+
+      tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,(*this)(Ly-1,Lx-1).data(),K,tmp6bis.data(),N,0.0,tmp5.data(),N);
+
+      //horizontal with Left-Down
+      val += ham.gcoef(i) * Dot(tmp5,Li_d[i]);
+
+      //diagonal with Left-Up : LU \ RD
+      val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_u[i]);
 
    }
 
+   //now close diagonal with left down, and horizontal on top row:
+   for(int i = 0;i < delta;++i){
+
+      //add regular lower peps to intermediate perm5
+      M = (*this)(Ly-2,Lx-1).shape(0) * (*this)(Ly-2,Lx-1).shape(1);
+      N = perm5.shape(2) * perm5.shape(3) * perm5.shape(4);
+      K = (*this)(Ly-2,Lx-1).shape(2) * (*this)(Ly-2,Lx-1).shape(3);
+
+      tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,(*this)(Ly-2,Lx-1).data(),K,perm5.data(),N,0.0,tmp5.data(),N);
+
+      tmp5bis.clear();
+      Permute(tmp5,shape(3,0,1,2,4),tmp5bis);
+
+      //add regular upper peps to block
+      M = (*this)(Ly-1,Lx-1).shape(0) * (*this)(Ly-1,Lx-1).shape(2);
+      N = tmp5bis.shape(1) * tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
+      K = (*this)(Ly-1,Lx-1).shape(3);
+
+      tmp6.resize(shape( D,d,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,(*this)(Ly-1,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp6.data(),N);
+
+      tmp6bis.clear();
+      Permute(tmp6,shape(1,3,0,2,4,5),tmp6bis);
+
+      //add operator on upper peps: again hermitian adjoint
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(k,j),(*this)(Ly-1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      M = (*this)(Ly-1,Lx-1).shape(0);
+      N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
+      K = tmp6bis.shape(0) * tmp6bis.shape(1);
+
+      tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps_op.data(),K,tmp6bis.data(),N,0.0,tmp5.data(),N);
+
+      //upper horizontal contribution
+      val += ham.gcoef(i) * Dot(tmp5,Li_u[i]);
+
+      //diagonal with Left-Down : LD / RU
+      val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_d[i]);
+
+   }
    return val;
 
 }

@@ -1058,7 +1058,7 @@ double PEPS<double>::energy(){
       Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,(*this)(0,col),0.0,R[col]);
 
    }
-   
+  
    //last site of bottom row: close down the left operators
 
    //start with Left Up
@@ -1384,9 +1384,9 @@ double PEPS<double>::energy(){
 
             //--- HORIZONTAL AND LU-RD DIAGONAL ---
 
-            //act with operator on peps on lower site
+            //act with operator on peps on lower site: hermitian adjoint because of change in direction when going from right to left
             peps_op.clear();
-            Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+            Contract(1.0,ham.gR(i),shape(k,j),(*this)(row,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
             tmp8.clear();
             Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,perm9,0.0,tmp8);
@@ -1416,13 +1416,13 @@ double PEPS<double>::energy(){
             val += ham.gcoef(i) * Dot(tmp6,LOi_d[i]);
 
             //and left-up right-down diagonal
-            val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
+            //val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
 
             //--- VERTICAL GATE ---
 
-            //act with operator on peps on upper site, for vertical energy contribution
+            //act with operator on peps on upper site, for vertical energy contribution: hermitian adjoint
             peps_op.clear();
-            Contract(1.0,ham.gL(i),shape(j,k),(*this)(row+1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+            Contract(1.0,ham.gL(i),shape(k,j),(*this)(row+1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
             //add it on the intermediary with already an operator on the lower site (tmp9bis)
             Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,tmp9bis,0.0,tmp8);
@@ -1454,9 +1454,9 @@ double PEPS<double>::energy(){
             tmp9bis.clear();
             Permute(tmp9,shape(2,3,4,0,1,5,6,7,8),tmp9bis);
 
-            //act with operator on peps on upper site
+            //act with operator on peps on upper site: hermitian adjoint
             peps_op.clear();
-            Contract(1.0,ham.gR(i),shape(j,k),(*this)(row+1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+            Contract(1.0,ham.gR(i),shape(k,j),(*this)(row+1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
             //add it on the intermediary
             tmp8.clear();
@@ -1578,9 +1578,9 @@ double PEPS<double>::energy(){
       //close down Left Up for diagonal, Left Down for horizontal and evaluate vertical
       for(int i = 0;i < delta;++i){
 
-         //add operator on lower peps
+         //add operator on lower peps: hermitian adjoint
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gR(i),shape(k,j),(*this)(row,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          M = (*this)(row,Lx-1).shape(0) * (*this)(row,Lx-1).shape(1);
          N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
@@ -1602,7 +1602,7 @@ double PEPS<double>::energy(){
 
          // --- 1) add operator for Vertical contribution
          peps_op.clear();
-         Contract(1.0,ham.gL(i),shape(j,k),(*this)(row+1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gL(i),shape(k,j),(*this)(row+1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          M = (*this)(row+1,Lx-1).shape(0) * (*this)(row+1,Lx-1).shape(1);
          N = env.gb(row-1)[Lx-1].shape(0) * D * D * D * D;
@@ -1673,9 +1673,9 @@ double PEPS<double>::energy(){
 
          Permute(tmp7,shape(2,4,0,1,3,5,6),tmp7bis);
 
-         //add right operator to upper peps
+         //add right operator to upper peps: hermitian adjoint
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(row+1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gR(i),shape(k,j),(*this)(row+1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          M = (*this)(row+1,Lx-1).shape(0) * (*this)(row+1,Lx-1).shape(1);
          N = env.gb(row-1)[Lx-1].shape(0) * D * D * D * D;
@@ -1918,7 +1918,7 @@ double PEPS<double>::energy(){
          val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_d[i]);
 
          //upper horizontal with Left-Up
-         val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_u[i]);
+         val += ham.gcoef(i) * Dot(tmp5,Li_u[i]);
 
       }
 
@@ -2125,6 +2125,7 @@ double PEPS<double>::energy(){
       val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_d[i]);
 
    }
+
    return val;
 
 }

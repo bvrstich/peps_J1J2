@@ -82,7 +82,7 @@ const IVector<N> &Perm<N>::greorder() const {
 }
 
 /**
- * finally: permute!
+ * finally: permute! 9 separate functions! start with N=2
  * @param orig_tensor original tensor, const
  * @param perm_tensor on exit, contains permuted tensor
  */
@@ -97,6 +97,29 @@ void Perm<2>::permute(const DArray<2> &orig_tensor,DArray<2> &perm_tensor){
          list[ index[0]*orig[reorder[1]] + index[1] ] = index[reorder[0]] * orig[1] + index[reorder[1]];
 
    perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]]) );
+
+   for(int i = 0;i < list.size();++i)
+      perm_tensor.data()[i] = orig_tensor.data()[list[i]];
+
+}
+
+/**
+ * finally: permute! N=3
+ * @param orig_tensor original tensor, const
+ * @param perm_tensor on exit, contains permuted tensor
+ */
+template<>
+void Perm<3>::permute(const DArray<3> &orig_tensor,DArray<3> &perm_tensor){
+
+   IVector<3> index;
+
+   //loop over the new array
+   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+         for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
+            list[ index[0]* orig[reorder[1]] * orig[reorder[2]] + index[1] * orig[reorder[2]] + index[2] ] = index[reorder[0]] * orig[1] * orig[2] + index[reorder[1]] * orig[2] + index[reorder[2]];
+
+   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]]) );
 
    for(int i = 0;i < list.size();++i)
       perm_tensor.data()[i] = orig_tensor.data()[list[i]];

@@ -37,13 +37,15 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
-   PEPS<double> peps(D);
-   peps.normalize();
+   DArray<2> tmp2(5,5);
+   tmp2.generate(global::rgen<double>);
 
-   global::env.calc('A',peps);
-   global::env.test();
+   DArray<2> tmp2bis;
 
-   cout << peps.energy() << endl;
+   perm.permute(tmp2,tmp2bis);
+
+   cout << tmp2 << endl;
+   cout << tmp2bis << endl;
 
    return 0;
 

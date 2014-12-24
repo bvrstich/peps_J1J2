@@ -17,6 +17,7 @@ CPPSRC	= main.cpp\
            MPO.cpp\
            Environment.cpp\
            contractions.cpp\
+			  Perm.cpp\
            btas_defs.cpp
 
 OBJ	= $(CPPSRC:.cpp=.o)

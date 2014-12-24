@@ -57,7 +57,7 @@ namespace global{
       J2 = 0.1*J2_in;
 
       //set the interaction
-      ham.set_J1J2(false);
+      ham.set_J1J2(true);
 
       //identity matrix
       I.resize(d,d);

@@ -135,7 +135,7 @@ Perm<4>::Perm(const IVector<4> &orig_in,const IVector<4> &reorder_in){
 }
 
 /** 
- * construct on given shape: specified to index N=4
+ * construct on given shape: specified to index N=5
  * @param orig_in input shape of N-leg tensor to be permuted
  * @param reorder_in permutation reordering, all indices have to be different
  */
@@ -180,7 +180,7 @@ Perm<5>::Perm(const IVector<5> &orig_in,const IVector<5> &reorder_in){
 }
 
 /** 
- * construct on given shape: specified to index N=4
+ * construct on given shape: specified to index N=6
  * @param orig_in input shape of N-leg tensor to be permuted
  * @param reorder_in permutation reordering, all indices have to be different
  */
@@ -224,6 +224,174 @@ Perm<6>::Perm(const IVector<6> &orig_in,const IVector<6> &reorder_in){
                   }
 
    perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]],orig[reorder[3]],orig[reorder[4]],orig[reorder[5]]) );
+
+}
+
+/** 
+ * construct on given shape: specified to index N=7
+ * @param orig_in input shape of N-leg tensor to be permuted
+ * @param reorder_in permutation reordering, all indices have to be different
+ */
+template<>
+Perm<7>::Perm(const IVector<7> &orig_in,const IVector<7> &reorder_in){
+
+   orig = orig_in;
+   reorder = reorder_in;
+
+   int dim = 1;
+
+   for(int i = 0;i < 7;++i)
+      dim *= orig_in[i];
+
+   //now make the inverse list, tells where the old index is with respect to the new/permuted one
+   IVector<7> inverse;
+
+   for(int i = 0;i < 7;++i)
+      inverse[reorder[i]] = i;
+
+   list.resize(dim);
+
+   IVector<7> index;
+
+   //loop over the new array
+   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+         for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
+            for(index[3] = 0;index[3] < orig[reorder[3]];++index[3])
+               for(index[4] = 0;index[4] < orig[reorder[4]];++index[4])
+                  for(index[5] = 0;index[5] < orig[reorder[5]];++index[5])
+                     for(index[6] = 0;index[6] < orig[reorder[6]];++index[6]){
+
+                        list[ index[0] * orig[reorder[1]] * orig[reorder[2]] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] 
+                           
+                           + index[1] * orig[reorder[2]] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]]
+
+                           + index[2] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] + index[3] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] + index[4] * orig[reorder[5]] * orig[reorder[6]]
+                           
+                           + index[5] * orig[reorder[6]] + index[6] ] 
+
+                           = index[inverse[0]] * orig[1] * orig[2] * orig[3] * orig[4] * orig[5] * orig[6] + index[inverse[1]] * orig[2] * orig[3] * orig[4] * orig[5] * orig[6]
+
+                           + index[inverse[2]] * orig[3] * orig[4] * orig[5] * orig[6] + index[inverse[3]] * orig[4] * orig[5] * orig[6] + index[inverse[4]] * orig[5] * orig[6] + index[inverse[5]] * orig[6] + index[inverse[6]];
+
+                     }
+
+   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]],orig[reorder[3]],orig[reorder[4]],orig[reorder[5]],orig[reorder[6]]) );
+
+}
+
+/** 
+ * construct on given shape: specified to index N=8
+ * @param orig_in input shape of N-leg tensor to be permuted
+ * @param reorder_in permutation reordering, all indices have to be different
+ */
+template<>
+Perm<8>::Perm(const IVector<8> &orig_in,const IVector<8> &reorder_in){
+
+   orig = orig_in;
+   reorder = reorder_in;
+
+   int dim = 1;
+
+   for(int i = 0;i < 8;++i)
+      dim *= orig_in[i];
+
+   //now make the inverse list, tells where the old index is with respect to the new/permuted one
+   IVector<8> inverse;
+
+   for(int i = 0;i < 8;++i)
+      inverse[reorder[i]] = i;
+
+   list.resize(dim);
+
+   IVector<8> index;
+
+   //loop over the new array
+   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+         for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
+            for(index[3] = 0;index[3] < orig[reorder[3]];++index[3])
+               for(index[4] = 0;index[4] < orig[reorder[4]];++index[4])
+                  for(index[5] = 0;index[5] < orig[reorder[5]];++index[5])
+                     for(index[6] = 0;index[6] < orig[reorder[6]];++index[6])
+                        for(index[7] = 0;index[7] < orig[reorder[7]];++index[7]){
+
+                           list[ index[0] * orig[reorder[1]] * orig[reorder[2]] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]] 
+
+                              + index[1] * orig[reorder[2]] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]]
+
+                              + index[2] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]] + index[3] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]]
+                              
+                              + index[4] * orig[reorder[5]] * orig[reorder[6]]  * orig[reorder[7]] + index[5] * orig[reorder[6]] * orig[reorder[7]] + index[6] * orig[reorder[7]] + index[7] ] 
+
+                              = index[inverse[0]] * orig[1] * orig[2] * orig[3] * orig[4] * orig[5] * orig[6] * orig[7] + index[inverse[1]] * orig[2] * orig[3] * orig[4] * orig[5] * orig[6] * orig[7]
+
+                              + index[inverse[2]] * orig[3] * orig[4] * orig[5] * orig[6] * orig[7] + index[inverse[3]] * orig[4] * orig[5] * orig[6] * orig[7] + index[inverse[4]] * orig[5] * orig[6] * orig[7]
+                              
+                              + index[inverse[5]] * orig[6] * orig[7] + index[inverse[6]] * orig[7] + index[inverse[7]];
+
+                        }
+
+   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]],orig[reorder[3]],orig[reorder[4]],orig[reorder[5]],orig[reorder[6]],orig[reorder[7]]) );
+
+}
+
+/** 
+ * construct on given shape: specified to index N=9
+ * @param orig_in input shape of N-leg tensor to be permuted
+ * @param reorder_in permutation reordering, all indices have to be different
+ */
+template<>
+Perm<9>::Perm(const IVector<9> &orig_in,const IVector<9> &reorder_in){
+
+   orig = orig_in;
+   reorder = reorder_in;
+
+   int dim = 1;
+
+   for(int i = 0;i < 9;++i)
+      dim *= orig_in[i];
+
+   //now make the inverse list, tells where the old index is with respect to the new/permuted one
+   IVector<9> inverse;
+
+   for(int i = 0;i < 9;++i)
+      inverse[reorder[i]] = i;
+
+   list.resize(dim);
+
+   IVector<9> index;
+
+   //loop over the new array
+   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+         for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
+            for(index[3] = 0;index[3] < orig[reorder[3]];++index[3])
+               for(index[4] = 0;index[4] < orig[reorder[4]];++index[4])
+                  for(index[5] = 0;index[5] < orig[reorder[5]];++index[5])
+                     for(index[6] = 0;index[6] < orig[reorder[6]];++index[6])
+                        for(index[7] = 0;index[7] < orig[reorder[7]];++index[7])
+                           for(index[8] = 0;index[8] < orig[reorder[8]];++index[8]){
+
+                              list[ index[0] * orig[reorder[1]] * orig[reorder[2]] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]] * orig[reorder[8]] 
+
+                                 + index[1] * orig[reorder[2]] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]] * orig[reorder[8]]
+
+                                 + index[2] * orig[reorder[3]] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]] * orig[reorder[8]] 
+                                 
+                                 + index[3] * orig[reorder[4]] * orig[reorder[5]] * orig[reorder[6]] * orig[reorder[7]] * orig[reorder[8]] + index[4] * orig[reorder[5]] * orig[reorder[6]]  * orig[reorder[7]] * orig[reorder[8]]
+                                 
+                                 + index[5] * orig[reorder[6]] * orig[reorder[7]] * orig[reorder[8]] + index[6] * orig[reorder[7]] * orig[reorder[8]] + index[7] * orig[reorder[8]] + index[8] ] 
+
+                                 = index[inverse[0]] * orig[1] * orig[2] * orig[3] * orig[4] * orig[5] * orig[6] * orig[7] * orig[8] + index[inverse[1]] * orig[2] * orig[3] * orig[4] * orig[5] * orig[6] * orig[7] * orig[8]
+
+                                 + index[inverse[2]] * orig[3] * orig[4] * orig[5] * orig[6] * orig[7] * orig[8] + index[inverse[3]] * orig[4] * orig[5] * orig[6] * orig[7] * orig[8] 
+                                 
+                                 + index[inverse[4]] * orig[5] * orig[6] * orig[7] * orig[8] + index[inverse[5]] * orig[6] * orig[7] * orig[8] + index[inverse[6]] * orig[7] * orig[8] + index[inverse[7]] * orig[8] + index[inverse[8]];
+
+                           }
+
+   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]],orig[reorder[3]],orig[reorder[4]],orig[reorder[5]],orig[reorder[6]],orig[reorder[7]],orig[reorder[8]]) );
 
 }
 
@@ -299,7 +467,6 @@ template Perm<6>::Perm();
 template Perm<7>::Perm();
 template Perm<8>::Perm();
 template Perm<9>::Perm();
-template Perm<10>::Perm();
 
 //copy constructor
 template Perm<2>::Perm(const Perm<2> &perm_copy);
@@ -310,7 +477,6 @@ template Perm<6>::Perm(const Perm<6> &perm_copy);
 template Perm<7>::Perm(const Perm<7> &perm_copy);
 template Perm<8>::Perm(const Perm<8> &perm_copy);
 template Perm<9>::Perm(const Perm<9> &perm_copy);
-template Perm<10>::Perm(const Perm<10> &perm_copy);
 
 //destructor
 template Perm<2>::~Perm();
@@ -321,7 +487,6 @@ template Perm<6>::~Perm();
 template Perm<7>::~Perm();
 template Perm<8>::~Perm();
 template Perm<9>::~Perm();
-template Perm<10>::~Perm();
 
 //getter for original shape
 template const IVector<2> &Perm<2>::gorig() const;
@@ -332,7 +497,6 @@ template const IVector<6> &Perm<6>::gorig() const;
 template const IVector<7> &Perm<7>::gorig() const;
 template const IVector<8> &Perm<8>::gorig() const;
 template const IVector<9> &Perm<9>::gorig() const;
-template const IVector<10> &Perm<10>::gorig() const;
 
 //getter for the reordering vector
 template const IVector<2> &Perm<2>::greorder() const;
@@ -343,7 +507,6 @@ template const IVector<6> &Perm<6>::greorder() const;
 template const IVector<7> &Perm<7>::greorder() const;
 template const IVector<8> &Perm<8>::greorder() const;
 template const IVector<9> &Perm<9>::greorder() const;
-template const IVector<10> &Perm<10>::greorder() const;
 
 //getter for the permuted tensor
 template const DArray<2> &Perm<2>::gperm_tensor() const;
@@ -354,7 +517,6 @@ template const DArray<6> &Perm<6>::gperm_tensor() const;
 template const DArray<7> &Perm<7>::gperm_tensor() const;
 template const DArray<8> &Perm<8>::gperm_tensor() const;
 template const DArray<9> &Perm<9>::gperm_tensor() const;
-template const DArray<10> &Perm<10>::gperm_tensor() const;
 
 //actual permute function
 template void Perm<2>::permute(const DArray<2> &orig_tensor);
@@ -365,4 +527,3 @@ template void Perm<6>::permute(const DArray<6> &orig_tensor);
 template void Perm<7>::permute(const DArray<7> &orig_tensor);
 template void Perm<8>::permute(const DArray<8> &orig_tensor);
 template void Perm<9>::permute(const DArray<9> &orig_tensor);
-template void Perm<10>::permute(const DArray<10> &orig_tensor);

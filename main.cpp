@@ -37,22 +37,22 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
-   DArray<6> tmp6(2,3,4,5,6,7);
-   tmp6.generate(global::rgen<double>);
+   DArray<9> tmp9(2,3,4,5,6,7,8,9,10);
+   tmp9.generate(global::rgen<double>);
 
-   Perm<6> perm(tmp6.shape(),shape(1,4,3,2,0,5));
+   Perm<9> perm(tmp9.shape(),shape(1,2,7,4,5,6,3,8,0));
 
-   perm.permute(tmp6);
+   perm.permute(tmp9);
 
    cout << perm.gperm_tensor() << endl;
 
-   DArray<6> tmp6bis;
+   DArray<9> tmp9bis;
 
-   Permute(tmp6,shape(1,4,3,2,0,5),tmp6bis);
+   Permute(tmp9,shape(1,2,7,4,5,6,3,8,0),tmp9bis);
    ofstream out("old.out");
    out.precision(15);
-   out << tmp6bis << endl;
-  
+   out << tmp9bis << endl;
+    
    return 0;
 
 }

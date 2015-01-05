@@ -21,7 +21,7 @@ template<size_t N>
 Perm<N>::Perm(){ }
 
 /** 
- * construct on given shape: specified to index N
+ * construct on given shape: specified to index N=2
  * @param orig_in input shape of N-leg tensor to be permuted
  * @param reorder_in permutation reordering, all indices have to be different
  */
@@ -36,6 +36,12 @@ Perm<2>::Perm(const IVector<2> &orig_in,const IVector<2> &reorder_in){
    for(int i = 0;i < 2;++i)
       dim *= orig_in[i];
 
+   //now make the inverse list, tells where the old index is with respect to the new/permuted one
+   IVector<2> inverse;
+   
+   for(int i = 0;i < 2;++i)
+      inverse[reorder[i]] = i;
+
    list.resize(dim);
 
    IVector<2> index;
@@ -43,12 +49,49 @@ Perm<2>::Perm(const IVector<2> &orig_in,const IVector<2> &reorder_in){
    //loop over the new array
    for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
       for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
-         list[ index[0]*orig[reorder[1]] + index[1] ] = index[reorder[0]] * orig[1] + index[reorder[1]];
+         list[ index[0]*orig[reorder[1]] + index[1] ] = index[inverse[0]] * orig[1] + index[inverse[1]];
 
    perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]]) );
 
 
 }
+
+/** 
+ * construct on given shape: specified to index N=3
+ * @param orig_in input shape of N-leg tensor to be permuted
+ * @param reorder_in permutation reordering, all indices have to be different
+ */
+template<>
+Perm<3>::Perm(const IVector<3> &orig_in,const IVector<3> &reorder_in){
+
+   orig = orig_in;
+   reorder = reorder_in;
+
+   int dim = 1;
+
+   for(int i = 0;i < 3;++i)
+      dim *= orig_in[i];
+   
+   //now make the inverse list, tells where the old index is with respect to the new/permuted one
+   IVector<3> inverse;
+   
+   for(int i = 0;i < 3;++i)
+      inverse[reorder[i]] = i;
+
+   list.resize(dim);
+
+   IVector<3> index;
+
+   //loop over the new array
+   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+         for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
+            list[ index[0]* orig[reorder[1]] * orig[reorder[2]] + index[1] * orig[reorder[2]] + index[2] ] = index[inverse[0]] * orig[1] * orig[2] + index[inverse[1]] * orig[2] + index[inverse[2]];
+
+   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]]) );
+
+}
+
 
 /**
  * copy constructor
@@ -100,9 +143,8 @@ const DArray<N> &Perm<N>::gperm_tensor() const {
 }
 
 /**
- * finally: permute! 9 separate functions! start with N=2
+ * finally: permute! just a single loop!
  * @param orig_tensor original tensor, const
- * @param perm_tensor on exit, contains permuted tensor
  */
 template<size_t N>
 void Perm<N>::permute(const DArray<N> &orig_tensor){
@@ -112,30 +154,6 @@ void Perm<N>::permute(const DArray<N> &orig_tensor){
 
 }
 
-/**
- * finally: permute! N=3
- * @param orig_tensor original tensor, const
- * @param perm_tensor on exit, contains permuted tensor
- */
-/*
-   template<>
-   void Perm<3>::permute(const DArray<3> &orig_tensor,DArray<3> &perm_tensor){
-
-   IVector<3> index;
-
-//loop over the new array
-for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
-for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
-for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
-list[ index[0]* orig[reorder[1]] * orig[reorder[2]] + index[1] * orig[reorder[2]] + index[2] ] = index[reorder[0]] * orig[1] * orig[2] + index[reorder[1]] * orig[2] + index[reorder[2]];
-
-perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]]) );
-
-for(int i = 0;i < list.size();++i)
-perm_tensor.data()[i] = orig_tensor.data()[list[i]];
-
-}
-*/
 //specification for the dimensions to be used (up to 10?)... god why
 
 //empty constructor

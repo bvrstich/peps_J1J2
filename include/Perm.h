@@ -34,9 +34,11 @@ class Perm {
 
       const IVector<N> &greorder() const;
 
-      void permute(const DArray<N> &,DArray<N> &);
+      void permute(const DArray<N> &);
 
       const std::vector<int> &glist() const;
+
+      const DArray<N> &gperm_tensor() const;
 
    private:
 
@@ -48,6 +50,9 @@ class Perm {
 
       //!list mapping old tensor to new
       std::vector<int> list;
+
+      //!new permuted tensor, allocated at constructor level
+      DArray<N> perm_tensor;
 
 };
 

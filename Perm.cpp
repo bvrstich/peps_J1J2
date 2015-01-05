@@ -21,25 +21,32 @@ template<size_t N>
 Perm<N>::Perm(){ }
 
 /** 
- * construct on given shape
+ * construct on given shape: specified to index N
  * @param orig_in input shape of N-leg tensor to be permuted
  * @param reorder_in permutation reordering, all indices have to be different
  */
-template<size_t N>
-Perm<N>::Perm(const IVector<N> &orig_in,const IVector<N> &reorder_in){
+template<>
+Perm<2>::Perm(const IVector<2> &orig_in,const IVector<2> &reorder_in){
 
    orig = orig_in;
    reorder = reorder_in;
 
    int dim = 1;
 
-   for(int i = 0;i < N;++i){
-
+   for(int i = 0;i < 2;++i)
       dim *= orig_in[i];
 
-   }
-
    list.resize(dim);
+
+   IVector<2> index;
+
+   //loop over the new array
+   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+         list[ index[0]*orig[reorder[1]] + index[1] ] = index[reorder[0]] * orig[1] + index[reorder[1]];
+
+   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]]) );
+
 
 }
 
@@ -52,6 +59,7 @@ Perm<N>::Perm(const Perm<N> &perm_copy){
 
    orig = perm_copy.gorig();
    reorder = perm_copy.greorder();
+   perm_tensor = perm_copy.gperm_tensor();
 
 }
 
@@ -82,21 +90,22 @@ const IVector<N> &Perm<N>::greorder() const {
 }
 
 /**
+ * @return the actual permuted tensor
+ */
+template<size_t N>
+const DArray<N> &Perm<N>::gperm_tensor() const {
+
+   return perm_tensor;
+
+}
+
+/**
  * finally: permute! 9 separate functions! start with N=2
  * @param orig_tensor original tensor, const
  * @param perm_tensor on exit, contains permuted tensor
  */
-template<>
-void Perm<2>::permute(const DArray<2> &orig_tensor,DArray<2> &perm_tensor){
-
-   IVector<2> index;
-
-   //loop over the new array
-   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
-      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
-         list[ index[0]*orig[reorder[1]] + index[1] ] = index[reorder[0]] * orig[1] + index[reorder[1]];
-
-   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]]) );
+template<size_t N>
+void Perm<N>::permute(const DArray<N> &orig_tensor){
 
    for(int i = 0;i < list.size();++i)
       perm_tensor.data()[i] = orig_tensor.data()[list[i]];
@@ -108,24 +117,25 @@ void Perm<2>::permute(const DArray<2> &orig_tensor,DArray<2> &perm_tensor){
  * @param orig_tensor original tensor, const
  * @param perm_tensor on exit, contains permuted tensor
  */
-template<>
-void Perm<3>::permute(const DArray<3> &orig_tensor,DArray<3> &perm_tensor){
+/*
+   template<>
+   void Perm<3>::permute(const DArray<3> &orig_tensor,DArray<3> &perm_tensor){
 
    IVector<3> index;
 
-   //loop over the new array
-   for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
-      for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
-         for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
-            list[ index[0]* orig[reorder[1]] * orig[reorder[2]] + index[1] * orig[reorder[2]] + index[2] ] = index[reorder[0]] * orig[1] * orig[2] + index[reorder[1]] * orig[2] + index[reorder[2]];
+//loop over the new array
+for(index[0] = 0;index[0] < orig[reorder[0]];++index[0])
+for(index[1] = 0;index[1] < orig[reorder[1]];++index[1])
+for(index[2] = 0;index[2] < orig[reorder[2]];++index[2])
+list[ index[0]* orig[reorder[1]] * orig[reorder[2]] + index[1] * orig[reorder[2]] + index[2] ] = index[reorder[0]] * orig[1] * orig[2] + index[reorder[1]] * orig[2] + index[reorder[2]];
 
-   perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]]) );
+perm_tensor.resize( shape(orig[reorder[0]],orig[reorder[1]],orig[reorder[2]]) );
 
-   for(int i = 0;i < list.size();++i)
-      perm_tensor.data()[i] = orig_tensor.data()[list[i]];
+for(int i = 0;i < list.size();++i)
+perm_tensor.data()[i] = orig_tensor.data()[list[i]];
 
 }
-
+*/
 //specification for the dimensions to be used (up to 10?)... god why
 
 //empty constructor
@@ -139,18 +149,7 @@ template Perm<8>::Perm();
 template Perm<9>::Perm();
 template Perm<10>::Perm();
 
-//constructor taking in shape of tensor
-template Perm<2>::Perm(const IVector<2> &orig_in,const IVector<2> &reorder_in);
-template Perm<3>::Perm(const IVector<3> &orig_in,const IVector<3> &reorder_in);
-template Perm<4>::Perm(const IVector<4> &orig_in,const IVector<4> &reorder_in);
-template Perm<5>::Perm(const IVector<5> &orig_in,const IVector<5> &reorder_in);
-template Perm<6>::Perm(const IVector<6> &orig_in,const IVector<6> &reorder_in);
-template Perm<7>::Perm(const IVector<7> &orig_in,const IVector<7> &reorder_in);
-template Perm<8>::Perm(const IVector<8> &orig_in,const IVector<8> &reorder_in);
-template Perm<9>::Perm(const IVector<9> &orig_in,const IVector<9> &reorder_in);
-template Perm<10>::Perm(const IVector<10> &orig_in,const IVector<10> &reorder_in);
-
-//constructor taking in shape of tensor
+//copy constructor
 template Perm<2>::Perm(const Perm<2> &perm_copy);
 template Perm<3>::Perm(const Perm<3> &perm_copy);
 template Perm<4>::Perm(const Perm<4> &perm_copy);
@@ -183,6 +182,7 @@ template const IVector<8> &Perm<8>::gorig() const;
 template const IVector<9> &Perm<9>::gorig() const;
 template const IVector<10> &Perm<10>::gorig() const;
 
+//getter for the reordering vector
 template const IVector<2> &Perm<2>::greorder() const;
 template const IVector<3> &Perm<3>::greorder() const;
 template const IVector<4> &Perm<4>::greorder() const;
@@ -192,3 +192,25 @@ template const IVector<7> &Perm<7>::greorder() const;
 template const IVector<8> &Perm<8>::greorder() const;
 template const IVector<9> &Perm<9>::greorder() const;
 template const IVector<10> &Perm<10>::greorder() const;
+
+//getter for the permuted tensor
+template const DArray<2> &Perm<2>::gperm_tensor() const;
+template const DArray<3> &Perm<3>::gperm_tensor() const;
+template const DArray<4> &Perm<4>::gperm_tensor() const;
+template const DArray<5> &Perm<5>::gperm_tensor() const;
+template const DArray<6> &Perm<6>::gperm_tensor() const;
+template const DArray<7> &Perm<7>::gperm_tensor() const;
+template const DArray<8> &Perm<8>::gperm_tensor() const;
+template const DArray<9> &Perm<9>::gperm_tensor() const;
+template const DArray<10> &Perm<10>::gperm_tensor() const;
+
+//actual permute function
+template void Perm<2>::permute(const DArray<2> &orig_tensor);
+template void Perm<3>::permute(const DArray<3> &orig_tensor);
+template void Perm<4>::permute(const DArray<4> &orig_tensor);
+template void Perm<5>::permute(const DArray<5> &orig_tensor);
+template void Perm<6>::permute(const DArray<6> &orig_tensor);
+template void Perm<7>::permute(const DArray<7> &orig_tensor);
+template void Perm<8>::permute(const DArray<8> &orig_tensor);
+template void Perm<9>::permute(const DArray<9> &orig_tensor);
+template void Perm<10>::permute(const DArray<10> &orig_tensor);

@@ -8,6 +8,7 @@
 #include <fstream>
 #include <cmath>
 #include <vector>
+#include <chrono>
 #include <complex>
 
 using std::cout;
@@ -37,22 +38,28 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
-   DArray<9> tmp9(2,3,4,5,6,7,8,9,10);
-   tmp9.generate(global::rgen<double>);
+   DArray<9> tmp(4,16,4,4,4,4,4,4,4);
+   Perm<9> perm(tmp.shape(),shape(0,1,2,3,5,4,6,7,8));
 
-   Perm<9> perm(tmp9.shape(),shape(1,2,7,4,5,6,3,8,0));
+   DArray<9> tmpbis;
 
-   perm.permute(tmp9);
+   double tijd = 0.0;
 
-   cout << perm.gperm_tensor() << endl;
+   for(int i = 0;i < 10000;++i){
 
-   DArray<9> tmp9bis;
+      tmp.generate(global::rgen<double>);
 
-   Permute(tmp9,shape(1,2,7,4,5,6,3,8,0),tmp9bis);
-   ofstream out("old.out");
-   out.precision(15);
-   out << tmp9bis << endl;
-    
+      auto start = std::chrono::high_resolution_clock::now();
+      //Permute(tmp,shape(0,1,2,3,4,5,6,8,7),tmpbis);
+      perm.permute(tmp);
+      auto end = std::chrono::high_resolution_clock::now();
+
+      tijd += std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count();
+
+   }
+
+   cout << tijd << endl;
+
    return 0;
 
 }

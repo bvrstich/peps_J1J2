@@ -1416,7 +1416,7 @@ double PEPS<double>::energy(){
             val += ham.gcoef(i) * Dot(tmp6,LOi_d[i]);
 
             //and left-up right-down diagonal
-            //val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
+            val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
 
             //--- VERTICAL GATE ---
 

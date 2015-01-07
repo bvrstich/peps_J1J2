@@ -33,17 +33,21 @@ class Trotter {
 
       double gtau() const;
 
-      const DArray<3> &gLO() const;
-
-      const DArray<3> &gRO() const;
+      const DArray<3> &gLO_n() const;
+      const DArray<3> &gRO_n() const;
+      
+      const DArray<3> &gLO_nn() const;
+      const DArray<3> &gRO_nn() const;
 
    private:
       
-      //!actual operators: left
-      DArray<3> LO;
+      //!Nearest-neigbour Trotter Operators: Left and Right
+      DArray<3> LO_n;
+      DArray<3> RO_n;
 
-      //!actual operators: right
-      DArray<3> RO;
+      //!Next-nearest-neigbour Trotter Operators: Left and Right
+      DArray<3> LO_nn;
+      DArray<3> RO_nn;
 
       //!timestep
       double tau;

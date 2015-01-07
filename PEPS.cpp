@@ -1365,6 +1365,8 @@ double PEPS<double>::energy(){
       // --- now for the middle sites, close down the operators on the left and construct new ones --- 
       for(int col = 1;col < Lx - 1;++col){
 
+         cout << col << endl;
+
          //close down the left up and down operators with two diagonal and one horizontal contribution
          tmp8.clear();
          Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],RO[col],0.0,tmp8);
@@ -1416,7 +1418,7 @@ double PEPS<double>::energy(){
             val += ham.gcoef(i) * Dot(tmp6,LOi_d[i]);
 
             //and left-up right-down diagonal
-            //val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
+            val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
 
             //--- VERTICAL GATE ---
 

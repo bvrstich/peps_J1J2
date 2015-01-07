@@ -18,3 +18,5 @@
 #include "Environment.h"
 
 #include "contractions.h"
+
+#include "Trotter.h"

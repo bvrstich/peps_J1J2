@@ -43,9 +43,13 @@ class Hamiltonian {
 
       const std::vector< DArray<2> > &gR() const;
 
-      const double &gcoef(int) const;
+      const double &gcoef_n(int) const;
 
-      const std::vector<double> &gcoef() const;
+      const std::vector<double> &gcoef_n() const;
+
+      const double &gcoef_nn(int) const;
+
+      const std::vector<double> &gcoef_nn() const;
 
    private:
 
@@ -53,12 +57,13 @@ class Hamiltonian {
       int delta;
 
       //!coefficients to the nearest neighbour interaction
-      std::vector<double> coef;
+      std::vector<double> coef_n;
 
-      //!Left operators (array of 'delta' operators on the left side of the nn-pair)
+      //!coefficients to the next-nearest neighbour interaction
+      std::vector<double> coef_nn;
+
+      //!Left and right operators (array of 'delta' operators on the left side of a spin-pair)
       std::vector< DArray<2> > L;
-
-      //!Right operators (array of 'delta' operators on the right side of the nn-pair)
       std::vector< DArray<2> > R;
 
 };

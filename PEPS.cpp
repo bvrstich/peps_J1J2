@@ -819,7 +819,7 @@ double PEPS<double>::energy(){
       Permute(tmp5,shape(0,1,2,4,3),Li_d[i]);
 
       //and contract with R[0]
-      val += ham.gcoef(i) * Dot(Li_d[i],R[0]);
+      val += ham.gcoef_n(i) * Dot(Li_d[i],R[0]);
 
    }
 
@@ -913,7 +913,7 @@ double PEPS<double>::energy(){
          Li_u[i].clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_u[i]);
 
-         val += ham.gcoef(i) * global::J2 * Dot(Li_u[i],R[col]);
+         val += ham.gcoef_nn(i) * Dot(Li_u[i],R[col]);
 
       }
 
@@ -952,7 +952,7 @@ double PEPS<double>::energy(){
          Li_d[i].resize( shape(tmp7bis.shape(0),tmp7bis.shape(1),tmp7bis.shape(2),D,D) );
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp7bis.data(),K,env.gb(0)[col].data(),N,0.0,Li_d[i].data(),N);
 
-         val += ham.gcoef(i) * global::J2 * Dot(Li_d[i],R[col]);
+         val += ham.gcoef_nn(i) * Dot(Li_d[i],R[col]);
 
          //2) then do the horizontal gate:
 
@@ -976,7 +976,7 @@ double PEPS<double>::energy(){
 
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_d[i]);
 
-         val += ham.gcoef(i) * Dot(Li_d[i],R[col]);
+         val += ham.gcoef_n(i) * Dot(Li_d[i],R[col]);
 
       }
 
@@ -1022,7 +1022,7 @@ double PEPS<double>::energy(){
 
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_u[i]);
 
-         val += ham.gcoef(i) * Dot(Li_u[i],R[col]);
+         val += ham.gcoef_n(i) * Dot(Li_u[i],R[col]);
 
          //2) the construct the 'real' Lu_i
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,(*this)(0,col),0.0,Li_u[i]);
@@ -1096,7 +1096,7 @@ double PEPS<double>::energy(){
       peps_op.clear();
       Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-      val += ham.gcoef(i) * global::J2 * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
+      val += ham.gcoef_nn(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
 
    }
   
@@ -1128,7 +1128,7 @@ double PEPS<double>::energy(){
       Permute(tmp7,shape(0,4,6,1,2,3,5),tmp7bis);
 
       //inner product with bottom environment leads to energy contribution:
-      val += ham.gcoef(i) * global::J2 * blas::dot(tmp7bis.size(),tmp7bis.data(),1,env.gb(0)[Lx-1].data(),1);
+      val += ham.gcoef_nn(i) * blas::dot(tmp7bis.size(),tmp7bis.data(),1,env.gb(0)[Lx-1].data(),1);
 
       //2) then do the horizontal gate:
 
@@ -1150,7 +1150,7 @@ double PEPS<double>::energy(){
       peps_op.clear();
       Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-      val += ham.gcoef(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
+      val += ham.gcoef_n(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
 
    }
 
@@ -1192,7 +1192,7 @@ double PEPS<double>::energy(){
       peps_op.clear();
       Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
-      val += ham.gcoef(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
+      val += ham.gcoef_n(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
 
    }
 
@@ -1273,7 +1273,7 @@ double PEPS<double>::energy(){
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp7bis.data(),K,env.gb(row-1)[0].data(),N,0.0,LOi_u[i].data(),N);
 
          //vertical energy
-         val += ham.gcoef(i) * Dot(LOi_u[i],RO[0]);
+         val += ham.gcoef_n(i) * Dot(LOi_u[i],RO[0]);
 
          //then construct leftgoing upper operator
 
@@ -1365,8 +1365,6 @@ double PEPS<double>::energy(){
       // --- now for the middle sites, close down the operators on the left and construct new ones --- 
       for(int col = 1;col < Lx - 1;++col){
 
-         cout << col << endl;
-
          //close down the left up and down operators with two diagonal and one horizontal contribution
          tmp8.clear();
          Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],RO[col],0.0,tmp8);
@@ -1415,10 +1413,10 @@ double PEPS<double>::energy(){
             Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp8bis,0.0,tmp6);
 
             //now close down horizontal
-            val += ham.gcoef(i) * Dot(tmp6,LOi_d[i]);
+            val += ham.gcoef_n(i) * Dot(tmp6,LOi_d[i]);
 
             //and left-up right-down diagonal
-            val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
+            val += ham.gcoef_nn(i) * Dot(tmp6,LOi_u[i]);
 
             //--- VERTICAL GATE ---
 
@@ -1435,7 +1433,7 @@ double PEPS<double>::energy(){
             Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp8bis,0.0,tmp6);
 
             //close down vertical with left unity
-            val += ham.gcoef(i) * Dot(tmp6,RO[col-1]);
+            val += ham.gcoef_n(i) * Dot(tmp6,RO[col-1]);
 
          }
 
@@ -1471,7 +1469,7 @@ double PEPS<double>::energy(){
             Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp8bis,0.0,tmp6);
 
             //close down diagonal Left-down right-up
-            val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_d[i]);
+            val += ham.gcoef_nn(i) * Dot(tmp6,LOi_d[i]);
 
          }
 
@@ -1625,7 +1623,7 @@ double PEPS<double>::energy(){
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(row)[Lx-1].data(),K,tmp7bis.data(),N,0.0,tmp6.data(),N);
 
          //vertical contribution
-         val += ham.gcoef(i) * Dot(tmp6,RO[Lx-2]);
+         val += ham.gcoef_n(i) * Dot(tmp6,RO[Lx-2]);
 
          // --- 2) add regular peps' for Left Up and Horizontal energy contributions
          M = (*this)(row+1,Lx-1).shape(0) * (*this)(row+1,Lx-1).shape(1);
@@ -1647,10 +1645,10 @@ double PEPS<double>::energy(){
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(row)[Lx-1].data(),K,tmp7bis.data(),N,0.0,tmp6.data(),N);
 
          //horizontal energy contribution
-         val += ham.gcoef(i) * Dot(tmp6,LOi_d[i]);
+         val += ham.gcoef_n(i) * Dot(tmp6,LOi_d[i]);
 
          //diagonal energy contribution: Lu \ Rd
-         val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_u[i]);
+         val += ham.gcoef_nn(i) * Dot(tmp6,LOi_u[i]);
 
       }
 
@@ -1698,7 +1696,7 @@ double PEPS<double>::energy(){
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(row)[Lx-1].data(),K,tmp7bis.data(),N,0.0,tmp6.data(),N);
 
          //diagonal energy contribution: Ld / Ru
-         val += ham.gcoef(i) * global::J2 * Dot(tmp6,LOi_d[i]);
+         val += ham.gcoef_nn(i) * Dot(tmp6,LOi_d[i]);
 
       }
 
@@ -1757,7 +1755,7 @@ double PEPS<double>::energy(){
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp6bis.data(),K,env.gb(Ly-3)[0].data(),N,0.0,Li_u[i].data(),N);
 
       //vertical energy:
-      val += ham.gcoef(i) * Dot(Li_u[i],R[0]);
+      val += ham.gcoef_n(i) * Dot(Li_u[i],R[0]);
 
       //now construct the left up going operator: add regular lower peps to intermediate perm6
       M = perm6.shape(0) * perm6.shape(1) * perm6.shape(2) * perm6.shape(3);
@@ -1885,16 +1883,16 @@ double PEPS<double>::energy(){
          tmp5.clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,tmp8bis,0.0,tmp5);
 
-         val += ham.gcoef(i) * Dot(tmp5,R[col-1]);
+         val += ham.gcoef_n(i) * Dot(tmp5,R[col-1]);
 
          //add regular upper peps to intermediate tmp8bis for closure of Left Up and Horizontal
          Gemm(CblasNoTrans,CblasNoTrans,1.0,(*this)(Ly-1,col),tmp8bis,0.0,tmp5);
 
          //close down with Left Down for horizontal contribution
-         val += ham.gcoef(i) * Dot(tmp5,Li_d[i]);
+         val += ham.gcoef_n(i) * Dot(tmp5,Li_d[i]);
 
          //and Left Up \ Right Down diagonal:
-         val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_u[i]);
+         val += ham.gcoef_nn(i) * Dot(tmp5,Li_u[i]);
 
       }
 
@@ -1917,10 +1915,10 @@ double PEPS<double>::energy(){
          Gemm(CblasNoTrans,CblasNoTrans,1.0,peps_op,tmp8bis,0.0,tmp5);
 
          //Left Down / Right Up diagonal:
-         val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_d[i]);
+         val += ham.gcoef_nn(i) * Dot(tmp5,Li_d[i]);
 
          //upper horizontal with Left-Up
-         val += ham.gcoef(i) * Dot(tmp5,Li_u[i]);
+         val += ham.gcoef_n(i) * Dot(tmp5,Li_u[i]);
 
       }
 
@@ -2066,7 +2064,7 @@ double PEPS<double>::energy(){
       tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps_op.data(),K,tmp6bis.data(),N,0.0,tmp5.data(),N);
 
-      val += ham.gcoef(i) * Dot(tmp5,R[Lx-2]);
+      val += ham.gcoef_n(i) * Dot(tmp5,R[Lx-2]);
 
       //for horizontal and Left-Up closure, add regular upper peps to intermediate
       M = (*this)(Ly-1,Lx-1).shape(0);
@@ -2077,10 +2075,10 @@ double PEPS<double>::energy(){
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,(*this)(Ly-1,Lx-1).data(),K,tmp6bis.data(),N,0.0,tmp5.data(),N);
 
       //horizontal with Left-Down
-      val += ham.gcoef(i) * Dot(tmp5,Li_d[i]);
+      val += ham.gcoef_n(i) * Dot(tmp5,Li_d[i]);
 
       //diagonal with Left-Up : LU \ RD
-      val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_u[i]);
+      val += ham.gcoef_nn(i) * Dot(tmp5,Li_u[i]);
 
    }
 
@@ -2121,10 +2119,10 @@ double PEPS<double>::energy(){
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps_op.data(),K,tmp6bis.data(),N,0.0,tmp5.data(),N);
 
       //upper horizontal contribution
-      val += ham.gcoef(i) * Dot(tmp5,Li_u[i]);
+      val += ham.gcoef_n(i) * Dot(tmp5,Li_u[i]);
 
       //diagonal with Left-Down : LD / RU
-      val += ham.gcoef(i) * global::J2 * Dot(tmp5,Li_d[i]);
+      val += ham.gcoef_nn(i) * Dot(tmp5,Li_d[i]);
 
    }
 

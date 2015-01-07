@@ -28,7 +28,8 @@ Hamiltonian::Hamiltonian(const Hamiltonian &ham_c){
    this->L = ham_c.gL();
    this->R = ham_c.gR();
 
-   this->coef = ham_c.gcoef();
+   this->coef_n = ham_c.gcoef_n();
+   this->coef_nn = ham_c.gcoef_nn();
 
 }
 
@@ -48,20 +49,39 @@ int Hamiltonian::gdelta() const {
 
 /**
  * @param i index of the nn term
- * @return coefficient 'i' to the nn-interaction
+ * @return coefficient 'i' to the next-nearest-neighbour interaction
  */
-const double &Hamiltonian::gcoef(int i) const {
+const double &Hamiltonian::gcoef_n(int i) const {
 
-   return coef[i];
+   return coef_n[i];
 
 }
 
 /**
- * @return array of 'delta' coefficients to the nn-interaction
+ * @param i index of the nn term
+ * @return coefficient 'i' to the next-nearest-neighbour interaction
  */
-const std::vector<double> &Hamiltonian::gcoef() const {
+const double &Hamiltonian::gcoef_nn(int i) const {
 
-   return coef;
+   return coef_nn[i];
+
+}
+
+/**
+ * @return array of 'delta' coefficients to the nearest-neighbour interaction
+ */
+const std::vector<double> &Hamiltonian::gcoef_n() const {
+
+   return coef_n;
+
+}
+
+/**
+ * @return array of 'delta' coefficients to the next-nearest-neighbour interaction
+ */
+const std::vector<double> &Hamiltonian::gcoef_nn() const {
+
+   return coef_nn;
 
 }
 
@@ -95,7 +115,7 @@ const std::vector< DArray<2> > &Hamiltonian::gL() const {
 }
 
 /**
- * @return the array of 'delta' left operators
+ * @return the array of 'delta' right operators
  */
 const std::vector< DArray<2> > &Hamiltonian::gR() const {
 
@@ -114,7 +134,8 @@ void Hamiltonian::set_J1J2(bool ladder) {
    L.resize(delta);
    R.resize(delta);
 
-   coef.resize(delta);
+   coef_n.resize(delta);
+   coef_nn.resize(delta);
 
    if(ladder){
 
@@ -144,10 +165,15 @@ void Hamiltonian::set_J1J2(bool ladder) {
       R[2](0,0) = -0.5;
       R[2](1,1) = 0.5;
 
-      //coefficients:
-      coef[0] = -0.5;//minus sign because of the Marshall sign rule
-      coef[1] = -0.5;//minus sign because of the Marshall sign rule
-      coef[2] = 1.0;//minus sign because of the Marshall sign rule
+      //nearest-neigbour coefficients:
+      coef_n[0] = -0.5;//minus sign because of the Marshall sign rule
+      coef_n[1] = -0.5;//minus sign because of the Marshall sign rule
+      coef_n[2] = 1.0;
+      
+      //next-nearest neigbour coefficients:
+      coef_nn[0] = 0.5 * global::J2;
+      coef_nn[1] = 0.5 * global::J2;
+      coef_nn[2] = 1.0 * global::J2;
 
    }
    else{
@@ -184,10 +210,15 @@ void Hamiltonian::set_J1J2(bool ladder) {
       R[2](0,0) = -0.5;
       R[2](1,1) = 0.5;
 
-      //coefficients:
-      coef[0] = -1.0;//minus sign because of the Marshall sign rule
-      coef[1] = 1.0;//minus sign of the Marshall sign rule cancelled because of squared 'i'
-      coef[2] = 1.0;//minus sign because of the Marshall sign rule
+      //nearest neigbour coefficients:
+      coef_n[0] = -1.0;//minus sign because of the Marshall sign rule
+      coef_n[1] = 1.0;//minus sign of the Marshall sign rule cancelled because of squared 'i'
+      coef_n[2] = 1.0;
+
+      //next-nearest-neigbour coefficients:
+      coef_nn[0] = global::J2;
+      coef_nn[1] = -global::J2;//minus sign ofbecause of squared 'i'
+      coef_nn[2] = global::J2;
 
    }
 

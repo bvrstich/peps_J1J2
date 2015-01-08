@@ -20,3 +20,4 @@
 #include "contractions.h"
 
 #include "Trotter.h"
+#include "propagate.h"

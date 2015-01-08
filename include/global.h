@@ -17,6 +17,7 @@ using std::complex;
 using namespace btas;
 
 class Environment;
+class Trotter;
 
 namespace global {
 
@@ -46,6 +47,9 @@ namespace global {
 
    //!nr of sweeps for MPO compression
    extern int comp_sweeps;
+
+   //!Trotter object
+   extern Trotter trot;
 
    //!physical unit matrix
    extern DArray<2> I;

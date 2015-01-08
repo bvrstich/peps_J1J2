@@ -35,6 +35,8 @@ namespace global{
 
    Environment env;
 
+   Trotter trot;
+
    /**
     * @param D_in virtual dimension of the trial
     * @param d_in physical dimension
@@ -58,6 +60,8 @@ namespace global{
 
       //set the interaction
       ham.set_J1J2(false);
+
+      trot = Trotter(tau);
 
       //identity matrix
       I.resize(d,d);

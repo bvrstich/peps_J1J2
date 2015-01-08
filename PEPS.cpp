@@ -727,7 +727,6 @@ double PEPS<double>::energy(){
    std::vector< DArray<5> > Li_u( delta ); //upper site with extra operator
    std::vector< DArray<5> > Li_d( delta ); //lower site with extra operator
 
-
    //some storage stuff:
    DArray<4> tmp4;
    DArray<4> tmp4bis;

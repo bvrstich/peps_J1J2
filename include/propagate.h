@@ -18,6 +18,8 @@ namespace propagate {
 
    void calc_vertical_N_eff(char option,int col,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n);
 
+   void calc_horizontal_N_eff(char option,int col,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n);
+
    void canonicalize_n(DArray<4> &,DArray<3> &a_L,DArray<4> &QL,DArray<3> &a_R,DArray<4> &QR);
 
    void invert(DArray<2> &);

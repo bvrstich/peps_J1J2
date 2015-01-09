@@ -52,27 +52,34 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-      //first update the vertical pair on the first row
-      construct_reduced_tensor('V','L',peps(0,0),QL,a_L);
-      construct_reduced_tensor('V','R',peps(1,0),QR,a_R);
+      //middle sites of the bottom row:
+     // for(int col = 0;col < Lx - 1;++col){
+      int col = 0;
 
-      calc_vertical_N_eff('b',0,L,QL,R[0],QR,N_eff_n);
+      //--- (1) update the vertical pair on column 'col' ---
+      construct_reduced_tensor('V','L',peps(0,col),QL,a_L);
+      construct_reduced_tensor('V','R',peps(1,col),QR,a_R);
+
+      calc_vertical_N_eff('b',col,L,QL,R[col],QR,N_eff_n);
 
       canonicalize_n(N_eff_n,a_L,QL,a_R,QR);
 
       //now do the update! Apply the gates!
       update_n(N_eff_n,a_L,a_R,n_sweeps);
-/*
-      //middle sites of the bottom row:
-      for(int col = 0;col < Lx - 1;++col){
+      
+      //and expand back to the full tensors:
+      Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(0,col),shape(j,n,m,i,k));
+      Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(1,col),shape(o,n,j,i,m));
 
-      //first construct the reduced tensors of the first pair to propagate
+      //--- (2) update the horizontal pair on column 'col'-'col+1' ---
+      
+      //construct the reduced tensors of the pair to propagate
       construct_reduced_tensor('H','L',peps(0,col),QL,a_L);
       construct_reduced_tensor('H','R',peps(0,col+1),QR,a_R);
 
       //calculate the effective environment N_eff
-      calc_N_eff('b',col,L,QL,R[col + 1],QR,N_eff);
-
+      calc_horizontal_N_eff('b',col,L,QL,R[col + 1],QR,N_eff_n);
+/*
       //make environment close to unitary before the update
       canonicalize(full,N_eff,a_L,QL,a_R,QR);
 
@@ -85,7 +92,7 @@ namespace propagate {
 
       contractions::update_L('b',col,peps,L);
 
-      }
+      //}
 
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
@@ -372,7 +379,7 @@ namespace propagate {
 
             DArray<6> tmp6;
             Contract(1.0,tmp4,shape(3),QL,shape(2),0.0,tmp6);
-            
+
             N_eff_n.clear();
             Contract(1.0,QL,shape(i,j,k,l),tmp6,shape(m,n,k,i,j,o),0.0,N_eff_n,shape(l,n,o,m));
 
@@ -387,6 +394,27 @@ namespace propagate {
       }
 
    }
+
+   void calc_horizontal_N_eff(char option,int col,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n){
+
+      enum {i,j,k,l,m,n,o,p};
+
+      if(option == 'b'){//bottom two rows
+
+         if(col == 0){
+
+         }
+         else{
+
+         }
+
+      }
+      else{//top two rows
+
+      }
+
+   }
+
 
    /**
     * make the environment as 'canonical' as possible so that the svd for the pair update is as optimal as possible. For a nearest neighbour update!

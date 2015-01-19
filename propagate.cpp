@@ -78,7 +78,7 @@ namespace propagate {
       construct_reduced_tensor('H','R',peps(0,col+1),QR,a_R);
 
       //calculate the effective environment N_eff
-      calc_horizontal_N_eff('b',col,L,QL,R[col + 1],QR,N_eff_n);
+      calc_horizontal_N_eff('b',col,peps,L,QL,R[col + 1],QR,N_eff_n);
 /*
       //make environment close to unitary before the update
       canonicalize(full,N_eff,a_L,QL,a_R,QR);
@@ -395,13 +395,46 @@ namespace propagate {
 
    }
 
-   void calc_horizontal_N_eff(char option,int col,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n){
+   void calc_horizontal_N_eff(char option,int col,const PEPS<double> &peps,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n){
 
       enum {i,j,k,l,m,n,o,p};
 
       if(option == 'b'){//bottom two rows
 
          if(col == 0){
+
+            //paste bottom QR to R
+            DArray<7> tmp7;
+            Gemm(CblasNoTrans,CblasTrans,1.0,QR,R,0.0,tmp7);
+
+            //paste other (top) QR on
+            int M = QR.shape(0) * QR.shape(1);
+            int N = tmp7.shape(0) * tmp7.shape(1) * tmp7.shape(3) * tmp7.shape(4) * tmp7.shape(5);
+            int K = QR.shape(3);
+
+            DArray<7> tmp7bis(d*D,D,d*D,D,tmp7.shape(3),D,D);
+            blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,QR.data(),K,tmp7.data(),K,0.0,tmp7bis.data(),N);
+
+            tmp7.clear();
+            Permute(tmp7bis,shape(3,6,0,1,2,4,5),tmp7);
+
+            //add the tensors on row = 1
+            DArray<8> tmp8;
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(1,1),tmp7,0.0,tmp8);
+
+            DArray<8> tmp8bis;
+            Permute(tmp8,shape(2,4,7,0,1,3,5,6),tmp8bis);
+
+            tmp7.clear();
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(1,1),tmp8bis,0.0,tmp7);
+
+            Permute(tmp7,shape(1,3,6,0,2,4,5),tmp7bis);
+
+            //finally get 'right hand side with on QR.
+            DArray<5> tmp5;
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[1],tmp7bis,0.0,tmp5);
+
+
 
          }
          else{
@@ -562,8 +595,6 @@ namespace propagate {
       int iter = 0;
 
       while(iter < n_iter){
-
-         cout << iter << "\t" << cost_function_n(N_eff_n,b,a_L,a_R) << endl;
 
          //construct right hand side 
          DArray<3> tmp3;

@@ -79,13 +79,13 @@ namespace propagate {
 
       //calculate the effective environment N_eff
       calc_horizontal_N_eff('b',col,peps,L,QL,R[col + 1],QR,N_eff_n);
-/*
+
       //make environment close to unitary before the update
-      canonicalize(full,N_eff,a_L,QL,a_R,QR);
+      canonicalize_n(N_eff_n,a_L,QL,a_R,QR);
 
       //now do the update! Apply the gates!
-      update(full,N_eff,a_L,a_R,n_sweeps);
-
+      update_n(N_eff_n,a_L,a_R,n_sweeps);
+     /*
       //and expand back to the full tensors
       Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(0,col),shape(i,j,m,k,n));
       Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(0,col+1),shape(i,o,j,m,n));

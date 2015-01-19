@@ -430,12 +430,55 @@ namespace propagate {
 
             Permute(tmp7,shape(1,3,6,0,2,4,5),tmp7bis);
 
-            //finally get 'right hand side with on QR.
+            //finally get 'right hand side': R_eff
+            DArray<5> R_eff;
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[1],tmp7bis,0.0,R_eff);
+
+            //left side, connect top to row 1 peps
             DArray<5> tmp5;
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[1],tmp7bis,0.0,tmp5);
+            Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(0)[0],peps(1,0),0.0,tmp5);
 
+            DArray<5> tmp5bis;
+            Permute(tmp5,shape(1,3,4,0,2),tmp5bis);
+            
+            //add another PEPS
+            M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2);
+            N = D*D;
+            K = tmp5bis.shape(3) * tmp5bis.shape(4);
 
+            tmp5.resize( shape(env.gt(0)[0].shape(3),D,D,D,D) );
+            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,peps(1,0).data(),N,0.0,tmp5.data(),N);
 
+            tmp5bis.clear();
+            Permute(tmp5,shape(0,2,4,3,1),tmp5bis);
+
+            //now contract with QL
+            M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2) * tmp5bis.shape(3);
+            N = D;
+            K = D;
+
+            tmp5.resize(env.gt(0)[0].shape(3),D,D,D,D);
+            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,QL.data(),N,0.0,tmp5.data(),N);
+ 
+            //one final permuation
+            tmp5bis.clear();
+            Permute(tmp5,shape(0,1,2,4,3),tmp5bis);
+            
+            //now contract with (bottom) QL
+            M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2) * tmp5bis.shape(3);
+            N = D;
+            K = D;
+
+            DArray<5> L_eff(env.gt(0)[0].shape(3),D,D,D,D);
+            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,QL.data(),N,0.0,L_eff.data(),N);
+
+            //now construct N_eff:
+            DArray<4> tmp4(D,D,d*D,d*D);
+            Gemm(CblasTrans,CblasNoTrans,1.0,L_eff,R_eff,0.0,tmp4);
+
+            N_eff_n.clear();
+            Permute(tmp4,shape(0,2,1,3),N_eff_n);
+ 
          }
          else{
 

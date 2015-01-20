@@ -16,11 +16,9 @@ namespace propagate {
 
    void update_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
 
-   void construct_N_eff_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<8> &,bool);
+   void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<8> &,DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
 
-   void construct_rhs_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<5> &,bool);
-
-   void solve(DArray<4> &,DArray<3> &);
+   void solve(DArray<8> &,DArray<5> &);
 
 }
 

@@ -166,83 +166,96 @@ namespace propagate {
     */
    void update_vertical(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,int n_iter){
 
-      DArray<5> rhs;
-      DArray<8> N_eff;
+      if(row == 0){
 
-      DArray<7> tmp7;
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[0],R,0.0,tmp7);
+         DArray<5> rhs;
+         DArray<8> N_eff;
 
-      cout << tmp7 << endl;
+         //first make left and right intermediary objects
+         DArray<7> LI7;
+         DArray<7> RI7;
 
-      //start sweeping
-      int iter = 0;
+         if(col != 0)//if col = 0, no left intermediary
+            cout << "BOE" << endl;
 
-      while(iter < n_iter){
+         if(col != Lx - 1)//if col != 0, no right intermediary
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[0],R,0.0,RI7);
 
-         // --(1)-- top site
+         //start sweeping
+         int iter = 0;
 
-         //construct effective environment, matrix for linear system for top site
-         construct_N_eff_vertical(row,col,peps,L,R,N_eff,true);
+         while(iter < n_iter){
 
-         //construct right hand side of linear system for top site
-         construct_rhs_vertical(row,col,peps,L,R,rhs,true);
+            // --(1)-- top site
 
-         //solve the system
+            //construct effective environment and right hand side for linear system of top site
+            construct_lin_sys_vertical(row,col,peps,L,R,N_eff,rhs,LI7,RI7,true);
 
-         // --(2)-- bottom site
+            //solve the system
 
-         //construct effective environment for bottom site
-         construct_N_eff_vertical(row,col,peps,L,R,N_eff,false);
+            // --(2)-- bottom site
 
-         //construct right hand side of linear system for bottom site
-         construct_rhs_vertical(row,col,peps,L,R,rhs,false);
+            //construct effective environment and right hand side for linear system of bottom site
+            construct_lin_sys_vertical(row,col,peps,L,R,N_eff,rhs,LI7,RI7,false);
 
-         //solve the system
+            //solve the system
 
-         //repeat until converged
-         ++iter;
+            //repeat until converged
+            ++iter;
+
+         }
+
+      }
+      else{//whatever other options
 
       }
 
    }
 
    /**
-    * construct the single-site effective environment for the vertical gate, for top or bottom site
+    * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site
     * @param row , the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
     * @param L Left environment contraction
     * @param R Right environment contraction
     * @param N_eff output object, contains N_eff on output
+    * @param rhs output object, contains N_eff on output
     * @param top boolean flag for top or bottom site of vertical gate
     */
-   void construct_N_eff_vertical(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,DArray<8> &N_eff,bool top){
+   void construct_lin_sys_vertical(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,DArray<8> &N_eff,DArray<5> &rhs,const DArray<7> &LI7,const DArray<7> &RI7,bool top){
 
-      if(top){//top site of vertical, so site (row,col+1) environment
+      if(row == 0){
+
+         if(col == 0){
+
+            if(top){//top site of vertical, so site (row,col+1) environment
+
+               //paste bottom peps to right intermediate
+               DArray<10> tmp10;
+               Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
+
+               //another bottom peps to this one
+               DArray<9> tmp9;
+               Contract(1.0,peps(row,col),shape(2,3,4),tmp10,shape(8,9,5),0.0,tmp9);
+
+               DArray<9> tmp9bis;
+               Permute(tmp9,shape(0,2,7,3,1,5,4,8,6),tmp9bis);
+
+               N_eff = tmp9bis.reshape_clear( shape(1,D,D,D,1,D,D,D) );
+
+            }
+            else{//bottom site (row,col)
+
+            }
+
+         }
+         else{//later
+
+         }
 
       }
-      else{//bottom site (row,col)
-
-      }
-
-   }
-
-   /**
-    * construct the single-site right hand side of the linear system N_eff x = rhs, for top or bottom site
-    * @param row , the row index of the bottom site
-    * @param col column index of the vertical column
-    * @param peps, full PEPS object before update
-    * @param L Left environment contraction
-    * @param R Right environment contraction
-    * @param rhs output object, contains rhs on output
-    * @param top boolean flag for top or bottom site of vertical gate
-    */
-   void construct_rhs_vertical(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,DArray<5> &rhs,bool top){
-
-      if(top){//top site of vertical, so site (row,col+1) environment
-
-      }
-      else{//bottom site (row,col)
+      else{//later
 
       }
 

@@ -43,6 +43,7 @@ namespace propagate {
 
       DArray<4> N_eff_n;
 
+
       //construct the full top environment:
       env.calc('T',peps);
 
@@ -53,7 +54,7 @@ namespace propagate {
       contractions::init_ro('b',peps,R);
 
       //middle sites of the bottom row:
-     // for(int col = 0;col < Lx - 1;++col){
+      // for(int col = 0;col < Lx - 1;++col){
       int col = 0;
 
       //--- (1) update the vertical pair on column 'col' ---
@@ -66,13 +67,13 @@ namespace propagate {
 
       //now do the update! Apply the gates!
       update_n(N_eff_n,a_L,a_R,n_sweeps);
-      
+
       //and expand back to the full tensors:
       Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(0,col),shape(j,n,m,i,k));
       Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(1,col),shape(o,n,j,i,m));
 
-      //--- (2) update the horizontal pair on column 'col'-'col+1' ---
-      
+      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+
       //construct the reduced tensors of the pair to propagate
       construct_reduced_tensor('H','L',peps(0,col),QL,a_L);
       construct_reduced_tensor('H','R',peps(0,col+1),QR,a_R);
@@ -85,11 +86,13 @@ namespace propagate {
 
       //now do the update! Apply the gates!
       update_n(N_eff_n,a_L,a_R,n_sweeps);
-     /*
+      
       //and expand back to the full tensors
       Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(0,col),shape(i,j,m,k,n));
       Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(0,col+1),shape(i,o,j,m,n));
 
+      // --- (3) diagonal updates ---
+/*
       contractions::update_L('b',col,peps,L);
 
       //}
@@ -148,34 +151,34 @@ namespace propagate {
 
       for(int col = 0;col < Lx - 1;++col){
 
-         //first construct the reduced tensors of the first pair to propagate
-         construct_reduced_tensor('H','L',peps(Ly-1,col),QL,a_L);
-         construct_reduced_tensor('H','R',peps(Ly-1,col + 1),QR,a_R);
+      //first construct the reduced tensors of the first pair to propagate
+      construct_reduced_tensor('H','L',peps(Ly-1,col),QL,a_L);
+      construct_reduced_tensor('H','R',peps(Ly-1,col + 1),QR,a_R);
 
-         //calculate the effective environment N_eff
-         calc_N_eff('t',col,L,QL,R[col + 1],QR,N_eff);
+      //calculate the effective environment N_eff
+      calc_N_eff('t',col,L,QL,R[col + 1],QR,N_eff);
 
-         //make environment close to unitary before the update
-         canonicalize(full,N_eff,a_L,QL,a_R,QR);
+      //make environment close to unitary before the update
+      canonicalize(full,N_eff,a_L,QL,a_R,QR);
 
-         //now do the update! Apply the gates!
-         update(full,N_eff,a_L,a_R,n_sweeps);
+      //now do the update! Apply the gates!
+      update(full,N_eff,a_L,a_R,n_sweeps);
 
-         //and expand back to the full tensors
-         Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(Ly-1,col),shape(i,j,m,k,n));
-         Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(Ly-1,col+1),shape(i,o,j,m,n));
+      //and expand back to the full tensors
+      Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(Ly-1,col),shape(i,j,m,k,n));
+      Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(Ly-1,col+1),shape(i,o,j,m,n));
 
-         contractions::update_L('t',col,peps,L);
+      contractions::update_L('t',col,peps,L);
 
-      }
+   }
 
-      //get the norm matrix
-      contractions::update_L('t',Lx-1,peps,L);
+   //get the norm matrix
+   contractions::update_L('t',Lx-1,peps,L);
 
-      //scale the peps
-      peps.scal(1.0/sqrt(L(0,0,0)));
+   //scale the peps
+   peps.scal(1.0/sqrt(L(0,0,0)));
 
-      */
+   */
    }
 
    /**
@@ -440,7 +443,7 @@ namespace propagate {
 
             DArray<5> tmp5bis;
             Permute(tmp5,shape(1,3,4,0,2),tmp5bis);
-            
+
             //add another PEPS
             M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2);
             N = D*D;
@@ -459,11 +462,11 @@ namespace propagate {
 
             tmp5.resize(env.gt(0)[0].shape(3),D,D,D,D);
             blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,QL.data(),N,0.0,tmp5.data(),N);
- 
+
             //one final permuation
             tmp5bis.clear();
             Permute(tmp5,shape(0,1,2,4,3),tmp5bis);
-            
+
             //now contract with (bottom) QL
             M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2) * tmp5bis.shape(3);
             N = D;
@@ -478,7 +481,7 @@ namespace propagate {
 
             N_eff_n.clear();
             Permute(tmp4,shape(0,2,1,3),N_eff_n);
- 
+
          }
          else{
 

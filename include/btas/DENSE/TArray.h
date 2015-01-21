@@ -373,6 +373,7 @@ public:
          stride *= x.m_shape[i];
       }
 
+
       assert(stride == this->size());
 
       x.m_store = std::move(this->m_store);

@@ -149,7 +149,6 @@ namespace propagate {
 
       int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
 
-      cout << n << endl;
       int *ipiv = new int [n];
 
       lapack::getrf(CblasRowMajor,n,n, N_eff.data(), n,ipiv);
@@ -171,6 +170,8 @@ namespace propagate {
     */
    void update_vertical(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,int n_iter){
 
+      enum {i,j,k,l,m,n,o};
+
       if(row == 0){
 
          DArray<5> rhs;
@@ -180,9 +181,16 @@ namespace propagate {
          DArray<7> LI7;
          DArray<7> RI7;
 
+         DArray<6> lop;
+         DArray<6> rop;
+
          if(col == 0){
 
             Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[0],R,0.0,RI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
             //start sweeping
             int iter = 0;
@@ -192,17 +200,24 @@ namespace propagate {
                // --(1)-- top site
 
                //construct effective environment and right hand side for linear system of top site
-               construct_lin_sys_vertical(row,col,peps,L,R,N_eff,rhs,LI7,RI7,true);
+               construct_lin_sys_vertical(row,col,peps,lop,rop,L,R,N_eff,rhs,LI7,RI7,true);
 
                //solve the system
                solve(N_eff,rhs);
 
+               //update upper peps
+               Permute(rhs,shape(1,2,0,3,4),peps(row+1,col));
+
                // --(2)-- bottom site
 
                //construct effective environment and right hand side for linear system of bottom site
-               construct_lin_sys_vertical(row,col,peps,L,R,N_eff,rhs,LI7,RI7,false);
+               construct_lin_sys_vertical(row,col,peps,lop,rop,L,R,N_eff,rhs,LI7,RI7,false);
 
                //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(1,2,0,3,4),peps(row,col));
 
                //repeat until converged
                ++iter;
@@ -232,7 +247,9 @@ namespace propagate {
     * @param rhs output object, contains N_eff on output
     * @param top boolean flag for top or bottom site of vertical gate
     */
-   void construct_lin_sys_vertical(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,DArray<8> &N_eff,DArray<5> &rhs,const DArray<7> &LI7,const DArray<7> &RI7,bool top){
+   void construct_lin_sys_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<5> &L,
+
+         const DArray<5> &R,DArray<8> &N_eff,DArray<5> &rhs,const DArray<7> &LI7,const DArray<7> &RI7,bool top){
 
       if(row == 0){
 
@@ -244,40 +261,55 @@ namespace propagate {
                DArray<10> tmp10;
                Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
 
-               //another bottom peps to this one
-               DArray<9> tmp9;
-               Contract(1.0,peps(row,col),shape(2,3,4),tmp10,shape(8,9,5),0.0,tmp9);
-
-               DArray<9> tmp9bis;
-               Permute(tmp9,shape(0,2,7,3,1,5,4,8,6),tmp9bis);
-
-               N_eff = tmp9bis.reshape_clear( shape(1,D,D,D,1,D,D,D) );
-
                //construct right hand side, attach operator to tmp10:
                DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
 
+               //another bottom peps to this one
                DArray<8> tmp8;
-               Gemm(CblasNoTrans,CblasTrans,1.0,tmp7,global::trot.gLO_n(),0.0,tmp8);
+               Contract(1.0,tmp7,shape(6,4),peps(row,col),shape(2,4),0.0,tmp8);
 
-               //add bottom peps to tmp8
-               tmp9.clear();
-               Contract(1.0,peps(row,col),shape(2,4),tmp8,shape(6,4),0.0,tmp9);
+               Permute(tmp8,shape(5,0,6,2,7,1,4,3),N_eff);
 
-               tmp7 = tmp9.reshape_clear( shape( D,D,D,D,D,D,trot.gLO_n().shape(1) ) );
+               //right hand side: add left operator to tmp7
+               DArray<9> tmp9;
+               Contract(1.0,tmp7,shape(6,4),lop,shape(2,5),0.0,tmp9);
 
-               //for the right hand side, add a top peps with operator
-
-               DArray<6> tmp6;
-               Contract(1.0,peps(row+1,col),shape(1,3,4),tmp7,shape(2,5,4),0.0,tmp6);
+               //remove the dimension-one legs
+               tmp7 = tmp9.reshape_clear( shape(D,D,D,D,D,D,global::trot.gLO_n().shape(1)) );
 
                DArray<5> tmp5;
-               Contract(1.0,global::trot.gRO_n(),shape(1,2),tmp6,shape(5,1),0.0,tmp5);
+               Contract(1.0,tmp7,shape(0,6,5,2),rop,shape(1,3,4,5),0.0,tmp5);
 
                rhs.clear();
-               Permute(tmp5,shape(0,1,3,2,4),rhs);
+               Permute(tmp5,shape(4,3,0,2,1),rhs);
 
             }
             else{//bottom site (row,col)
+               
+               //paste top peps to right intermediate
+               DArray<6> tmp6;
+               Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
+
+               //add another top peps for N_eff
+               DArray<5> tmp5;
+               Contract(1.0,tmp6,shape(0,4,1),peps(row+1,col),shape(1,2,4),0.0,tmp5);
+
+               DArray<5> tmp5bis;
+               Permute(tmp5,shape(3,4,0,2,1),tmp5bis);
+
+               N_eff = tmp5bis.reshape_clear( shape(1,D,1,D,1,D,1,D) );
+
+               //right hand side
+               DArray<6> tmp6bis;
+               Contract(1.0,tmp6,shape(0,4,1),rop,shape(1,2,5),0.0,tmp6bis);
+
+               DArray<4> tmp4;
+               Contract(1.0,tmp6bis,shape(3,5,4,0),lop,shape(0,1,3,5),0.0,tmp4);
+
+               DArray<4> tmp4bis;
+               Permute(tmp4,shape(2,1,0,3),tmp4bis);
+
+               rhs = tmp4bis.reshape_clear( shape(d,1,D,1,D) );
 
             }
 

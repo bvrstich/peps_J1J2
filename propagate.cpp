@@ -47,6 +47,7 @@ namespace propagate {
       int col = 0;
 
       //--- (1) update the vertical pair on column 'col' ---
+
       update_vertical(0,col,peps,L,R[0],n_sweeps); 
 /*
       // --- (2) update the horizontal pair on column 'col'-'col+1' ---
@@ -141,7 +142,7 @@ namespace propagate {
 
  
    /** 
-    * wrapper function solve linear system: N_eff * x = b
+    * wrapper function solve general linear system: N_eff * x = b
     * @param N_eff input matrix
     * @param rhs right hand side input and x output
     */
@@ -191,6 +192,8 @@ namespace propagate {
             //act with operators on left and right peps
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            cout << cost_function_vertical(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
             //start sweeping
             int iter = 0;
@@ -322,6 +325,79 @@ namespace propagate {
       else{//later
 
       }
+
+   }
+
+   /**
+    * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    */
+   double cost_function_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7){
+
+      if(row == 0){
+
+         if(col == 0){
+
+            // --- (1) calculate overlap of approximated state:
+
+            //paste bottom peps to right intermediate
+            DArray<10> tmp10;
+            Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
+
+            DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
+
+            //another bottom peps to this one
+            DArray<8> tmp8;
+            Contract(1.0,tmp7,shape(6,4),peps(row,col),shape(2,4),0.0,tmp8);
+
+            DArray<6> tmp6 = tmp8.reshape_clear( shape(D,D,D,D,D,D) );
+
+            //add upper peps
+            DArray<5> tmp5;
+            Contract(1.0,tmp6,shape(0,4,2),peps(row+1,col),shape(1,3,4),0.0,tmp5);
+
+            DArray<5> tmp5bis;
+            Permute(tmp5,shape(3,0,4,2,1),tmp5bis);
+
+            double val = Dot(tmp5bis,peps(row+1,col));
+            cout << val << endl;
+
+            cout << val << endl;
+
+            // --- (2) calculate 'b' part of overlap
+            
+            //right hand side: add left operator to tmp7
+            DArray<9> tmp9;
+            Contract(1.0,tmp7,shape(6,4),lop,shape(2,5),0.0,tmp9);
+
+            //remove the dimension-one legs
+            tmp7 = tmp9.reshape_clear( shape(D,D,D,D,D,D,global::trot.gLO_n().shape(1)) );
+
+            tmp5.clear();
+            Contract(1.0,tmp7,shape(0,6,5,2),rop,shape(1,3,4,5),0.0,tmp5);
+
+            tmp5bis.clear();
+            Permute(tmp5,shape(3,0,4,2,1),tmp5bis);
+
+            val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
+
+            return val;
+
+         }
+         else{//col != 0
+
+         }
+
+      }
+      else{//row != 0
+
+      }
+
+      return 0.0;
 
    }
 

@@ -47,7 +47,6 @@ namespace propagate {
       int col = 0;
 
       //--- (1) update the vertical pair on column 'col' ---
-
       update_vertical(0,col,peps,L,R[0],n_sweeps); 
 /*
       // --- (2) update the horizontal pair on column 'col'-'col+1' ---
@@ -193,14 +192,13 @@ namespace propagate {
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
-            cout << cost_function_vertical(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
-
             //start sweeping
             int iter = 0;
 
             while(iter < n_iter){
 
                // --(1)-- top site
+               cout << cost_function_vertical(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
                //construct effective environment and right hand side for linear system of top site
                construct_lin_sys_vertical(row,col,peps,lop,rop,L,R,N_eff,rhs,LI7,RI7,true);
@@ -209,7 +207,7 @@ namespace propagate {
                solve(N_eff,rhs);
 
                //update upper peps
-               Permute(rhs,shape(1,2,0,3,4),peps(row+1,col));
+               Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
 
                // --(2)-- bottom site
 
@@ -220,7 +218,7 @@ namespace propagate {
                solve(N_eff,rhs);
 
                //update lower peps
-               Permute(rhs,shape(1,2,0,3,4),peps(row,col));
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
 
                //repeat until converged
                ++iter;
@@ -284,11 +282,11 @@ namespace propagate {
                Contract(1.0,tmp7,shape(0,6,5,2),rop,shape(1,3,4,5),0.0,tmp5);
 
                rhs.clear();
-               Permute(tmp5,shape(4,3,0,2,1),rhs);
+               Permute(tmp5,shape(3,0,2,1,4),rhs);
 
             }
             else{//bottom site (row,col)
-               
+
                //paste top peps to right intermediate
                DArray<6> tmp6;
                Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
@@ -310,9 +308,9 @@ namespace propagate {
                Contract(1.0,tmp6bis,shape(3,5,4,0),lop,shape(0,1,3,5),0.0,tmp4);
 
                DArray<4> tmp4bis;
-               Permute(tmp4,shape(2,1,0,3),tmp4bis);
+               Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
-               rhs = tmp4bis.reshape_clear( shape(d,1,D,1,D) );
+               rhs = tmp4bis.reshape_clear( shape(1,D,1,D,d) );
 
             }
 
@@ -358,18 +356,15 @@ namespace propagate {
 
             //add upper peps
             DArray<5> tmp5;
-            Contract(1.0,tmp6,shape(0,4,2),peps(row+1,col),shape(1,3,4),0.0,tmp5);
+            Contract(1.0,tmp6,shape(0,5,2),peps(row+1,col),shape(1,3,4),0.0,tmp5);
 
             DArray<5> tmp5bis;
             Permute(tmp5,shape(3,0,4,2,1),tmp5bis);
 
             double val = Dot(tmp5bis,peps(row+1,col));
-            cout << val << endl;
-
-            cout << val << endl;
 
             // --- (2) calculate 'b' part of overlap
-            
+
             //right hand side: add left operator to tmp7
             DArray<9> tmp9;
             Contract(1.0,tmp7,shape(6,4),lop,shape(2,5),0.0,tmp9);

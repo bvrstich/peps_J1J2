@@ -16,7 +16,11 @@ namespace propagate {
 
    void update_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
 
+   void update_horizontal(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
+
    void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,const DArray<5> &,DArray<8> &,DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
+
+   void construct_lin_sys_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,const DArray<5> &,DArray<8> &,DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
 
    double cost_function_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &);
 

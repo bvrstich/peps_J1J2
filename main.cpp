@@ -40,10 +40,7 @@ int main(int argc,char *argv[]){
    PEPS<double> peps(D);
    peps.normalize();
 
-   global::env.calc('A',peps);
-   global::env.test();
-
-   propagate::step(peps,40);
+   propagate::step(peps,10);
 
    return 0;
 

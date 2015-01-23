@@ -46,11 +46,12 @@ namespace propagate {
       // for(int col = 0;col < Lx - 1;++col){
       int col = 0;
 
-      //--- (1) update the vertical pair on column 'col' ---
-      update_vertical(0,col,peps,L,R[0],n_sweeps); 
-/*
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+      // --- (1) update the vertical pair on column 'col' ---
+      update_vertical(0,col,peps,L,R[col],n_sweeps); 
 
+      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+      update_horizontal(0,col,peps,L,R[col+1],n_sweeps); 
+/*
       contractions::update_L('b',col,peps,L);
 
       //}
@@ -186,7 +187,7 @@ namespace propagate {
 
          if(col == 0){
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[0],R,0.0,RI7);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col],R,0.0,RI7);
 
             //act with operators on left and right peps
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
@@ -198,7 +199,6 @@ namespace propagate {
             while(iter < n_iter){
 
                // --(1)-- top site
-               cout << cost_function_vertical(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
                //construct effective environment and right hand side for linear system of top site
                construct_lin_sys_vertical(row,col,peps,lop,rop,L,R,N_eff,rhs,LI7,RI7,true);
@@ -236,6 +236,105 @@ namespace propagate {
       }
 
    }
+
+   /**
+    * update the tensors in a sweeping fashion, horizontal pairs
+    * @param row , the row index of the horizontal row
+    * @param col column index of left site
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param n_iter nr of sweeps in the ALS algorithm
+    */
+   void update_horizontal(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,int n_iter){
+
+      enum {i,j,k,l,m,n,o};
+
+      if(row == 0){
+
+         DArray<5> rhs;
+         DArray<8> N_eff;
+
+         //first make left and right intermediary objects
+         DArray<7> LI7;
+         DArray<7> RI7;
+
+         DArray<6> lop;
+         DArray<6> rop;
+
+         if(col == 0){
+
+            //create left and right intermediary operators: right
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col+1],R,0.0,RI7);
+
+            DArray<8> tmp8;
+            Contract(1.0,RI7,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp8);
+
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp7);
+
+            Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
+
+            //left
+            DArray<5> tmp5;
+            Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(0)[col],peps(row+1,col),0.0,tmp5);
+
+            DArray<6> tmp6;
+            Contract(1.0,tmp5,shape(0,2),peps(row+1,col),shape(1,2),0.0,tmp6);
+
+            DArray<6> tmp6bis;
+            Permute(tmp6,shape(0,2,5,1,4,3),tmp6bis);
+
+            LI7 = tmp6bis.reshape_clear( shape(env.gt(0)[col].shape(3),D,D,D,D,1,1) );
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            //while(iter < n_iter){
+
+               // --(1)-- left site
+
+               //construct effective environment and right hand side for linear system of left site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,L,R,N_eff,rhs,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+/*
+               // --(2)-- right site
+
+               //construct effective environment and right hand side for linear system of right site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,L,R,N_eff,rhs,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               //repeat until converged
+               ++iter;
+*/
+            //}
+
+         }
+         else{//col != 0
+
+         }
+
+      }
+      else{//whatever other options, row != 0
+
+      }
+
+   }
+
 
    /**
     * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site
@@ -311,6 +410,80 @@ namespace propagate {
                Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
                rhs = tmp4bis.reshape_clear( shape(1,D,1,D,d) );
+
+            }
+
+         }
+         else{//later
+
+         }
+
+      }
+      else{//later
+
+      }
+
+   }
+
+   /**
+    * construct the single-site effective environment and right hand side needed for the linear system of the horinzontal gate, for left or right site
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param N_eff output object, contains N_eff on output
+    * @param rhs output object, contains N_eff on output
+    * @param left boolean flag for left (true) or right (false) site of vertical gate
+    */
+   void construct_lin_sys_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<5> &L,
+
+         const DArray<5> &R,DArray<8> &N_eff,DArray<5> &rhs,const DArray<7> &LI7,const DArray<7> &RI7,bool left){
+
+      if(row == 0){
+
+         if(col == 0){
+
+            if(left){//left site of horizontal gate, so site (row,col) environment
+
+               //(1) construct N_eff
+
+               //add right peps to intermediate
+               DArray<8> tmp8;
+               Contract(1.0,RI7,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp8);
+
+               //add second peps
+               DArray<5> tmp5;
+               Contract(1.0,tmp8,shape(3,6,7,4),peps(row,col+1),shape(1,2,3,4),0.0,tmp5);
+
+               //contract with left hand side
+               DArray<6> tmp6;
+               Gemm(CblasTrans,CblasNoTrans,1.0,LI7,tmp5,0.0,tmp6);
+
+               DArray<6> tmp6bis;
+               Permute(tmp6,shape(2,0,5,3,1,4),tmp6bis);
+
+               N_eff = tmp6bis.reshape_clear( shape(1,D,1,D,1,D,1,D) );
+
+               // (2) construct right hand side
+               
+               //add right operator to tmp8
+               tmp6.clear();
+               Contract(1.0,tmp8,shape(3,6,7,4),rop,shape(1,2,4,5),0.0,tmp6);
+
+               //attach LI7 to right side
+               DArray<7> tmp7;
+               Gemm(CblasTrans,CblasNoTrans,1.0,LI7,tmp6,0.0,tmp7);
+
+               //now paste left operator in
+               tmp5.clear();
+               Contract(1.0,tmp7,shape(2,0,6,5),lop,shape(0,1,3,5),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(1,0,4,2,3),rhs);
+
+            }
+            else{//right site of horizontal gate, so site (row+1,col) environment
 
             }
 

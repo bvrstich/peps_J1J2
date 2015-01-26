@@ -43,7 +43,7 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-       for(int col = 0;col < Lx - 1;++col){
+      for(int col = 0;col < Lx - 1;++col){
 
          // --- (1) update the vertical pair on column 'col' ---
          update_vertical(0,col,peps,L,R[col],n_sweeps); 
@@ -60,7 +60,10 @@ namespace propagate {
          contractions::update_L('b',col,peps,L);
 
       }
-/*
+
+      //one last vertical update
+      update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
 
@@ -69,42 +72,35 @@ namespace propagate {
       // ---------------------------------------------------//
 
       //renormalized operators for the middle sites
-      vector< DArray<4> > RO(Lx - 1);
-      DArray<4> LO;
+      vector< DArray<6> > RO(Lx - 1);
+      DArray<6> LO;
 
-      for(int row = 1;row < Ly-1;++row){
+      //for(int row = 1;row < Ly-1;++row){
+      int row = 1;
 
          //first create right renormalized operator
-         contractions::init_ro(false,'H',row,peps,RO);
+         contractions::init_ro(row,peps,RO);
 
-         for(int col = 0;col < Lx - 1;++col){
 
-            //first construct the reduced tensors of the first pair to propagate
-            construct_reduced_tensor('H','L',peps(row,col),QL,a_L);
-            construct_reduced_tensor('H','R',peps(row,col+1),QR,a_R);
+ //        for(int col = 0;col < Lx - 1;++col){
+         int col = 0;
 
-            //calculate the effective environment N_eff
-            calc_N_eff('H',row,col,LO,QL,RO[col + 1],QR,N_eff);
+         // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+         update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
 
-            //make environment close to unitary before the update
-            canonicalize(full,N_eff,a_L,QL,a_R,QR);
+         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+         update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
 
-            //now do the update! Apply the gates!
-            update(full,N_eff,a_L,a_R,n_sweeps);
-
-            //and expand back to the full tensors
-            Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(row,col),shape(i,j,m,k,n));
-            Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(row,col+1),shape(i,o,j,m,n));
-
+/*
             //first construct a double layer object for the newly updated bottom 
             contractions::update_L('H',row,col,peps,LO);
 
-         }
+ //        }
 
          //finally update the 'bottom' environment for the row
          env.add_layer('b',row,peps);
 
-      }
+  //    }
 
       // ------------------------------------------//
       // --- !!! (3) the top row (Ly-1) (3) !!! ---// 
@@ -166,7 +162,7 @@ namespace propagate {
    }
 
    /**
-    * update the tensors in a sweeping fashion
+    * update the tensors in a sweeping fashion, for bottom or top rows, i.e. with R and L environments of order 5
     * @param row , the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
@@ -231,7 +227,7 @@ namespace propagate {
             }
 
          }
-         else{//col != 0
+         else if(col < Lx - 1){//col != 0
 
             Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
 
@@ -272,16 +268,130 @@ namespace propagate {
             }
 
          }
+         else{//col == Lx-1
+
+            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
+
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            while(iter < n_iter){
+
+               // --(1)-- top site
+
+               //construct effective environment and right hand side for linear system of top site
+               construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
+
+               // --(2)-- bottom site
+
+               //construct effective environment and right hand side for linear system of bottom site
+               construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               //repeat until converged
+               ++iter;
+
+            }
+
+         }
 
       }
-      else{//whatever other options, row != 0
+      else{//row == Lx - 2
 
       }
 
    }
 
    /**
-    * update the tensors in a sweeping fashion, horizontal pairs
+    * update the tensors in a sweeping fashion, for middle rows, i.e. with R and L environments of order 6
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param n_iter nr of sweeps in the ALS algorithm
+    */
+   void update_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &LO,const DArray<6> &RO,int n_iter){
+
+      enum {i,j,k,l,m,n,o};
+
+      DArray<5> rhs;
+      DArray<8> N_eff;
+
+      //first make left and right intermediary objects
+      DArray<8> LI8;
+      DArray<8> RI8;
+
+      DArray<6> lop;
+      DArray<6> rop;
+
+      if(col == 0){
+
+         DArray<8> tmp8;
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],RO,0.0,tmp8);
+
+         //inefficient but it's on the side, so it doesn't matter
+         Contract(1.0,tmp8,shape(0,7),env.gb(row-1)[col],shape(0,3),0.0,LI8);
+
+         //act with operators on left and right peps
+         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         //start sweeping
+         int iter = 0;
+
+         //            while(iter < n_iter){
+
+         // --(1)-- top site
+
+         //construct effective environment and right hand side for linear system of top site
+         construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
+         /*
+         //solve the system
+         solve(N_eff,rhs);
+
+         //update upper peps
+         Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
+
+         // --(2)-- bottom site
+
+         //construct effective environment and right hand side for linear system of bottom site
+         construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+         //solve the system
+         solve(N_eff,rhs);
+
+         //update lower peps
+         Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+         //repeat until converged
+         ++iter;
+
+         //           }
+         */
+      }
+      else{//col != 0
+
+      }
+
+   }
+
+   /**
+    * update the tensors in a sweeping fashion, horizontal pairs on the bottom or top rows (with R and L of order 5)
     * @param row , the row index of the horizontal row
     * @param col column index of left site
     * @param peps, full PEPS object before update
@@ -466,7 +576,6 @@ namespace propagate {
             while(iter < n_iter){
 
                // --(1)-- left site
-               cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
                //construct effective environment and right hand side for linear system of left site
                construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
@@ -504,14 +613,31 @@ namespace propagate {
 
 
    /**
-    * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site
+    * update the tensors in a sweeping fashion, horizontal pairs on the middle rows (with R and L of order 6)
+    * @param row , the row index of the horizontal row
+    * @param col column index of left site
+    * @param peps, full PEPS object before update
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param n_iter nr of sweeps in the ALS algorithm
+    */
+   void update_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &LO,const DArray<6> &RO,int n_iter){
+
+      enum {i,j,k,l,m,n,o};
+
+   }
+
+   /**
+    * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site on top or bottom rows
     * @param row the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
-    * @param L Left environment contraction
-    * @param R Right environment contraction
     * @param N_eff output object, contains N_eff on output
     * @param rhs output object, contains N_eff on output
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 right intermediate object
     * @param top boolean flag for top or bottom site of vertical gate
     */
    void construct_lin_sys_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
@@ -581,12 +707,12 @@ namespace propagate {
             }
 
          }
-         else{//col != 0
+         else if(col < Lx - 1){//col != 0
 
             if(top){//top site
 
                // (1) calculate N_eff
-               
+
                //paste bottom peps to right
                DArray<8> tmp8;
                Gemm(CblasNoTrans,CblasTrans,1.0,peps(row,col),R,0.0,tmp8);
@@ -603,7 +729,7 @@ namespace propagate {
                Permute(tmp8bis,shape(0,2,4,6,1,3,5,7),N_eff);
 
                // (2) right hand side
-               
+
                //attach left operator to tmp8
                tmp8bis.clear();
                Contract(1.0,lop,shape(2,4,5),tmp8,shape(2,3,7),0.0,tmp8bis);
@@ -641,7 +767,7 @@ namespace propagate {
                N_eff = tmp6bis.reshape_clear(shape(D,D,1,D,D,D,1,D));
 
                // (2) right hand side
-               
+
                //add right operator to tmp8
                DArray<8> tmp8bis;
                Contract(1.0,tmp8,shape(0,3,5),rop,shape(0,1,2),0.0,tmp8bis);
@@ -653,9 +779,74 @@ namespace propagate {
                //finally contract with right side
                DArray<5> tmp5;
                Contract(1.0,tmp8,shape(1,4,3,7),R,shape(0,1,2,3),0.0,tmp5);
-               
+
                rhs.clear();
                Permute(tmp5,shape(0,1,3,4,2),rhs);
+
+            }
+
+         }
+         else{ //col == Lx - 1
+
+            if(top){//top site
+
+               // (1) calculate N_eff
+
+               //paste bottom peps to left
+               DArray<8> tmp8;
+               Contract(1.0,LI7,shape(3,6),peps(row,col),shape(0,4),0.0,tmp8);
+
+               //and another
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(2,6,7),peps(row,col),shape(0,2,3),0.0,tmp7);
+
+               DArray<7> tmp7bis;
+               Permute(tmp7,shape(0,2,5,1,3,4,6),tmp7bis);
+
+               N_eff = tmp7bis.reshape_clear(shape(D,D,D,1,D,D,D,1));
+
+               // (2) right hand side
+
+               //attach left operator to tmp8
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8,shape(2,6,7),lop,shape(0,2,4),0.0,tmp8bis);
+
+               //and right operator
+               DArray<4> tmp4;
+               Contract(1.0,tmp8bis,shape(0,2,6,5,7),rop,shape(0,1,3,4,5),0.0,tmp4);
+
+               rhs = tmp4.reshape_clear( shape(D,D,D,1,d) );
+
+            }
+            else{//bottom site
+
+               //(1) first N_eff
+
+               //paste top peps to left
+               DArray<8> tmp8;
+               Contract(1.0,LI7,shape(1,5),peps(row+1,col),shape(0,1),0.0,tmp8);
+
+               //and another: watch out, order is reversed!
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+               DArray<7> tmp7bis;
+               Permute(tmp7,shape(0,5,1,3,2,4,6),tmp7bis);
+
+               N_eff = tmp7bis.reshape_clear( shape(D,D,1,1,D,D,1,1) );
+
+               // (2) right hand side
+
+               //add right operator to tmp8
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8,shape(0,3,5),rop,shape(0,1,2),0.0,tmp8bis);
+
+               //add left operator
+               tmp8.clear();
+               Contract(1.0,tmp8bis,shape(0,6,5),lop,shape(0,1,3),0.0,tmp8);
+
+               //finally contract with right side
+               rhs = tmp8.reshape_clear( shape(D,D,1,1,d) );
 
             }
 
@@ -669,14 +860,36 @@ namespace propagate {
    }
 
    /**
-    * construct the single-site effective environment and right hand side needed for the linear system of the horinzontal gate, for left or right site
+    * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site on middle rows
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param N_eff output object, contains N_eff on output
+    * @param rhs output object, contains N_eff on output
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param LI8 left intermediate object
+    * @param RI8 right intermediate object
+    * @param top boolean flag for top or bottom site of vertical gate
+    */
+   void construct_lin_sys_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
+
+         const DArray<6> &LO, const DArray<6> &RO, const DArray<8> &LI8,const DArray<8> &RI8,bool top){
+
+   }
+
+
+   /**
+    * construct the single-site effective environment and right hand side needed for the linear system of the horinzontal gate, for left or right site on top ro bottom row ( with R,L order 5)
     * @param row , the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
-    * @param L Left environment contraction
-    * @param R Right environment contraction
     * @param N_eff output object, contains N_eff on output
     * @param rhs output object, contains N_eff on output
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 Left intermediate object
+    * @param RI7 Right intermediate object
     * @param left boolean flag for left (true) or right (false) site of vertical gate
     */
    void construct_lin_sys_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
@@ -782,12 +995,34 @@ namespace propagate {
    }
 
    /**
+    * construct the single-site effective environment and right hand side needed for the linear system of the horinzontal gate, for left or right site on middle rows (with R,L order 6)
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param N_eff output object, contains N_eff on output
+    * @param rhs output object, contains N_eff on output
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param LI8 left intermediate object
+    * @param RI8 right intermediate object
+    * @param left boolean flag for left (true) or right (false) site of vertical gate
+    */
+   void construct_lin_sys_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
+
+         const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8,bool left){
+
+   }
+
+   /**
     * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * for top or bottom rows, i.e. with L and R of order 5 and intermediates of order 7
     * @param row , the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
     * @param L Left environment contraction
     * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 left intermediate object
     */
    double cost_function_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7){
 
@@ -838,7 +1073,7 @@ namespace propagate {
             return val;
 
          }
-         else{//col != 0
+         else if(col < Lx - 1){//col != 0
 
             // --- (1) calculate overlap of approximated state:
 
@@ -883,6 +1118,40 @@ namespace propagate {
             return val;
 
          }
+         else{//col == Lx - 1
+
+            DArray<8> tmp8;
+            Contract(1.0,LI7,shape(1,5),peps(row+1,col),shape(0,1),0.0,tmp8);
+
+            //and another
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+            DArray<8> tmp8bis;
+            Contract(1.0,tmp7,shape(0,5),peps(row,col),shape(0,1),0.0,tmp8bis);
+
+            DArray<5> tmp5 = tmp8bis.reshape_clear( shape(D,D,d,1,1) );
+
+            double val =  Dot(tmp5,peps(row,col));
+
+            // --- (2) calculate 'b' part of overlap
+
+            //add right operator to tmp8
+            tmp8bis.clear();
+            Contract(1.0,tmp8,shape(0,3,5),rop,shape(0,1,2),0.0,tmp8bis);
+
+            //then add left operator
+            tmp8.clear();
+            Contract(1.0,tmp8bis,shape(0,6,5),lop,shape(0,1,3),0.0,tmp8);
+
+            //finally add lop
+            tmp5 = tmp8.reshape_clear( shape(D,D,d,1,1) );
+
+            val -= 2.0 * Dot(tmp5,peps(row,col));
+
+            return val;
+
+         }
 
       }
       else{//row != 0
@@ -894,14 +1163,32 @@ namespace propagate {
    }
 
    /**
+    * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * for middle rows, i.e. with R and L order 6 and intermediates of order 8
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param LI8 left intermediate object
+    * @param RI8 right intermediate object
+    */
+   double cost_function_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8){
+
+      return 0;
+
+   }
+
+   /**
     * evaluate the cost function of the linear system for two horizontally connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * for top or bottom rows, i.e. with L and R of order 5 and intermediates of order 7
     * @param row the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
     * @param L Left environment contraction
     * @param R Right environment contraction
-    * @param LI7 
-    * @param RI7 Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 right intermediate object
     */
    double cost_function_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7){
 
@@ -958,5 +1245,21 @@ namespace propagate {
 
    }
 
+   /**
+    * evaluate the cost function of the linear system for two horizontally connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * for middle rows, with R and L of order 6 and intermediates of order 8
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param LI8 left interediate object
+    * @param RI8 right interediate object
+    */
+   double cost_function_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8){
+
+      return 0;
 
    }
+
+}

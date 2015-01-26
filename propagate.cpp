@@ -43,8 +43,7 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-       //for(int col = 0;col < Lx - 1;++col){
-      for(int col = 0;col < 2;++col){
+       for(int col = 0;col < Lx - 1;++col){
 
          // --- (1) update the vertical pair on column 'col' ---
          update_vertical(0,col,peps,L,R[col],n_sweeps); 
@@ -368,7 +367,7 @@ namespace propagate {
             }
 
          }
-         else{//col != 0
+         else if(col < Lx - 2){//col != 0
 
             //create left and right intermediary operators: right
             Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col+1],R,0.0,RI7);
@@ -379,6 +378,7 @@ namespace propagate {
             DArray<7> tmp7;
             Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp7);
 
+            RI7.clear();
             Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
 
             //left
@@ -390,6 +390,70 @@ namespace propagate {
             tmp7.clear();
             Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
 
+            LI7.clear();
+            Permute(tmp7,shape(2,4,6,3,5,0,1),LI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            while(iter < n_iter){
+
+               // --(1)-- left site
+
+               //construct effective environment and right hand side for linear system of left site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               // --(2)-- right site
+
+               //construct effective environment and right hand side for linear system of right site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+               //repeat until converged
+               ++iter;
+
+            }
+
+         }
+         else{//col == Lx - 2
+
+            //create left and right intermediary operators: right
+            DArray<5> tmp5;
+            Contract(1.0,env.gt(0)[Lx - 1],shape(2,3),peps(1,Lx - 1),shape(1,4),0.0,tmp5);
+
+            DArray<6> tmp6;
+            Contract(1.0,tmp5,shape(1,3),peps(1,Lx - 1),shape(1,2),0.0,tmp6);
+
+            DArray<6> tmp6bis;
+            Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
+
+            RI7 = tmp6bis.reshape_clear( shape(env.gt(0)[Lx - 1].shape(0),D,D,D,D,1,1) );
+
+            //left
+            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
+
+            DArray<8> tmp8;
+            Contract(1.0,LI7,shape(0,4),peps(row+1,col),shape(0,1),0.0,tmp8);
+
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+            LI7.clear();
             Permute(tmp7,shape(2,4,6,3,5,0,1),LI7);
 
             //act with operators on left and right peps

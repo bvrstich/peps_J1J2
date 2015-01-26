@@ -48,6 +48,22 @@ namespace contractions {
          }
          else{//if col != 0
 
+            DArray<7> tmp7;
+            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,tmp7);
+
+            DArray<8> tmp8;
+            Contract(1.0,tmp7,shape(0,4),peps(1,col),shape(0,1),0.0,tmp8);
+
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(0,3,5),peps(1,col),shape(0,1,2),0.0,tmp7);
+
+            tmp8.clear();
+            Contract(1.0,tmp7,shape(0,3),peps(0,col),shape(0,1),0.0,tmp8);
+
+            //and another peps
+            L.clear();
+            Contract(1.0,tmp8,shape(0,3,5,6),peps(0,col),shape(0,1,2,3),0.0,L);
+
          }
 
       }

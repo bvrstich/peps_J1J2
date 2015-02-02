@@ -407,9 +407,10 @@ namespace propagate {
          //start sweeping
          int iter = 0;
 
-         //while(iter < n_iter){
+         while(iter < n_iter){
 
             // --(1)-- top site
+            cout << iter << "\t" << cost_function_vertical(row,col,peps,lop,rop,LO,RO,LI8,RI8) << endl;
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
@@ -424,7 +425,7 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of bottom site
             construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
-/*
+
             //solve the system
             solve(N_eff,rhs);
 
@@ -433,9 +434,8 @@ namespace propagate {
 
             //repeat until converged
             ++iter;
-  */
-         //}
 
+         }
 
       }
 
@@ -1105,29 +1105,36 @@ namespace propagate {
 
             // (1) calculate N_eff
 
-            //add top to intermediate
+            //add upper peps to LI8
             DArray<9> tmp9;
-            Contract(1.0,peps(row+1,col),shape(1,4),RI8,shape(1,3),0.0,tmp9);
+            Contract(1.0,LI8,shape(1,6),peps(row+1,col),shape(0,1),0.0,tmp9);
 
             //and another
             DArray<8> tmp8;
-            Contract(1.0,peps(row+1,col),shape(1,2,4),tmp9,shape(3,1,4),0.0,tmp8);
+            Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
+
+            //contract with right intermediate
+            DArray<8> tmp8bis;
+            Contract(1.0,tmp8,shape(3,7,5,2),RI8,shape(3,4,5,0),0.0,tmp8bis);
 
             N_eff.clear();
-            Permute(tmp8,shape(0,1,6,4,2,3,7,5),N_eff);
+            Permute(tmp8bis,shape(0,3,4,6,1,2,5,7),N_eff);
 
             // (2) right hand side
 
-            //add right operator
+            //add right operator to intermediate
             DArray<9> tmp9bis;
-            Contract(1.0,rop,shape(1,2,5),tmp9,shape(3,1,4),0.0,tmp9bis);
+            Contract(1.0,tmp9,shape(0,4,6),rop,shape(0,1,2),0.0,tmp9bis);
 
-            //and right operator
+            //next add left operator
+            tmp9.clear();
+            Contract(1.0,tmp9bis,shape(0,7,6),rop,shape(0,1,3),0.0,tmp9);
+
             DArray<5> tmp5;
-            Contract(1.0,lop,shape(0,1,3,4,5),tmp9bis,shape(0,2,1,7,5),0.0,tmp5);
+            Contract(1.0,tmp9,shape(2,5,4,8,7,1),RI8,shape(3,4,5,6,1,0),0.0,tmp5);
 
             rhs.clear();
-            Permute(tmp5,shape(1,2,4,3,0),rhs);
+            Permute(tmp5,shape(0,1,3,4,2),rhs);
 
          }
 
@@ -1538,42 +1545,51 @@ namespace propagate {
     * @param RI8 right intermediate object
     */
    double cost_function_vertical(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8){
-      //
+
       // (1) calculate N_eff
 
-      //add bottom peps  to intermediate
-      DArray<9> tmp9;
-      Contract(1.0,peps(row,col),shape(3,4),RI8,shape(7,5),0.0,tmp9);
+      if(col == 0){
 
-      //and another
-      DArray<8> tmp8;
-      Contract(1.0,peps(row,col),shape(2,3,4),tmp9,shape(2,8,7),0.0,tmp8);
+         //add bottom peps  to intermediate
+         DArray<9> tmp9;
+         Contract(1.0,peps(row,col),shape(3,4),RI8,shape(7,5),0.0,tmp9);
 
-      //and top one
-      DArray<5> tmp5;
-      Contract(1.0,peps(row+1,col),shape(0,1,3,4),tmp8,shape(0,4,1,6),0.0,tmp5);
+         //and another
+         DArray<8> tmp8;
+         Contract(1.0,peps(row,col),shape(2,3,4),tmp9,shape(2,8,7),0.0,tmp8);
 
-      DArray<5> tmp5bis;
-      Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
+         //and top one
+         DArray<5> tmp5;
+         Contract(1.0,peps(row+1,col),shape(0,1,3,4),tmp8,shape(0,4,1,6),0.0,tmp5);
 
-      double val = Dot(tmp5bis,peps(row+1,col));
+         DArray<5> tmp5bis;
+         Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
 
-      // (2) right hand side
+         double val = Dot(tmp5bis,peps(row+1,col));
 
-      //add left operator to intermediate
-      DArray<9> tmp9bis;
-      Contract(1.0,lop,shape(2,4,5),tmp9,shape(2,8,7),0.0,tmp9bis);
+         // (2) right hand side
 
-      //and right operator
-      tmp5.clear();
-      Contract(1.0,rop,shape(0,1,3,4,5),tmp9bis,shape(0,5,2,1,7),0.0,tmp5);
+         //add left operator to intermediate
+         DArray<9> tmp9bis;
+         Contract(1.0,lop,shape(2,4,5),tmp9,shape(2,8,7),0.0,tmp9bis);
 
-      tmp5bis.clear(); 
-      Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
+         //and right operator
+         tmp5.clear();
+         Contract(1.0,rop,shape(0,1,3,4,5),tmp9bis,shape(0,5,2,1,7),0.0,tmp5);
 
-      val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
+         tmp5bis.clear(); 
+         Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
 
-      return val;
+         val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
+
+         return val;
+
+      }
+      else{//col != 0
+
+         return 0;
+
+      }
 
    }
 

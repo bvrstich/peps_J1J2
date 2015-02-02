@@ -81,12 +81,10 @@ namespace propagate {
          //first create right renormalized operator
          contractions::init_ro(row,peps,RO);
 
-
-         for(int col = 0;col < 2;++col){
+         for(int col = 0;col < Lx - 1;++col){
 
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
             update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
-
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
             update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
@@ -747,7 +745,7 @@ namespace propagate {
          }
 
       }
-      else{//col =! 0
+      else if(col < Lx - 2){//col =! 0
 
          //create left and right intermediary operators: right
          Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
@@ -782,7 +780,67 @@ namespace propagate {
 
          while(iter < n_iter){
 
-            cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,LO,RO,LI8,RI8) << endl;
+            // --(1)-- left site
+            //construct effective environment and right hand side for linear system of left site
+            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
+
+            //solve the system
+            solve(N_eff,rhs);
+
+            //update upper peps
+            Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+            // --(2)-- right site
+
+            //construct effective environment and right hand side for linear system of right site
+            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
+
+            //solve the system
+            solve(N_eff,rhs);
+
+            //update lower peps
+            Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+            //repeat until converged
+            ++iter;
+
+         }
+
+      }
+      else{//col == Lx - 2
+
+         //create left and right intermediary operators: right
+         DArray<5> tmp5;
+         Contract(1.0,env.gt(row)[Lx - 1],shape(2,3),peps(row+1,Lx - 1),shape(1,4),0.0,tmp5);
+
+         DArray<6> tmp6;
+         Contract(1.0,tmp5,shape(1,3),peps(row+1,Lx - 1),shape(1,2),0.0,tmp6);
+
+         DArray<6> tmp6bis;
+         Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
+
+         RI8 = tmp6bis.reshape_clear(shape(env.gt(row)[Lx-1].shape(0),D,D,D,D,1,1,1));
+
+         //left
+         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
+
+         DArray<9> tmp9;
+         Contract(1.0,LI8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
+
+         DArray<8> tmp8;
+         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
+
+         LI8.clear();
+         Permute(tmp8,shape(3,5,7,4,6,0,1,2),LI8);
+
+         //act with operators on left and right peps
+         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         //start sweeping
+         int iter = 0;
+
+         while(iter < n_iter){
 
             // --(1)-- left site
             //construct effective environment and right hand side for linear system of left site
@@ -1126,7 +1184,7 @@ namespace propagate {
 
       }
       else{//col != 0
-         
+
          if(top){//top site environment
 
             // (1) calculate N_eff
@@ -1142,7 +1200,7 @@ namespace propagate {
             //now contract with left side
             DArray<8> tmp8bis;
             Contract(1.0,LI8,shape(7,2,3,4),tmp8,shape(5,0,2,4),0.0,tmp8bis);
-            
+
             N_eff.clear();
             Permute(tmp8bis,shape(0,2,4,6,1,3,5,7),N_eff);
 

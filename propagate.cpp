@@ -82,28 +82,28 @@ namespace propagate {
          contractions::init_ro(row,peps,RO);
 
 
- //        for(int col = 0;col < Lx - 1;++col){
-         int col = 0;
+         for(int col = 0;col < 2;++col){
 
-         // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-         update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
+            // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+            update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
 
 
-         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
+
+            // --- (3) update diagonal LU-RD
+            // todo
+
+            // --- (4) update diagonal LD-RU
+            // todo
+
+
+            //first construct a double layer object for the newly updated bottom 
+            contractions::update_L(row,col,peps,LO);
+
+         }
          
-         // --- (3) update diagonal LU-RD
-         // todo
-
-         // --- (4) update diagonal LD-RU
-         // todo
-
-
          /*
-         //first construct a double layer object for the newly updated bottom 
-         contractions::update_L('H',row,col,peps,LO);
-
-         //        }
 
          //finally update the 'bottom' environment for the row
          env.add_layer('b',row,peps);
@@ -394,6 +394,49 @@ namespace propagate {
       }
       else{//col != 0
 
+         //RI8
+         Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],RO,0.0,RI8);
+
+         //LI8
+         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
+
+         //act with operators on left and right peps
+         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         //start sweeping
+         int iter = 0;
+
+         //while(iter < n_iter){
+
+            // --(1)-- top site
+/*
+            //construct effective environment and right hand side for linear system of top site
+            construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
+
+            //solve the system
+            solve(N_eff,rhs);
+
+            //update upper peps
+            Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
+
+            // --(2)-- bottom site
+
+            //construct effective environment and right hand side for linear system of bottom site
+            construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
+
+            //solve the system
+            solve(N_eff,rhs);
+
+            //update lower peps
+            Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+            //repeat until converged
+            ++iter;
+  */
+         //}
+
+
       }
 
    }
@@ -653,7 +696,7 @@ namespace propagate {
 
          DArray<8> tmp8;
          Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
-         
+
          RI8.clear();
          Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
 
@@ -1538,7 +1581,7 @@ namespace propagate {
     * @param RI8 right interediate object
     */
    double cost_function_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8){
-      
+
       //(1) overlap term
 
       //add right peps to intermediate

@@ -35,23 +35,14 @@ namespace propagate {
       DArray<5> L;
 
       //construct the full top environment:
-      auto start = std::chrono::high_resolution_clock::now();
       env.calc('T',peps);
-      auto end = std::chrono::high_resolution_clock::now();
-
-      cout << "top env contraction\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
       //and the bottom row environment
       env.gb(0).fill('b',peps);
 
       //initialize the right operators for the bottom row
-      start = std::chrono::high_resolution_clock::now();
       contractions::init_ro('b',peps,R);
-      end = std::chrono::high_resolution_clock::now();
 
-      cout << "create right operator\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-
-      start = std::chrono::high_resolution_clock::now();
       for(int col = 0;col < Lx - 1;++col){
 
          // --- (1) update the vertical pair on column 'col' ---
@@ -69,8 +60,6 @@ namespace propagate {
          contractions::update_L('b',col,peps,L);
 
       }
-      end = std::chrono::high_resolution_clock::now();
-      cout << "update bottom row\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
       //one last vertical update
       update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
@@ -88,33 +77,16 @@ namespace propagate {
 
       for(int row = 1;row < Ly-2;++row){
 
-         cout << endl;
-         cout << "row = \t" << row << endl;
-         cout << endl;
-
          //first create right renormalized operator
-         start = std::chrono::high_resolution_clock::now();
          contractions::init_ro(row,peps,RO);
-         end = std::chrono::high_resolution_clock::now();
-         cout << "create right operator\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
          for(int col = 0;col < Lx - 1;++col){
 
-            cout << endl;
-            cout << "column =\t" << col << endl;
-            cout << endl;
-
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-            start = std::chrono::high_resolution_clock::now();
             update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
-            end = std::chrono::high_resolution_clock::now();
-            cout << "vertical update\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            start = std::chrono::high_resolution_clock::now();
             update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
-            end = std::chrono::high_resolution_clock::now();
-            cout << "horizontal update\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
             // --- (3) update diagonal LU-RD
             // todo
@@ -134,44 +106,41 @@ namespace propagate {
          env.add_layer('b',row,peps);
 
       }
-      /*
-      // ------------------------------------------//
-      // --- !!! (3) the top row (Ly-1) (3) !!! ---// 
-      // ------------------------------------------//
+
+      // ----------------------------------------------------//
+      // --- !!! (3) the top two rows (Ly-2,Ly-1) (3) !!! ---// 
+      // ----------------------------------------------------//
 
       //make the right operators
-      contractions::init_ro(false,'t',peps,R);
+      contractions::init_ro('t',peps,R);
 
-      for(int col = 0;col < Lx - 1;++col){
+//      for(int col = 0;col < Lx - 1;++col){
+      int col = 0;
+      
+      // --- (1) update vertical pair on column 'col' on upper two rows
+      update_vertical(Ly-2,col,peps,L,R[col],n_sweeps); 
 
-      //first construct the reduced tensors of the first pair to propagate
-      construct_reduced_tensor('H','L',peps(Ly-1,col),QL,a_L);
-      construct_reduced_tensor('H','R',peps(Ly-1,col + 1),QR,a_R);
+      // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
 
-      //calculate the effective environment N_eff
-      calc_N_eff('t',col,L,QL,R[col + 1],QR,N_eff);
+      // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
 
-      //make environment close to unitary before the update
-      canonicalize(full,N_eff,a_L,QL,a_R,QR);
+      // --- (3) update diagonal LU-RD
+      // todo
 
-      //now do the update! Apply the gates!
-      update(full,N_eff,a_L,a_R,n_sweeps);
-
-      //and expand back to the full tensors
-      Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(Ly-1,col),shape(i,j,m,k,n));
-      Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(Ly-1,col+1),shape(i,o,j,m,n));
+      // --- (4) update diagonal LD-RU
+      // todo
 
       contractions::update_L('t',col,peps,L);
 
-      }
-
+      //  }
+/*
       //get the norm matrix
       contractions::update_L('t',Lx-1,peps,L);
 
       //scale the peps
       peps.scal(1.0/sqrt(L(0,0,0)));
 
-*/
+      */
    }
 
 
@@ -344,6 +313,58 @@ namespace propagate {
 
       }
       else{//row == Lx - 2
+
+         DArray<5> rhs;
+         DArray<8> N_eff;
+
+         //first make left and right intermediary objects
+         DArray<7> LI7;
+         DArray<7> RI7;
+
+         DArray<6> lop;
+         DArray<6> rop;
+
+         if(col == 0){//first col == 0
+
+            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Lx - 3)[col],R,0.0,RI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            while(iter < n_iter){
+
+               // --(1)-- top site
+
+               //construct effective environment and right hand side for linear system of top site
+               construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
+
+               // --(2)-- bottom site
+
+               //construct effective environment and right hand side for linear system of bottom site
+               construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               //repeat until converged
+               ++iter;
+
+            }
+
+         }
 
       }
 
@@ -1174,7 +1195,77 @@ namespace propagate {
          }
 
       }
-      else{//row != 0
+      else{//row = Lx - 2
+
+         if(col == 0){
+
+            if(top){//top site of vertical, so site (row,col+1) environment
+
+               // (1) construct N_eff
+
+               //paste bottom peps to right intermediate
+               DArray<8> tmp8;
+               Contract(1.0,peps(row,col),shape(3,4),RI7,shape(2,6),0.0,tmp8);
+
+               //and another bottom peps to tmp8
+               DArray<7> tmp7;
+               Contract(1.0,peps(row,col),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+               DArray<7> tmp7bis;
+               Permute(tmp7,shape(0,4,1,5,2,3,6),tmp7bis);
+
+               N_eff = tmp7bis.reshape_clear(shape(1,D,1,D,1,D,1,D));
+
+               //(2) right hand side:
+
+               //add left operator to tmp8
+               DArray<6> tmp6;
+               Contract(1.0,lop,shape(0,2,4,5),tmp8,shape(0,2,4,7),0.0,tmp6);
+
+               //add right operator
+               DArray<6> tmp6bis;
+               Contract(1.0,rop,shape(3,4,5),tmp6,shape(1,0,4),0.0,tmp6bis);
+
+               tmp6.clear();
+               Permute(tmp6bis,shape(3,5,2,0,1,4),tmp6);
+
+               rhs = tmp6.reshape_clear( shape(1,1,D,D,d) );
+
+            }
+            else{//bottom site (row,col)
+
+               //(1) construct N_eff
+
+               //paste top peps to right intermediate
+               DArray<10> tmp10;
+               Contract(1.0,peps(row+1,col),shape(4),RI7,shape(4),0.0,tmp10);
+
+               DArray<7> tmp7;
+               Contract(1.0,peps(row+1,col),shape(0,1,2,4),tmp10,shape(0,1,2,7),0.0,tmp7);
+
+               DArray<7> tmp7bis;
+               Permute(tmp7,shape(2,0,3,5,1,4,6),tmp7bis);
+
+               N_eff = tmp7bis.reshape_clear(shape(1,D,D,D,1,D,D,D));
+
+               //(2) right hand side
+
+               //paste right operator to tmp10
+               DArray<8> tmp8;
+               Contract(1.0,rop,shape(0,1,2,5),tmp10,shape(0,1,2,7),0.0,tmp8);
+
+               //add left operator to tmp8
+               DArray<4> tmp4;
+               Contract(1.0,lop,shape(0,1,3,4,5),tmp8,shape(3,1,0,4,6),0.0,tmp4);
+
+               DArray<4> tmp4bis;
+               Permute(tmp4,shape(1,2,3,0),tmp4bis);
+
+               rhs = tmp4bis.reshape_clear( shape(1,D,D,D,d) );
+
+            }
+
+         }
 
       }
 
@@ -1781,11 +1872,55 @@ namespace propagate {
          }
 
       }
-      else{//row != 0
+      else{//row == Lx - 2 
+
+         if(col == 0){
+
+            // (1) construct N_eff
+
+            //paste bottom peps to right intermediate
+            DArray<8> tmp8;
+            Contract(1.0,peps(row,col),shape(3,4),RI7,shape(2,6),0.0,tmp8);
+
+            //and another bottom peps to tmp8
+            DArray<7> tmp7;
+            Contract(1.0,peps(row,col),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+            //upper peps
+            DArray<8> tmp8bis;
+            Contract(1.0,peps(row+1,col),shape(3,4),tmp7,shape(3,6),0.0,tmp8bis);
+
+            DArray<5> tmp5 = tmp8bis.reshape_clear( shape(1,1,d,D,D) );
+
+            double val = Dot(tmp5,peps(row+1,col));
+
+            //(2) right hand side:
+
+            //add left operator to tmp8
+            DArray<6> tmp6;
+            Contract(1.0,lop,shape(0,2,4,5),tmp8,shape(0,2,4,7),0.0,tmp6);
+
+            //add right operator
+            DArray<6> tmp6bis;
+            Contract(1.0,rop,shape(3,4,5),tmp6,shape(1,0,4),0.0,tmp6bis);
+
+            val -= 2.0 * blas::dot(tmp6bis.size(), tmp6bis.data(), 1, peps(row+1,col).data(), 1);
+
+            return val;
+
+         }
+         else if(col < Lx - 1){
+
+            return 0.0;
+
+         }
+         else{//col == Lx - 1
+
+            return 0.0;
+
+         }
 
       }
-
-      return 0.0;
 
    }
 

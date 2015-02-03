@@ -67,7 +67,51 @@ namespace contractions {
          }
 
       }
-      else{//top
+      else{//top: bottom peps row = Ly - 2
+
+         if(col == 0){
+
+            //first bottom peps to bottom environemnt
+            DArray<5> tmp5;
+            Contract(1.0,peps(Ly-2,col),shape(0,3),env.gb(Ly - 3)[col],shape(0,2),0.0,tmp5);
+
+            //add another peps to it
+            DArray<6> tmp6;
+            Contract(1.0,peps(Ly-2,col),shape(2,3),tmp5,shape(1,3),0.0,tmp6);
+
+            //add top peps to it
+            DArray<7> tmp7;
+            Contract(1.0,peps(Ly-1,col),shape(0,3),tmp6,shape(0,3),0.0,tmp7);
+
+            //one last top peps
+            tmp6.clear();
+            Contract(1.0,peps(Ly-1,col),shape(1,2,3),tmp7,shape(0,1,3),0.0,tmp6);
+
+            L = tmp6.reshape_clear( shape(D,D,D,D,env.gb(Ly-3)[col].shape(3)) );
+
+         }
+         else{//if col != 0
+
+            //add top peps to L
+            DArray<8> tmp8;
+            Contract(1.0,L,shape(0),peps(Ly-1,col),shape(0),0.0,tmp8);
+
+            //and another top peps
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(0,4,5),peps(Ly-1,col),shape(0,1,2),0.0,tmp7);
+
+            //now a bottom peps
+            tmp8.clear();
+            Contract(1.0,tmp7,shape(0,3),peps(Ly-2,col),shape(0,1),0.0,tmp8);
+
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(0,3,5),peps(Ly-2,col),shape(0,1,2),0.0,tmp7);
+
+            //finally environment:
+            L.clear();
+            Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly - 3)[col],shape(0,1,2),0.0,L);
+
+         }
 
       }
 

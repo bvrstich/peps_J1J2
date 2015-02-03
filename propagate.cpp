@@ -35,14 +35,23 @@ namespace propagate {
       DArray<5> L;
 
       //construct the full top environment:
+      auto start = std::chrono::high_resolution_clock::now();
       env.calc('T',peps);
+      auto end = std::chrono::high_resolution_clock::now();
+
+      cout << "top env contraction\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
       //and the bottom row environment
       env.gb(0).fill('b',peps);
 
       //initialize the right operators for the bottom row
+      start = std::chrono::high_resolution_clock::now();
       contractions::init_ro('b',peps,R);
+      end = std::chrono::high_resolution_clock::now();
 
+      cout << "create right operator\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+
+      start = std::chrono::high_resolution_clock::now();
       for(int col = 0;col < Lx - 1;++col){
 
          // --- (1) update the vertical pair on column 'col' ---
@@ -60,6 +69,8 @@ namespace propagate {
          contractions::update_L('b',col,peps,L);
 
       }
+      end = std::chrono::high_resolution_clock::now();
+      cout << "update bottom row\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
       //one last vertical update
       update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
@@ -75,19 +86,35 @@ namespace propagate {
       vector< DArray<6> > RO(Lx - 1);
       DArray<6> LO;
 
-      //for(int row = 1;row < Ly-1;++row){
-      int row = 1;
+      for(int row = 1;row < Ly-2;++row){
+
+         cout << endl;
+         cout << "row = \t" << row << endl;
+         cout << endl;
 
          //first create right renormalized operator
+         start = std::chrono::high_resolution_clock::now();
          contractions::init_ro(row,peps,RO);
+         end = std::chrono::high_resolution_clock::now();
+         cout << "create right operator\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
          for(int col = 0;col < Lx - 1;++col){
 
+            cout << endl;
+            cout << "column =\t" << col << endl;
+            cout << endl;
+
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+            start = std::chrono::high_resolution_clock::now();
             update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
+            end = std::chrono::high_resolution_clock::now();
+            cout << "vertical update\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            start = std::chrono::high_resolution_clock::now();
             update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
+            end = std::chrono::high_resolution_clock::now();
+            cout << "horizontal update\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
             // --- (3) update diagonal LU-RD
             // todo
@@ -102,49 +129,47 @@ namespace propagate {
 
          //finally, last vertical gate
          update_vertical(row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
-         
-         /*
 
          //finally update the 'bottom' environment for the row
          env.add_layer('b',row,peps);
 
-         //    }
+      }
+      /*
+      // ------------------------------------------//
+      // --- !!! (3) the top row (Ly-1) (3) !!! ---// 
+      // ------------------------------------------//
 
-         // ------------------------------------------//
-         // --- !!! (3) the top row (Ly-1) (3) !!! ---// 
-         // ------------------------------------------//
+      //make the right operators
+      contractions::init_ro(false,'t',peps,R);
 
-         //make the right operators
-         contractions::init_ro(false,'t',peps,R);
+      for(int col = 0;col < Lx - 1;++col){
 
-         for(int col = 0;col < Lx - 1;++col){
+      //first construct the reduced tensors of the first pair to propagate
+      construct_reduced_tensor('H','L',peps(Ly-1,col),QL,a_L);
+      construct_reduced_tensor('H','R',peps(Ly-1,col + 1),QR,a_R);
 
-         //first construct the reduced tensors of the first pair to propagate
-         construct_reduced_tensor('H','L',peps(Ly-1,col),QL,a_L);
-         construct_reduced_tensor('H','R',peps(Ly-1,col + 1),QR,a_R);
+      //calculate the effective environment N_eff
+      calc_N_eff('t',col,L,QL,R[col + 1],QR,N_eff);
 
-         //calculate the effective environment N_eff
-         calc_N_eff('t',col,L,QL,R[col + 1],QR,N_eff);
+      //make environment close to unitary before the update
+      canonicalize(full,N_eff,a_L,QL,a_R,QR);
 
-         //make environment close to unitary before the update
-         canonicalize(full,N_eff,a_L,QL,a_R,QR);
+      //now do the update! Apply the gates!
+      update(full,N_eff,a_L,a_R,n_sweeps);
 
-         //now do the update! Apply the gates!
-         update(full,N_eff,a_L,a_R,n_sweeps);
+      //and expand back to the full tensors
+      Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(Ly-1,col),shape(i,j,m,k,n));
+      Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(Ly-1,col+1),shape(i,o,j,m,n));
 
-         //and expand back to the full tensors
-         Contract(1.0,QL,shape(i,j,k,o),a_L,shape(o,m,n),0.0,peps(Ly-1,col),shape(i,j,m,k,n));
-         Contract(1.0,a_R,shape(i,j,k),QR,shape(k,o,m,n),0.0,peps(Ly-1,col+1),shape(i,o,j,m,n));
+      contractions::update_L('t',col,peps,L);
 
-         contractions::update_L('t',col,peps,L);
+      }
 
-         }
+      //get the norm matrix
+      contractions::update_L('t',Lx-1,peps,L);
 
-         //get the norm matrix
-         contractions::update_L('t',Lx-1,peps,L);
-
-         //scale the peps
-         peps.scal(1.0/sqrt(L(0,0,0)));
+      //scale the peps
+      peps.scal(1.0/sqrt(L(0,0,0)));
 
 */
    }
@@ -447,7 +472,7 @@ namespace propagate {
          Gemm(CblasTrans,CblasNoTrans,1.0,LI8,env.gt(row)[Lx-1],0.0,tmp10);
 
          LI8 = tmp10.reshape_clear(shape(D,D,D,D,D,D,D,D));
-         
+
          //act with operators on left and right peps
          Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
          Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
@@ -458,7 +483,6 @@ namespace propagate {
          while(iter < n_iter){
 
             // --(1)-- top site
-            cout << iter << "\t" << cost_function_vertical(row,col,peps,lop,rop,LO,RO,LI8,RI8) << endl;
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
@@ -1334,7 +1358,7 @@ namespace propagate {
             //add left operator to intermediate
             DArray<9> tmp9bis;
             Contract(1.0,tmp9,shape(2,7,3),lop,shape(0,2,4),0.0,tmp9bis);
-  
+
             //and right operator
             rhs.clear();
             Contract(1.0,tmp9bis,shape(0,2,7,6,8),rop,shape(0,1,3,4,5),0.0,rhs);
@@ -1878,7 +1902,7 @@ namespace propagate {
          Permute(tmp5,shape(0,1,4,2,3),tmp5bis);
 
          double val = Dot(tmp5bis,peps(row+1,col));
-         
+
          //add left operator to intermediate
          DArray<9> tmp9bis;
          Contract(1.0,tmp9,shape(2,7,3),lop,shape(0,2,4),0.0,tmp9bis);

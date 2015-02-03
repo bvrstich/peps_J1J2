@@ -1366,7 +1366,7 @@ namespace propagate {
             Contract(1.0,tmp9bis,shape(0,7,6,2,8),lop,shape(0,1,3,4,5),0.0,tmp5);
 
             rhs.clear();
-            Permute(tmp5,shape(0,3,1,2,4),rhs);
+            Permute(tmp5,shape(0,2,1,3,4),rhs);
 
          }
 
@@ -1862,8 +1862,6 @@ namespace propagate {
       }
       else{//col = Lx - 1
 
-         // (1) calculate N_eff
-
          //add bottom peps  to intermediate
          DArray<9> tmp9;
          Contract(1.0,LI8,shape(3,5),peps(row,col),shape(0,3),0.0,tmp9);
@@ -1875,19 +1873,27 @@ namespace propagate {
          //upper peps
          DArray<5> tmp5;
          Contract(1.0,tmp8,shape(0,2,6,7),peps(row+1,col),shape(0,1,3,4),0.0,tmp5);
-         cout << tmp5.shape() << endl;
-/*
-         // (2) right hand side
 
+         DArray<5> tmp5bis;
+         Permute(tmp5,shape(0,1,4,2,3),tmp5bis);
+
+         double val = Dot(tmp5bis,peps(row+1,col));
+         
          //add left operator to intermediate
          DArray<9> tmp9bis;
          Contract(1.0,tmp9,shape(2,7,3),lop,shape(0,2,4),0.0,tmp9bis);
 
          //and right operator
-         rhs.clear();
-         Contract(1.0,tmp9bis,shape(0,2,7,6,8),rop,shape(0,1,3,4,5),0.0,rhs);
-    */      
-         return 0;
+         tmp5.clear();
+         Contract(1.0,tmp9bis,shape(0,2,7,6,8),rop,shape(0,1,3,4,5),0.0,tmp5);
+
+         tmp5bis.clear();;
+         Permute(tmp5,shape(0,1,4,2,3),tmp5bis);
+
+         val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
+
+         return val;
+
       }
 
    }

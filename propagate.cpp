@@ -421,7 +421,7 @@ namespace propagate {
             //start sweeping
             int iter = 0;
 
-            //while(iter < n_iter){
+            while(iter < n_iter){
 
                // --(1)-- top site
 
@@ -438,7 +438,7 @@ namespace propagate {
 
                //construct effective environment and right hand side for linear system of bottom site
                construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
-/*
+
                //solve the system
                solve(N_eff,rhs);
 
@@ -447,8 +447,8 @@ namespace propagate {
 
                //repeat until converged
                ++iter;
-*/
-            //}
+
+            }
 
          }
 
@@ -2189,7 +2189,45 @@ namespace propagate {
          }
          else{//col == Lx - 1
 
-            return 0.0;
+            // (1) construct N_eff
+
+            //paste bottom peps to left intermediate
+            DArray<6> tmp6;
+            Contract(1.0,peps(row,col),shape(0,3,4),LI7,shape(3,5,6),0.0,tmp6);
+
+            //and another
+            DArray<5> tmp5;
+            Contract(1.0,peps(row,col),shape(0,2,3),tmp6,shape(4,1,5),0.0,tmp5);
+
+            //add top peps to it
+            DArray<4> tmp4;
+            Contract(1.0,peps(row+1,col),shape(0,3,4),tmp5,shape(4,2,1),0.0,tmp4);
+
+            DArray<4> tmp4bis;
+            Permute(tmp4,shape(3,0,1,2),tmp4bis);
+
+            tmp5 = tmp4bis.reshape_clear( shape(D,1,d,D,1));
+
+            double val = Dot(tmp5,peps(row+1,col));
+            
+            //(2) right hand side:
+
+            //add left operator to tmp6
+            DArray<6> tmp6bis;
+            Contract(1.0,lop,shape(0,2,4),tmp6,shape(4,1,5),0.0,tmp6bis);
+
+            //add right operator
+            tmp4.clear();
+            Contract(1.0,rop,shape(0,3,4,5),tmp6bis,shape(4,1,0,2),0.0,tmp4);
+
+            tmp4bis.clear();
+            Permute(tmp4,shape(3,0,1,2),tmp4bis);
+
+            tmp5 = tmp4bis.reshape_clear( shape(D,1,d,D,1));
+
+            val -=  2.0 * Dot(tmp5,peps(row+1,col));
+
+            return val;
 
          }
 

@@ -134,6 +134,9 @@ namespace propagate {
          contractions::update_L('t',col,peps,L);
 
       }
+
+      //finally the very last vertical gate
+      update_vertical(Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
       /*
       //get the norm matrix
       contractions::update_L('t',Lx-1,peps,L);
@@ -379,8 +382,6 @@ namespace propagate {
 
             while(iter < n_iter){
 
-               cout << iter << "\t" << cost_function_vertical(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
-
                // --(1)-- top site
 
                //construct effective environment and right hand side for linear system of top site
@@ -410,6 +411,44 @@ namespace propagate {
 
          }
          else{//col == Lx - 1
+
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Lx - 3)[col],0.0,LI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            //while(iter < n_iter){
+
+               // --(1)-- top site
+
+               //construct effective environment and right hand side for linear system of top site
+               construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
+
+               // --(2)-- bottom site
+
+               //construct effective environment and right hand side for linear system of bottom site
+               construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+/*
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               //repeat until converged
+               ++iter;
+*/
+            //}
 
          }
 
@@ -1390,6 +1429,73 @@ namespace propagate {
 
          }
          else{//col == Lx - 1
+
+            if(top){//top site of vertical, so site (row,col+1) environment
+
+               // (1) construct N_eff
+
+               //paste bottom peps to left intermediate
+               DArray<6> tmp6;
+               Contract(1.0,peps(row,col),shape(0,3,4),LI7,shape(3,5,6),0.0,tmp6);
+
+               //and another
+               DArray<5> tmp5;
+               Contract(1.0,peps(row,col),shape(0,2,3),tmp6,shape(4,1,5),0.0,tmp5);
+
+               DArray<5> tmp5bis;
+               Permute(tmp5,shape(3,0,4,2,1),tmp5bis);
+
+               N_eff = tmp5bis.reshape_clear( shape(D,1,D,1,D,1,D,1) );
+
+               //(2) right hand side:
+
+               //add left operator to tmp6
+               DArray<6> tmp6bis;
+               Contract(1.0,lop,shape(0,2,4),tmp6,shape(4,1,5),0.0,tmp6bis);
+
+               //add right operator
+               DArray<4> tmp4;
+               Contract(1.0,rop,shape(0,3,4,5),tmp6bis,shape(4,1,0,2),0.0,tmp4);
+
+               DArray<4> tmp4bis;
+               Permute(tmp4,shape(3,0,2,1),tmp4bis);
+
+               rhs = tmp4bis.reshape_clear( shape(D,1,D,1,d) );
+               
+            }
+            else{//bottom site (row,col)
+
+               //(1) construct N_eff
+
+               //first add top peps to LI7
+               DArray<8> tmp8;
+               Contract(1.0,LI7,shape(1,6),peps(row+1,col),shape(0,4),0.0,tmp8);
+
+               //then add another top peps
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(0,5,6),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+               DArray<7> tmp7bis;
+               Permute(tmp7,shape(0,5,2,6,1,4,3),tmp7bis);
+
+               N_eff = tmp7bis.reshape_clear( shape(D,D,D,1,D,D,D,1) );
+
+               //(2) right hand side
+
+               //add right operator to tmp8
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8,shape(0,5,6),rop,shape(0,1,2),0.0,tmp8bis);
+
+               //and left operator
+               DArray<4> tmp4;
+               Contract(1.0,tmp8bis,shape(0,6,5,2,7),lop,shape(0,1,3,4,5),0.0,tmp4);
+
+               DArray<4> tmp4bis;
+               Permute(tmp4,shape(0,2,1,3),tmp4bis);
+               
+               rhs = tmp4bis.reshape_clear( shape(D,D,D,1,d) );
+
+            }
 
          }
 

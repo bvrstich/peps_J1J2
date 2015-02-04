@@ -377,13 +377,15 @@ namespace propagate {
             //start sweeping
             int iter = 0;
 
-            //while(iter < n_iter){
+            while(iter < n_iter){
+
+               cout << iter << "\t" << cost_function_vertical(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
                // --(1)-- top site
 
                //construct effective environment and right hand side for linear system of top site
                construct_lin_sys_vertical(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
-/*
+
                //solve the system
                solve(N_eff,rhs);
 
@@ -403,8 +405,8 @@ namespace propagate {
 
                //repeat until converged
                ++iter;
-  */
-            //}
+
+            }
 
          }
          else{//col == Lx - 1
@@ -1354,8 +1356,35 @@ namespace propagate {
             else{//bottom site (row,col)
 
                //(1) construct N_eff
+               
+               //first add top peps to RI7
+               DArray<10> tmp10;
+               Contract(1.0,peps(row+1,col),shape(4),RI7,shape(4),0.0,tmp10);
+
+               //then add another top peps
+               DArray<9> tmp9;
+               Contract(1.0,peps(row+1,col),shape(1,2,4),tmp10,shape(1,2,7),0.0,tmp9);
+
+               //now contract with left side
+               DArray<8> tmp8;
+               Contract(1.0,L,shape(0,1,4),tmp9,shape(0,2,4),0.0,tmp8);
+
+               N_eff.clear();
+               Permute(tmp8,shape(0,2,4,6,1,3,5,7),N_eff);
 
                //(2) right hand side
+               
+               //add right operator to tmp10
+               DArray<10> tmp10bis;
+               Contract(1.0,rop,shape(1,2,5),tmp10,shape(1,2,7),0.0,tmp10bis);
+
+               //and left operator
+               tmp8.clear();
+               Contract(1.0,tmp10bis,shape(2,1,6,8),lop,shape(1,3,4,5),0.0,tmp8);
+
+               //now contract with left side
+               rhs.clear();
+               Contract(1.0,L,shape(0,1,2,4),tmp8,shape(0,1,6,3),0.0,rhs);
 
             }
 
@@ -2008,7 +2037,48 @@ namespace propagate {
          }
          else if(col < Lx - 1){
 
-            return 0.0;
+            // (1) construct N_eff
+
+            //paste bottom peps to right intermediate
+            DArray<8> tmp8;
+            Contract(1.0,peps(row,col),shape(3,4),RI7,shape(2,6),0.0,tmp8);
+
+            //and another bottom peps to tmp8
+            DArray<7> tmp7;
+            Contract(1.0,peps(row,col),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+            //add top peps
+            DArray<8> tmp8bis;
+            Contract(1.0,peps(row+1,col),shape(3,4),tmp7,shape(3,6),0.0,tmp8bis);
+
+            //final top peps
+            DArray<5> tmp5;
+            Contract(1.0,peps(row+1,col),shape(1,2,3,4),tmp8bis,shape(1,2,4,7),0.0,tmp5);
+
+            //contact with left hand side
+            double val = Dot(tmp5,L);
+
+            //(2) right hand side:
+
+            //add left operator to tmp8
+            tmp8bis.clear();
+            Contract(1.0,lop,shape(2,4,5),tmp8,shape(2,4,7),0.0,tmp8bis);
+
+            //add right operator
+            tmp8.clear();
+            Contract(1.0,rop,shape(3,4,5),tmp8bis,shape(2,1,6),0.0,tmp8);
+
+            //add top peps
+            tmp5.clear();
+            Contract(1.0,peps(row+1,col),shape(1,2,3,4),tmp8,shape(1,2,5,7),0.0,tmp5);
+
+            DArray<5> tmp5bis;
+            Permute(tmp5,shape(1,0,2,3,4),tmp5bis);
+
+            //and contract with left hand side
+            val -= 2.0 * Dot(tmp5bis,L);
+
+            return val;
 
          }
          else{//col == Lx - 1

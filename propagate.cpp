@@ -121,7 +121,6 @@ namespace propagate {
 
          // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
          update_horizontal(Ly-2,col,peps,L,R[col+1],n_sweeps); 
-         // todo
 
          // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
          update_horizontal(Ly-1,col,peps,L,R[col+1],n_sweeps); 
@@ -881,7 +880,6 @@ namespace propagate {
             while(iter < n_iter){
 
                // --(1)-- left site
-               cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
                //construct effective environment and right hand side for linear system of left site
                construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
@@ -907,6 +905,73 @@ namespace propagate {
                ++iter;
 
             }
+
+         }
+         else if(col < Lx - 2){//middle columns
+
+            //create left and right intermediary operators:
+            
+            //add top peps to right
+            DArray<8> tmp8;
+            Contract(1.0,peps(row+1,col+1),shape(4),R,shape(0),0.0,tmp8);
+
+            //and another
+            DArray<7> tmp7;
+            Contract(1.0,peps(row+1,col+1),shape(1,2,4),tmp8,shape(1,2,4),0.0,tmp7);
+
+            Permute(tmp7,shape(2,0,3,1,4,5,6),RI7);
+
+            //left
+
+            //add top peps to left
+            tmp8.clear();
+            Contract(1.0,L,shape(0),peps(row+1,col),shape(0),0.0,tmp8);
+
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(0,4,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+            Permute(tmp7,shape(4,6,3,5,0,1,2),LI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            while(iter < n_iter){
+
+               cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
+
+               // --(1)-- left site
+
+               //construct effective environment and right hand side for linear system of left site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               // --(2)-- right site
+
+               //construct effective environment and right hand side for linear system of right site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+               //repeat until converged
+               ++iter;
+
+            }
+
+         }
+         else{//col == Lx - 2
 
          }
 

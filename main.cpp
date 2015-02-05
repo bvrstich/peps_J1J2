@@ -31,7 +31,7 @@ int main(int argc,char *argv[]){
    int J2 = atoi(argv[5]);
 
    bool update = true;
-   double tau = 0.00;
+   double tau = 0.01;
    int n_steps = 10;
 
    //initialize some statics dimensions

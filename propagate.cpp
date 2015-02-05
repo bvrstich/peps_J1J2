@@ -941,8 +941,6 @@ namespace propagate {
 
             while(iter < n_iter){
 
-               cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
-
                // --(1)-- left site
 
                //construct effective environment and right hand side for linear system of left site
@@ -972,6 +970,65 @@ namespace propagate {
 
          }
          else{//col == Lx - 2
+
+            //create left and right intermediary operators:
+
+            //right
+            DArray<4> tmp4;
+            Contract(1.0,peps(row+1,col+1),shape(1,2,4),peps(row+1,col+1),shape(1,2,4),0.0,tmp4);
+
+            DArray<4> tmp4bis;
+            Permute(tmp4,shape(0,2,1,3),tmp4bis);
+
+            RI7 = tmp4bis.reshape_clear( shape(D,D,D,D,1,1,1) );
+
+            //left
+
+            //add top peps to left
+            DArray<8> tmp8;
+            Contract(1.0,L,shape(0),peps(row+1,col),shape(0),0.0,tmp8);
+
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(0,4,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+            Permute(tmp7,shape(4,6,3,5,0,1,2),LI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            while(iter < n_iter){
+
+               // --(1)-- left site
+               cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
+
+               //construct effective environment and right hand side for linear system of left site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               // --(2)-- right site
+
+               //construct effective environment and right hand side for linear system of right site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+               //repeat until converged
+               ++iter;
+
+            }
 
          }
 
@@ -1536,7 +1593,7 @@ namespace propagate {
             else{//bottom site (row,col)
 
                //(1) construct N_eff
-               
+
                //first add top peps to RI7
                DArray<10> tmp10;
                Contract(1.0,peps(row+1,col),shape(4),RI7,shape(4),0.0,tmp10);
@@ -1553,7 +1610,7 @@ namespace propagate {
                Permute(tmp8,shape(0,2,4,6,1,3,5,7),N_eff);
 
                //(2) right hand side
-               
+
                //add right operator to tmp10
                DArray<10> tmp10bis;
                Contract(1.0,rop,shape(1,2,5),tmp10,shape(1,2,7),0.0,tmp10bis);
@@ -1602,7 +1659,7 @@ namespace propagate {
                Permute(tmp4,shape(3,0,2,1),tmp4bis);
 
                rhs = tmp4bis.reshape_clear( shape(D,1,D,1,d) );
-               
+
             }
             else{//bottom site (row,col)
 
@@ -1633,7 +1690,7 @@ namespace propagate {
 
                DArray<4> tmp4bis;
                Permute(tmp4,shape(0,2,1,3),tmp4bis);
-               
+
                rhs = tmp4bis.reshape_clear( shape(D,D,D,1,d) );
 
             }
@@ -2018,13 +2075,13 @@ namespace propagate {
             //now paste left operator in
             tmp8bis.clear();
             Contract(1.0,lop,shape(3,4,5),tmp8,shape(7,1,6),0.0,tmp8bis);
-            
+
             //contract with left hand side
             tmp5.clear();
             Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,6,1,0,3),0.0,tmp5);
 
             Permute(tmp5,shape(1,0,3,4,2),rhs);
-  
+
          }
          else{//right site of horizontal gate, so site (row+1,col) environment
 
@@ -2054,7 +2111,7 @@ namespace propagate {
             Permute(tmp8bis,shape(1,4,2,6,0,5,3,7),N_eff);
 
             // (2) construct right hand side
-            
+
             //add left operator
             tmp8bis.clear();
             Contract(1.0,tmp8,shape(3,2,5),lop,shape(0,1,2),0.0,tmp8bis);

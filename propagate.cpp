@@ -36,17 +36,12 @@ namespace propagate {
       DArray<5> L;
 
       //construct the full top environment:
-      auto start = std::chrono::high_resolution_clock::now();
       env.calc('T',peps);
-      auto end = std::chrono::high_resolution_clock::now();
-
-      cout << "bottom environment contraction" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
       //and the bottom row environment
       env.gb(0).fill('b',peps);
 
       //initialize the right operators for the bottom row
-      start = std::chrono::high_resolution_clock::now();
       contractions::init_ro('b',peps,R);
 
       for(int col = 0;col < Lx - 1;++col){
@@ -73,10 +68,6 @@ namespace propagate {
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
 
-      end = std::chrono::high_resolution_clock::now();
-
-      cout << "update of bottom two rows:\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-
       // ---------------------------------------------------//
       // --- !!! (2) the middle rows (1 -> Ly-2) (2) !!! ---// 
       // ---------------------------------------------------//
@@ -85,46 +76,18 @@ namespace propagate {
       vector< DArray<6> > RO(Lx - 1);
       DArray<6> LO;
 
-      cout << endl;
-      cout << "middle rows:" << endl;
-      cout << endl;
-
       for(int row = 1;row < Ly-2;++row){
 
-         cout << "**********" << endl;
-         cout << "row\t" << row << endl;
-         cout << "**********" << endl;
-
          //first create right renormalized operator
-         start = std::chrono::high_resolution_clock::now();
          contractions::init_ro(row,peps,RO);
-         end = std::chrono::high_resolution_clock::now();
-
-         cout << endl;
-         cout << "contract right environment:\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-         cout << endl;
 
          for(int col = 0;col < Lx - 1;++col){
 
-            cout << endl;
-            cout << "=================================================================================================" << endl;
-            cout << endl;
-            cout << "element \t(" << row << "," <<  col << ")" << endl;
-            cout << endl;
-
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-            start = std::chrono::high_resolution_clock::now();
             update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
-            end = std::chrono::high_resolution_clock::now();
-            cout << "Update vertical:\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-            cout << endl;
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            start = std::chrono::high_resolution_clock::now();
             update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
-            end = std::chrono::high_resolution_clock::now();
-            cout << "Update horizontal:\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-            cout << endl;
 
             // --- (3) update diagonal LU-RD
             // todo
@@ -140,16 +103,8 @@ namespace propagate {
          //finally, last vertical gate
          update_vertical(row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
 
-         cout << endl;
-         cout << "=================================================================================================" << endl;
-         cout << endl;
-
          //finally update the 'bottom' environment for the row
-         start = std::chrono::high_resolution_clock::now();
          env.add_layer('b',row,peps);
-         end = std::chrono::high_resolution_clock::now();
-         cout << "add bottom environment for row:\t" << row << "\t|\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-         cout << endl;
 
       }
 
@@ -158,7 +113,6 @@ namespace propagate {
       // ----------------------------------------------------//
 
       //make the right operators
-      start = std::chrono::high_resolution_clock::now();
       contractions::init_ro('t',peps,R);
 
       for(int col = 0;col < Lx - 1;++col){
@@ -190,11 +144,6 @@ namespace propagate {
 
       //scale the peps
       peps.scal(1.0/sqrt(L(0,0,0,0,0)));
-
-
-      end = std::chrono::high_resolution_clock::now();
-      cout << "Update top two rows:\t" << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
-
 
    }
 

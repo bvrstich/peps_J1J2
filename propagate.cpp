@@ -1088,8 +1088,6 @@ namespace propagate {
 
             while(iter < n_iter){
 
-               cout << iter << "\t" << cost_function_horizontal(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
-
                // --(1)-- left site
 
                //construct effective environment and right hand side for linear system of left site
@@ -1119,6 +1117,77 @@ namespace propagate {
 
          }
          else if(col < Lx - 2){//middle columns
+
+            //create left and right intermediary operators:
+            
+            //right
+            
+            //add bottom env to right
+            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Ly-3)[col+1],R,0.0,RI7);
+            
+            //add bottom peps to intermediate
+            DArray<8> tmp8;
+            Contract(1.0,peps(row-1,col+1),shape(3,4),RI7,shape(2,6),0.0,tmp8);
+
+            //add second bottom peps
+            DArray<7> tmp7;
+            Contract(1.0,peps(row-1,col+1),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+            RI7.clear();
+            Permute(tmp7,shape(5,6,1,3,0,2,4),RI7);
+            
+            //left
+           
+            //add bottom env to left
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Ly-3)[col],0.0,LI7);
+
+            //add bottom peps to intermediate
+            tmp8.clear();
+            Contract(1.0,LI7,shape(2,4),peps(row-1,col),shape(0,3),0.0,tmp8);
+
+            //add second bottom peps
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(2,6,3),peps(row-1,col),shape(0,2,3),0.0,tmp7);
+
+            LI7.clear();
+            Permute(tmp7,shape(0,1,3,5,4,6,2),LI7);
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+            //start sweeping
+            int iter = 0;
+
+            while(iter < n_iter){
+
+               // --(1)-- left site
+
+               //construct effective environment and right hand side for linear system of left site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               // --(2)-- right site
+
+               //construct effective environment and right hand side for linear system of right site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+               //repeat until converged
+               ++iter;
+
+            }
+
 
          }
          else{//col == Lx - 2

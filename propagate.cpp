@@ -139,29 +139,31 @@ namespace propagate {
       //finally the very last vertical gate
       update_vertical(Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
-      //get the norm matrix
-      contractions::update_L('t',Lx-1,peps,L);
-
-      //scale the peps
-      peps.scal(1.0/sqrt(L(0,0,0,0,0)));
-
    }
 
-
    /** 
-    * wrapper function solve general linear system: N_eff * x = b
+    * wrapper function solve symmetric linear system: N_eff * x = b, symmetrize the N_eff first
     * @param N_eff input matrix
     * @param rhs right hand side input and x output
     */
    void solve(DArray<8> &N_eff,DArray<5> &rhs){
 
-      int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
+      int matdim = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
 
-      int *ipiv = new int [n];
+      //symmetrize
+      for(int i = 0;i < matdim;++i)
+         for(int j = i + 1;j < matdim;++j){
 
-      lapack::getrf(CblasRowMajor,n,n, N_eff.data(), n,ipiv);
+            N_eff.data()[i*matdim + j] = 0.5 * (N_eff.data()[i*matdim + j]  + N_eff.data()[j*matdim + i]);
+            N_eff.data()[j*matdim + i] = N_eff.data()[i*matdim + j];
 
-      lapack::getrs(CblasRowMajor,'N',n,d, N_eff.data(),n,ipiv, rhs.data(),d);
+         }
+
+      int *ipiv = new int [matdim];
+
+      lapack::sytrf(CblasRowMajor,'U',matdim, N_eff.data(), matdim,ipiv);
+
+      lapack::sytrs(CblasRowMajor,'U',matdim,d, N_eff.data(),matdim,ipiv, rhs.data(),d);
 
       delete [] ipiv;
 

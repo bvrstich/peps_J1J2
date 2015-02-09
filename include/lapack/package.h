@@ -13,5 +13,7 @@
 #include <lapack/getri_impl.h>
 #include <lapack/potrf_impl.h>
 #include <lapack/potrs_impl.h>
+#include <lapack/sytrf_impl.h>
+#include <lapack/sytrs_impl.h>
 
 #endif // __BTAS_LAPACK_PACKAGE_H

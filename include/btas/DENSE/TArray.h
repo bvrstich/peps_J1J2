@@ -791,7 +791,7 @@ public:
    ////! generates array elements by function gen
    //template<class Generator>
    //void operator= (Generator gen) { generate(gen); }
-
+   
    //! deallocate storage
    void clear() {
       m_shape = uniform<int, N>(0);
@@ -810,6 +810,19 @@ public:
    int use_count(){
 
       return m_store.use_count();
+
+   }
+
+   //rescale the largest number of the tensor to 
+   void rescale(T max_num){
+
+      T max = 0;
+
+      for(iterator it = this->begin();it != this->end();++it)
+         if(std::abs(*it) > max)
+            max = std::abs(*it);
+      
+      this->scale(max_num/max);
 
    }
 

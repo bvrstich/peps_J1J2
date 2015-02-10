@@ -37,16 +37,32 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
-   peps.load("output");
+   //peps.load("output");
 
-   peps.normalize();
-   global::env.calc('A',peps); 
-   cout << peps.energy() << endl;
+   for(int i = 0;i < 4000;++i){
 
-   propagate::step(peps,100);
+      propagate::step(peps,100);
 
-   global::env.calc('A',peps); 
-   cout << peps.energy() << endl;
+      peps.rescale_tensors(1.0);
+      peps.normalize();
+      global::env.calc('A',peps); 
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
+
+   tau *= 0.1;
+   global::stau(tau);
+
+   for(int i = 4000;i < 8000;++i){
+
+      propagate::step(peps,100);
+
+      peps.rescale_tensors(1.0);
+      peps.normalize();
+      global::env.calc('A',peps); 
+      cout << i << "\t" <<  peps.energy() << endl;
+
+   }
 
    return 0;
 

@@ -97,6 +97,8 @@ namespace global{
     */
    void stau(double tau){
 
+      trot = Trotter(tau);
+
    }
 
    //!function which generates random complex numbers uniformly on a square of side 2 [(-1,1):(-1,1)]

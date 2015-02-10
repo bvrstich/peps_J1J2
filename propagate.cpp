@@ -44,10 +44,9 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-      for(int col = 0;col < Lx - 1;++col){
-
+      for(int col = 0;col < 2;++col){
          // --- (1) update the vertical pair on column 'col' ---
-         update_vertical(0,col,peps,L,R[col],n_sweeps); 
+  //       update_vertical(0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
          update_horizontal(0,col,peps,L,R[col+1],n_sweeps); 
@@ -61,9 +60,9 @@ namespace propagate {
          contractions::update_L('b',col,peps,L);
 
       }
-
+/*  
       //one last vertical update
-      update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+//      update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
@@ -84,7 +83,7 @@ namespace propagate {
          for(int col = 0;col < Lx - 1;++col){
 
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-            update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
+ //           update_vertical(row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
             update_horizontal(row,col,peps,LO,RO[col+1],n_sweeps); 
@@ -101,7 +100,7 @@ namespace propagate {
          }
 
          //finally, last vertical gate
-         update_vertical(row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+ //        update_vertical(row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
 
          //finally update the 'bottom' environment for the row
          env.add_layer('b',row,peps);
@@ -118,7 +117,7 @@ namespace propagate {
       for(int col = 0;col < Lx - 1;++col){
 
          // --- (1) update vertical pair on column 'col' on upper two rows
-         update_vertical(Ly-2,col,peps,L,R[col],n_sweeps); 
+ //        update_vertical(Ly-2,col,peps,L,R[col],n_sweeps); 
 
          // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
          update_horizontal(Ly-2,col,peps,L,R[col+1],n_sweeps); 
@@ -137,8 +136,8 @@ namespace propagate {
       }
 
       //finally the very last vertical gate
-      update_vertical(Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
-
+  //    update_vertical(Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+*/
    }
 
    /** 
@@ -676,7 +675,24 @@ namespace propagate {
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
-            //start sweeping
+            // --- (1) --- initial guess:
+            
+            tmp8.clear();
+            Contract(1.0,lop,shape(3,5),rop,shape(3,0),0.0,tmp8);
+           
+            //svd the fucker
+            DArray<1> S;
+            Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
+
+            //take the square root of the sv's
+            for(int i = 0;i < S.size();++i)
+               S(i) = sqrt(S(i));
+
+            //and multiply it left and right to the tensors
+            Dimm(S,peps(row,col+1));
+            Dimm(peps(row,col),S);
+
+            // --- (2) --- start sweeping
             int iter = 0;
 
             while(iter < n_iter){
@@ -708,6 +724,21 @@ namespace propagate {
 
             }
 
+            //set left and right on the same footing after update
+            tmp8.clear();
+            Contract(1.0,peps(row,col),shape(4),peps(row,col+1),shape(0),0.0,tmp8);
+           
+            //svd the fucker
+            Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
+
+            //take the square root of the sv's
+            for(int i = 0;i < S.size();++i)
+               S(i) = sqrt(S(i));
+
+            //and multiply it left and right to the tensors
+            Dimm(S,peps(row,col+1));
+            Dimm(peps(row,col),S);
+ 
          }
          else if(col < Lx - 2){//col != 0
 
@@ -739,7 +770,24 @@ namespace propagate {
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
-            //start sweeping
+            // --- (1) --- initial guess:
+            
+            tmp8.clear();
+            Contract(1.0,lop,shape(3,5),rop,shape(3,0),0.0,tmp8);
+           
+            //svd the fucker
+            DArray<1> S;
+            Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
+
+            //take the square root of the sv's
+            for(int i = 0;i < S.size();++i)
+               S(i) = sqrt(S(i));
+
+            //and multiply it left and right to the tensors
+            Dimm(S,peps(row,col+1));
+            Dimm(peps(row,col),S);
+
+            // --- (2) --- start sweeping
             int iter = 0;
 
             while(iter < n_iter){
@@ -770,6 +818,20 @@ namespace propagate {
                ++iter;
 
             }
+
+            //set left and right on the same footing after update
+            Contract(1.0,peps(row,col),shape(4),peps(row,col+1),shape(0),0.0,tmp8);
+           
+            //svd the fucker
+            Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
+
+            //take the square root of the sv's
+            for(int i = 0;i < S.size();++i)
+               S(i) = sqrt(S(i));
+
+            //and multiply it left and right to the tensors
+            Dimm(S,peps(row,col+1));
+            Dimm(peps(row,col),S);
 
          }
          else{//col == Lx - 2
@@ -2383,7 +2445,7 @@ namespace propagate {
             //contract with left hand side
             DArray<6> tmp6;
             Gemm(CblasNoTrans,CblasTrans,1.0,LI7,tmp5,0.0,tmp6);
-            
+
             DArray<6> tmp6bis;
             Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
 
@@ -2412,7 +2474,7 @@ namespace propagate {
          else{//right site of horizontal gate, so site (row+1,col) environment
 
             //(1) construct N_eff
-            
+
             //add left to intermediate
             DArray<8> tmp8;
             Contract(1.0,LI7,shape(1,3),peps(row,col),shape(0,3),0.0,tmp8);
@@ -2424,7 +2486,7 @@ namespace propagate {
             //contract with right side
             DArray<6> tmp6;
             Gemm(CblasNoTrans,CblasNoTrans,1.0,RI7,tmp5,0.0,tmp6);
- 
+
             DArray<6> tmp6bis;
             Permute(tmp6,shape(5,2,0,4,3,1),tmp6bis);
 

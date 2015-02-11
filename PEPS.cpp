@@ -142,6 +142,18 @@ void PEPS<T>::sD(int D_in) {
 }
 
 /**
+ * @param D_in value to the D to
+ */
+template<>
+void PEPS<double>::rescale_tensors(double max_num){
+
+   for(int row = 0;row < Ly;++row)
+      for(int col = 0;col < Lx;++col)
+         (*this)(row,col).rescale(max_num);
+
+}
+
+/**
  * initialize the peps a completely spin polarized state
  * @param D_in input D
  * @param option up or down spin
@@ -635,7 +647,6 @@ void PEPS<T>::scal(T val){
  * @param filename name of the file
  * save the MPX object to a file in binary format.
  */
-
 template<typename T>
 void PEPS<T>::save(const char *filename){
 
@@ -662,7 +673,7 @@ void PEPS<T>::save(const char *filename){
                for(int c_ = 0;c_ < Dc;++c_)
                   for(int d_ = 0;d_ < Dd;++d_)
                      for(int e_ = 0;e_ < De;++e_)
-                        fout << a_ << "\t" << b_ << "\t" << c_ << "\t" << d_ << "\t" << e_ << "\t" << (*this)(row,col)(a_,b_,c_,d_,e_) << endl;
+                        fout << std::scientific << a_ << "\t" << b_ << "\t" << c_ << "\t" << d_ << "\t" << e_ << "\t" << (*this)(row,col)(a_,b_,c_,d_,e_) << endl;
 
       }
 

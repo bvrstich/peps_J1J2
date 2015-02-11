@@ -14,21 +14,31 @@ namespace propagate {
 
    void step(PEPS<double> &,int);
 
-   void construct_reduced_tensor(char,char,const DArray<5> &,DArray<4> &,DArray<3> &);
+   void update_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
 
-   void calc_vertical_N_eff(char option,int col,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n);
+   void update_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,int);
 
-   void calc_horizontal_N_eff(char option,int col,const PEPS<double> &,const DArray<5> &L,const DArray<4> &QL,const DArray<5> &R,const DArray<4> &QR,DArray<4> &N_eff_n);
+   void update_horizontal(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
 
-   void canonicalize_n(DArray<4> &,DArray<3> &a_L,DArray<4> &QL,DArray<3> &a_R,DArray<4> &QR);
+   void update_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,int);
 
-   void invert(DArray<2> &);
+   void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,DArray<8> &,DArray<5> &,const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
 
-   void update_n(const DArray<4> &,DArray<3> &,DArray<3> &,int);
+   void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,DArray<8> &,DArray<5> &,const DArray<6> &,const DArray<6> &,const DArray<8> &,const DArray<8> &,bool);
 
-   double cost_function_n(const DArray<4> &,const DArray<4> &,const DArray<3> &,const DArray<3> &);
+   void construct_lin_sys_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,DArray<8> &,DArray<5> &,const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
 
-   void solve(DArray<4> &,DArray<3> &);
+   void construct_lin_sys_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,DArray<8> &,DArray<5> &,const DArray<6> &,const DArray<6> &,const DArray<8> &,const DArray<8> &,bool);
+
+   double cost_function_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &);
+
+   double cost_function_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<6> &,const DArray<6> &,const DArray<8> &,const DArray<8> &);
+
+   double cost_function_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &);
+
+   double cost_function_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<6> &,const DArray<6> &,const DArray<8> &,const DArray<8> &);
+
+   void solve(DArray<8> &,DArray<5> &);
 
 }
 

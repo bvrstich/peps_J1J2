@@ -30,17 +30,38 @@ int main(int argc,char *argv[]){
    int D_aux = atoi(argv[4]);//virtual dimension
    int J2 = atoi(argv[5]);
 
-   bool update = true;
    double tau = 0.01;
-   int n_steps = 10;
 
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
-   peps.normalize();
+   peps.initialize_jastrow(0.74);
 
-   propagate::step(peps,10);
+   for(int i = 0;i < 2000;++i){
+
+      propagate::step(peps,1);
+
+      peps.rescale_tensors(1.0);
+      peps.normalize();
+      global::env.calc('A',peps); 
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
+
+   tau *= 0.1;
+   global::stau(tau);
+
+   for(int i = 2000;i < 7000;++i){
+
+      propagate::step(peps,1);
+
+      peps.rescale_tensors(1.0);
+      peps.normalize();
+      global::env.calc('A',peps); 
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
 
    return 0;
 

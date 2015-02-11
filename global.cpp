@@ -71,8 +71,8 @@ namespace global{
       I(0,0) = 1.0;
       I(1,1) = 1.0;
 
-      //set the number of sweeps to 1
-      comp_sweeps = 2;
+      //set the number of sweeps for environment contraction
+      comp_sweeps = 1;
 
       //initialize/allocate the environment
       env = Environment(D_in,D_aux,comp_sweeps);
@@ -96,6 +96,8 @@ namespace global{
     * @param tau timestep
     */
    void stau(double tau){
+
+      trot = Trotter(tau);
 
    }
 

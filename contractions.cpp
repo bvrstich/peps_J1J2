@@ -17,138 +17,104 @@ using namespace global;
 namespace contractions {
 
   /**
-    * update left renormalized operator on site col 
-    * @param option == 't'op ,'b'ottom, 'l'eft or 'r'ight
-    * @param rc is row or column index, col for t,b row for r,l
+    * update left renormalized operator 
+    * @param option 'b'ottom or 't'op
+    * @param col is column index
+    * @param peps is the PEPS object
+    * @param L is the left environment to be updated
     */
-   void update_L(char option,int rc,const PEPS<double> &peps,DArray<3> &L){
-/*
-      if(option == 'b'){//bottom
+   void update_L(char option,int col,const PEPS<double> &peps,DArray<5> &L){
 
-         if(rc == 0){
+      if(option == 'b'){//row == 0
 
-            DArray<7> tmp7;
-            Contract(1.0,env.gt(0)[0],shape(1),peps(0,0),shape(1),0.0,tmp7);
+         if(col == 0){
 
-            DArray<8> tmp8;
-            Contract(1.0,tmp7,shape(1,4),peps(0,0),shape(1,2),0.0,tmp8);
-
-            L = tmp8.reshape_clear( shape(tmp8.shape(1),tmp8.shape(4),tmp8.shape(7)) );
-
-         }
-         else if(rc < Lx - 2){
-
-            //construct left renormalized operator for next site: first construct intermediary
+            //add twice top to upper peps
             DArray<5> tmp5;
-            Contract(1.0,L,shape(0),env.gt(0)[rc],shape(0),0.0,tmp5);
+            Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(0)[0],peps(1,0),0.0,tmp5);
 
             DArray<6> tmp6;
-            Contract(1.0,tmp5,shape(0,2),peps(0,rc),shape(0,1),0.0,tmp6);
+            Contract(1.0,tmp5,shape(0,2),peps(1,0),shape(1,2),0.0,tmp6);
 
-            tmp5.clear();
-            Contract(1.0,tmp6,shape(0,1,3),peps(0,rc),shape(0,1,2),0.0,tmp5);
+            //and two times lower peps to it to construct L
+            DArray<7> tmp7;
+            Contract(1.0,tmp6,shape(3,1),peps(0,0),shape(0,1),0.0,tmp7);
 
-            L = tmp5.reshape_clear(shape(env.gt(0)[rc].shape(3),peps(0,rc).shape(4),peps(0,rc).shape(4)));
+            tmp6.clear();
+            Contract(1.0,tmp7,shape(5,2,4),peps(0,0),shape(0,1,2),0.0,tmp6);
+
+            L = tmp6.reshape_clear( shape(env.gt(0)[0].shape(3),D,D,D,D) );
 
          }
-         else{//nothing, no update necessary
+         else{//if col != 0
+
+            DArray<7> tmp7;
+            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,tmp7);
+
+            DArray<8> tmp8;
+            Contract(1.0,tmp7,shape(0,4),peps(1,col),shape(0,1),0.0,tmp8);
+
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(0,3,5),peps(1,col),shape(0,1,2),0.0,tmp7);
+
+            tmp8.clear();
+            Contract(1.0,tmp7,shape(0,3),peps(0,col),shape(0,1),0.0,tmp8);
+
+            //and another peps
+            L.clear();
+            Contract(1.0,tmp8,shape(0,3,5,6),peps(0,col),shape(0,1,2,3),0.0,L);
 
          }
 
       }
-      else if(option == 't'){//top
+      else{//top: bottom peps row = Ly - 2
 
-         if(rc == 0){
+         if(col == 0){
 
+            //first bottom peps to bottom environemnt
+            DArray<5> tmp5;
+            Contract(1.0,peps(Ly-2,col),shape(0,3),env.gb(Ly - 3)[col],shape(0,2),0.0,tmp5);
+
+            //add another peps to it
+            DArray<6> tmp6;
+            Contract(1.0,peps(Ly-2,col),shape(2,3),tmp5,shape(1,3),0.0,tmp6);
+
+            //add top peps to it
             DArray<7> tmp7;
-            Contract(1.0,peps(Ly-1,0),shape(3),env.gb(Ly-2)[0],shape(2),0.0,tmp7);
+            Contract(1.0,peps(Ly-1,col),shape(0,3),tmp6,shape(0,3),0.0,tmp7);
 
-            DArray<8> tmp8;
-            Contract(1.0,peps(Ly-1,0),shape(2,3),tmp7,shape(2,5),0.0,tmp8);
+            //one last top peps
+            tmp6.clear();
+            Contract(1.0,peps(Ly-1,col),shape(1,2,3),tmp7,shape(0,1,3),0.0,tmp6);
 
-            L = tmp8.reshape_clear( shape(tmp8.shape(2),tmp8.shape(5),tmp8.shape(7)) );
+            L = tmp6.reshape_clear( shape(D,D,D,D,env.gb(Ly-3)[col].shape(3)) );
 
          }
-         else{
+         else{//if col != 0
 
-            //construct left renormalized operators for next site: first construct intermediary
-            DArray<5> tmp5;
-            Contract(1.0,env.gb(Ly-2)[rc],shape(0),L,shape(2),0.0,tmp5);
+            //add top peps to L
+            DArray<8> tmp8;
+            Contract(1.0,L,shape(0),peps(Ly-1,col),shape(0),0.0,tmp8);
 
-            DArray<6> tmp6;
-            Contract(1.0,peps(Ly-1,rc),shape(3,0),tmp5,shape(1,4),0.0,tmp6);
+            //and another top peps
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(0,4,5),peps(Ly-1,col),shape(0,1,2),0.0,tmp7);
 
-            //finally construct new unity on the left
-            tmp5.clear();
-            Contract(1.0,peps(Ly-1,rc),shape(2,3,0),tmp6,shape(1,3,5),0.0,tmp5);
+            //now a bottom peps
+            tmp8.clear();
+            Contract(1.0,tmp7,shape(0,3),peps(Ly-2,col),shape(0,1),0.0,tmp8);
 
-            L = tmp5.reshape_clear(shape(peps(Ly-1,rc).shape(4),peps(Ly-1,rc).shape(4),env.gb(Ly-2)[rc].shape(3)));
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(0,3,5),peps(Ly-2,col),shape(0,1,2),0.0,tmp7);
+
+            //finally environment:
+            L.clear();
+            Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly - 3)[col],shape(0,1,2),0.0,L);
 
          }
 
       }
-      else if(option == 'l'){//left
 
-         if(rc == 0){
-
-            DArray<7> tmp7;
-            Contract(1.0,peps(0,0),shape(4),env.gr(0)[0],shape(2),0.0,tmp7);
-
-            DArray<8> tmp8;
-            Contract(1.0,peps(0,0),shape(2,4),tmp7,shape(2,5),0.0,tmp8);
-
-            L = tmp8.reshape_clear( shape(tmp8.shape(1),tmp8.shape(4),tmp8.shape(7)) );
-
-         }
-         else{
-
-            //construct left renormalized operators for next site: first construct intermediary
-            DArray<5> tmp5;
-            Contract(1.0,env.gr(0)[rc],shape(0),L,shape(2),0.0,tmp5);
-
-            DArray<6> tmp6;
-            Contract(1.0,peps(rc,0),shape(3,4),tmp5,shape(4,1),0.0,tmp6);
-
-            // construct new unity on the left
-            tmp5.clear();
-            Contract(1.0,peps(rc,0),shape(2,3,4),tmp6,shape(2,5,3),0.0,tmp5);
-
-            L = tmp5.reshape_clear(shape(peps(rc,0).shape(1),peps(rc,0).shape(1),env.gr(0)[rc].shape(3)));
-
-         }
-
-      }
-      else{//right
-
-         if(rc == 0){
-
-            DArray<7> tmp7;
-            Contract(1.0,env.gl(Lx - 2)[0],shape(1),peps(0,Lx - 1),shape(0),0.0,tmp7);
-
-            DArray<8> tmp8;
-            Contract(1.0,tmp7,shape(1,4),peps(0,Lx - 1),shape(0,2),0.0,tmp8);
-
-            L = tmp8.reshape_clear( shape(tmp8.shape(1),tmp8.shape(2),tmp8.shape(5)) );
-
-         }
-         else{
-
-            //construct left renormalized operators for next site: first construct intermediary
-            DArray<5> tmp5;
-            Contract(1.0,L,shape(0),env.gl(Lx - 2)[rc],shape(0),0.0,tmp5);
-
-            DArray<6> tmp6;
-            Contract(1.0,tmp5,shape(0,2),peps(rc,Lx - 1),shape(3,0),0.0,tmp6);
-
-            tmp5.clear();
-            Contract(1.0,tmp6,shape(0,1,4),peps(rc,Lx-1),shape(3,0,2),0.0,tmp5);
-
-            L = tmp5.reshape_clear(shape(env.gl(Lx - 2)[rc].shape(3),peps(rc,Lx - 1).shape(1),peps(rc,Lx - 1).shape(1)));
-
-         }
-
-      }
-  */
    }
 
    /** 
@@ -183,7 +149,7 @@ namespace contractions {
 
       tmp5.resize(shape(D,D,D,env.gb(row-1)[Lx-1].shape(0),D));
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(row,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp5.data(),N);
-      
+
       //add one row up peps
       M = peps(row+1,Lx-1).shape(0) * peps(row+1,Lx-1).shape(1) * peps(row+1,Lx-1).shape(2);
       N = env.gb(row-1)[Lx-1].shape(0) * D * D * D;
@@ -396,108 +362,55 @@ namespace contractions {
    }
 
    /**
-    * update left renormalized operator on site (row,col )
-    * @param option 'H'orizonal or 'V'ertical
-    * @param row index
-    * @param col index
+    * update left renormalized operator on site (row,col ) for middle sites
+    * @param row index of bottom row peps
+    * @param col index of leftmost column
     * @param peps the input PEPS object
     * @param LO input old left renormalized operator, output new left renormalized operator
     */
-   void update_L(char option,int row,int col,const PEPS<double> &peps,DArray<4> &LO){
-      /*
-         if(option == 'H'){
+   void update_L(int row,int col,const PEPS<double> &peps,DArray<6> &LO){
 
-         if(col == 0){
+      if(col == 0){
 
-      //paste top environment on
-      DArray<7> tmp7;
-      Contract(1.0,env.gt(row)[0],shape(1),peps(row,0),shape(1),0.0,tmp7);
+         //paste top environment on
+         DArray<5> tmp5;
+         Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[0],peps(row+1,0),0.0,tmp5);
+         
+         DArray<6> tmp6;
+         Contract(1.0,tmp5,shape(0,2),peps(row+1,0),shape(1,2),0.0,tmp6);
 
-      DArray<8> tmp8;
-      Contract(1.0,tmp7,shape(1,4),peps(row,0),shape(1,2),0.0,tmp8);
+         DArray<7> tmp7;
+         Contract(1.0,tmp6,shape(3,1),peps(row,0),shape(0,1),0.0,tmp7);
 
-      DArray<8> tmp8bis;
-      Contract(1.0,tmp8,shape(3,6),env.gb(row-1)[0],shape(1,2),0.0,tmp8bis);
+         DArray<8> tmp8;
+         Contract(1.0,tmp7,shape(2,4),peps(row,0),shape(1,2),0.0,tmp8);
 
-      //move to a DArray<4> object: order (top-env,(*this)-row,bottom-env)
-      LO = tmp8bis.reshape_clear(shape(env.gt(row)[0].shape(3),peps(row,0).shape(4),peps(row,0).shape(4),env.gb(row-1)[0].shape(3)));
-
-      }
-      else if(col < Lx - 2){//middle
-
-      //first attach top to left unity
-      DArray<6> tmp6;
-      Contract(1.0,env.gt(row)[col],shape(0),LO,shape(0),0.0,tmp6);
-
-      //add peps to it, intermediary
-      DArray<7> tmp7;
-      Contract(1.0,tmp6,shape(3,0),peps(row,col),shape(0,1),0.0,tmp7);
-
-      //finally construct new left unity
-      tmp6.clear();
-      Contract(1.0,tmp7,shape(2,0,4),peps(row,col),shape(0,1,2),0.0,tmp6);
-
-      DArray<6> tmp6bis;
-      Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
-
-      LO.clear();
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gb(row - 1)[col],0.0,LO);
+         LO.clear();
+         Contract(1.0,tmp8,shape(5,3,6),env.gb(row-1)[0],shape(0,1,2),0.0,LO);
 
       }
-      else{
+      else{//col != 0
 
-      //no update
+         DArray<8> tmp8;
+         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,tmp8);
 
+         DArray<9> tmp9;
+         Contract(1.0,tmp8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
+
+         tmp8.clear();
+         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
+
+         tmp9.clear();
+         Contract(1.0,tmp8,shape(0,4),peps(row,col),shape(0,1),0.0,tmp9);
+
+         tmp8.clear();
+         Contract(1.0,tmp9,shape(0,4,6),peps(row,col),shape(0,1,2),0.0,tmp8);
+
+         LO.clear();
+         Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col],shape(0,1,2),0.0,LO);
+ 
       }
 
-      }
-      else{//Vertical
-
-      if(row == 0){
-
-      //paste left environment on
-      DArray<7> tmp7;
-      Contract(1.0,env.gl(col - 1)[0],shape(1),peps(0,col),shape(0),0.0,tmp7);
-
-      DArray<8> tmp8;
-      Contract(1.0,tmp7,shape(1,4),peps(0,col),shape(0,2),0.0,tmp8);
-
-      DArray<8> tmp8bis;
-      Contract(1.0,tmp8,shape(4,7),env.gr(col)[0],shape(1,2),0.0,tmp8bis);
-
-      //move to a DArray<3> object: order (top-env,(*this)-row,bottom-env)
-      LO = tmp8bis.reshape_clear(shape(env.gl(col - 1)[0].shape(3),peps(0,col).shape(1),peps(0,col).shape(1),env.gr(col)[0].shape(3)));
-
-      }
-      else if(row < Ly - 2){
-
-      //first attach top to left unity, make intermediary
-      DArray<6> tmp6;
-      Contract(1.0,env.gl(col - 1)[row],shape(0),LO,shape(0),0.0,tmp6);
-
-      //add peps to it
-      DArray<7> tmp7;
-      Contract(1.0,tmp6,shape(0,3),peps(row,col),shape(0,3),0.0,tmp7);
-
-      tmp6.clear();
-      Contract(1.0,tmp7,shape(0,5,2),peps(row,col),shape(0,2,3),0.0,tmp6);
-
-      DArray<6> tmp6bis;
-      Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
-
-      LO.clear();
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,env.gr(col)[row],0.0,LO);
-
-   }
-      else{
-
-         //nothing
-
-      }
-
-   }
-
-   */
    }
 
 }

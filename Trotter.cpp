@@ -181,8 +181,8 @@ Trotter::Trotter(double tau_in) {
 
          for(int k = 0;k < dim;++k){
 
-            this->LO_n(s,k,s_) = U(i,k) * sqrt( eig(k) );
-            this->RO_n(s,k,s_) = sqrt( eig(k) ) * V(k,i);
+            this->LO_nn(s,k,s_) = U(i,k) * sqrt( eig(k) );
+            this->RO_nn(s,k,s_) = sqrt( eig(k) ) * V(k,i);
 
          }
 

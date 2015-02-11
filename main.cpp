@@ -31,17 +31,16 @@ int main(int argc,char *argv[]){
    int J2 = atoi(argv[5]);
 
    double tau = 0.01;
-   int n_steps = 10;
 
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
-   //peps.load("output");
+   peps.initialize_jastrow(0.74);
 
-   for(int i = 0;i < 4000;++i){
+   for(int i = 0;i < 2000;++i){
 
-      propagate::step(peps,100);
+      propagate::step(peps,1);
 
       peps.rescale_tensors(1.0);
       peps.normalize();
@@ -53,14 +52,14 @@ int main(int argc,char *argv[]){
    tau *= 0.1;
    global::stau(tau);
 
-   for(int i = 4000;i < 8000;++i){
+   for(int i = 2000;i < 7000;++i){
 
-      propagate::step(peps,100);
+      propagate::step(peps,1);
 
       peps.rescale_tensors(1.0);
       peps.normalize();
       global::env.calc('A',peps); 
-      cout << i << "\t" <<  peps.energy() << endl;
+      cout << i << "\t" << peps.energy() << endl;
 
    }
 

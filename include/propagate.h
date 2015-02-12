@@ -14,6 +14,9 @@ namespace propagate {
 
    void step(PEPS<double> &,int);
 
+   void solve(DArray<8> &,DArray<5> &);
+
+   //updates
    void update_vertical(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
 
    void update_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,int);
@@ -24,8 +27,12 @@ namespace propagate {
 
    void update_diagonal_lurd(int,int,PEPS<double> &,const DArray<5> &,const DArray<5> &,int);
 
-   void solve(DArray<8> &,DArray<5> &);
+   //sweeping sections
+   void sweep_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
+         
+         const DArray<5> &,const DArray<7> &,const DArray<7> &, int);
 
+   //linear systems construct
    void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,
          
          DArray<8> &,DArray<5> &,const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
@@ -46,6 +53,7 @@ namespace propagate {
 
          const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &,bool);
 
+   //cost functions
    double cost_function_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,
          
          const DArray<5> &,const DArray<5> &,const DArray<7> &,const DArray<7> &);
@@ -65,6 +73,12 @@ namespace propagate {
    double cost_function_diagonal_lurd(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
 
          const DArray<5> &,const DArray<7> &,const DArray<7> &);
+   
+   //initialization by SVD
+   void initialize_vertical(const DArray<6> &lop,const DArray<6> &rop,DArray<5> &peps_down,DArray<5> &peps_up);
+
+   //restore after update
+   void equilibrate_vertical(DArray<5> &,DArray<5> &s_up);
 
 }
 

@@ -36,8 +36,6 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
-   peps.initialize_jastrow(0.74);
-
    peps.normalize();
 
    propagate::step(peps,40);

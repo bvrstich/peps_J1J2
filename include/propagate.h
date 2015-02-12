@@ -62,6 +62,10 @@ namespace propagate {
          
          const DArray<6> &,const DArray<8> &,const DArray<8> &);
 
+   double cost_function_diagonal_lurd(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
+
+         const DArray<5> &,const DArray<7> &,const DArray<7> &);
+
 }
 
 #endif

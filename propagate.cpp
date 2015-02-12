@@ -55,14 +55,14 @@ namespace propagate {
 
          // --- (3) update diagonal LU-RD
          update_diagonal_lurd(0,col,peps,L,R[col+1],n_sweeps); 
-
+/*
          // --- (4) update diagonal LD-RU
          // todo
 
          contractions::update_L('b',col,peps,L);
 
       //}
-/*
+
       //one last vertical update
       update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
@@ -2303,9 +2303,12 @@ namespace propagate {
             // --- (2) start sweeping
             int iter = 0;
 
-    //        while(iter < n_iter){
+            while(iter < n_iter){
+
+               cout << iter << "\t" << cost_function_diagonal_lurd(row,col,peps,lop,rop,L,R,LI7,RI7) << endl;
 
                // --(1)-- left site
+               
                //construct effective environment and right hand side for linear system of left site
                construct_lin_sys_diagonal_lurd(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
 
@@ -2313,13 +2316,13 @@ namespace propagate {
                solve(N_eff,rhs);
 
                //update upper peps
-               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+               Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
 
                // --(2)-- right site
 
                //construct effective environment and right hand side for linear system of right site
                construct_lin_sys_diagonal_lurd(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
-/*
+
                //solve the system
                solve(N_eff,rhs);
 
@@ -2328,8 +2331,8 @@ namespace propagate {
 
                //repeat until converged
                ++iter;
-  */
-   //         }
+  
+            }
 
             // --- (3) --- set left and right on the same footing after update
 
@@ -2341,10 +2344,7 @@ namespace propagate {
          }
 
       }
-      else if(row == Ly - 2){//bottom of upper two rows
-
-      }
-      else{//row == Ly - 1 uppermost row
+      else{//row == Ly - 2 uppermost row
 
       }
 
@@ -3468,7 +3468,7 @@ namespace propagate {
 
       if(row == 0){
 
-         if(left){//left site of horizontal gate, so site (row,col) environment
+         if(left){//left-up site of diagonal gate, so site (row+1,col) environment
 
             // (1) construct N_eff
             DArray<8> tmp8;
@@ -3484,7 +3484,7 @@ namespace propagate {
 
             //add LI7 to it
             DArray<8> tmp8bis;
-            Contract(1.0,LI7,shape(0,5,6),tmp7,shape(0,4,3),0.0,tmp8bis);
+            Contract(1.0,LI7,shape(0,5,6),tmp7,shape(0,6,5),0.0,tmp8bis);
 
             N_eff.clear();
             Permute(tmp8bis,shape(0,4,2,6,1,5,3,7),N_eff);
@@ -3505,28 +3505,62 @@ namespace propagate {
 
             //and close with LI7
             tmp5.clear();
-            Contract(1.0,LI7,shape(0,1,3,5,6),tmp8bis,shape(3,0,2,6,7),0.0,tmp5);
+            Contract(1.0,LI7,shape(0,1,3,5,6),tmp8bis,shape(3,0,2,7,6),0.0,tmp5);
 
             rhs.clear();
             Permute(tmp5,shape(0,3,1,4,2),rhs);
 
          }
-         else{//right site of horizontal gate, so site (row+1,col) environment
+         else{//right-down site of diagonal gate, so site (row,col + 1) environment
+
+            // (1) construct N_eff
+
+            //add upper-left peps to intermediate left
+            DArray<8> tmp8;
+            Contract(1.0,LI7,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp8);
+
+            //und again
+            DArray<7> tmp7;
+            Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col),shape(0,2,3),0.0,tmp7);
+
+            //add top environment to intermediate
+            DArray<5> tmp5;
+            Contract(1.0,tmp7,shape(0,5,3),env.gt(row)[col],shape(0,1,2),0.0,tmp5);
+
+            //add left and right together
+            DArray<6> tmp6;
+            Contract(1.0,tmp5,shape(4,3,2),RI7,shape(0,1,2),0.0,tmp6);
+
+            DArray<6> tmp6bis;
+            Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+
+            N_eff = tmp6bis.reshape_clear( shape(D,D,1,D,D,D,1,D) );
+
+            // (2) construct right hand side
+            
+            //add left operator to tmp8
+            DArray<8> tmp8bis;
+            Contract(1.0,tmp8,shape(1,6,2),lop,shape(0,2,4),0.0,tmp8bis);
+
+            //add top environment to intermediate
+            tmp6.clear();
+            Contract(1.0,tmp8bis,shape(0,5,3),env.gt(row)[col],shape(0,1,2),0.0,tmp6);
+
+            //add right operator to RI7
+            DArray<9> tmp9;
+            Contract(1.0,RI7,shape(3,5),rop,shape(1,5),0.0,tmp9);
+
+            //now contract left and right
+            tmp5.clear();
+            Contract(1.0,tmp6,shape(5,4,3,2,0),tmp9,shape(0,1,7,2,5),0.0,tmp5);
+
+            rhs.clear();
+            Permute(tmp5,shape(0,1,4,2,3),rhs);
 
          }
 
       }
-      else if(row == Ly - 2){//bottom horizontal peps of topmost update
-
-         if(left){//left site of horizontal gate, so site (row,col) environment
-
-         }
-         else{//right site of horizontal gate, so site (row+1,col) environment
-
-         }
-
-      }
-      else{//row == Ly - 1
+      else{//bottom horizontal peps of topmost update
 
          if(left){//left site of horizontal gate, so site (row,col) environment
 
@@ -4162,6 +4196,81 @@ namespace propagate {
       val -= 2.0 * Dot(perm7,tmp7);
 
       return val;
+
+   }
+
+   /**
+    * evaluate the cost function of the linear system for two diagonally connected PEPS, i.e. the left-up and right-down peps:
+    * cost function = -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * for top or bottom rows, i.e. with L and R of order 5 and intermediates of order 7
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 right intermediate object
+    */
+   double cost_function_diagonal_lurd(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<5> &L,
+         
+         const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7){
+
+      if(row == 0){
+
+         // --- (1) calculate overlap of approximated state:
+
+         //right side
+         DArray<8> tmp8_right;
+         Contract(1.0,RI7,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp8_right);
+
+         //and again
+         DArray<5> tmp5_right;
+         Contract(1.0,tmp8_right,shape(3,6,7,4),peps(row,col+1),shape(1,2,3,4),0.0,tmp5_right);
+
+         //left side
+         DArray<8> tmp8_left;
+         Contract(1.0,LI7,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp8_left);
+
+         //add another
+         DArray<7> tmp7;
+         Contract(1.0,tmp8_left,shape(1,6,2),peps(row+1,col),shape(0,2,3),0.0,tmp7);
+
+         //add top environment to intermediate
+         DArray<5> tmp5_left;
+         Contract(1.0,tmp7,shape(0,5,3),env.gt(row)[col],shape(0,1,2),0.0,tmp5_left);
+
+         DArray<5> tmp5;
+         Permute(tmp5_left,shape(4,3,2,1,0),tmp5);
+
+         double val = Dot(tmp5,tmp5_right);
+
+         // --- (2) calculate 'b' part of overlap
+     
+         //add right operator to tmp8
+         DArray<6> tmp6_right;
+         Contract(1.0,tmp8_right,shape(3,6,7,4),rop,shape(1,2,4,5),0.0,tmp6_right);
+
+         //add left operator to tmp8
+         DArray<8> tmp8bis;
+         Contract(1.0,tmp8_left,shape(1,6,2),lop,shape(0,2,4),0.0,tmp8bis);
+
+         //add top environment to intermediate
+         DArray<6> tmp6_left;
+         Contract(1.0,tmp8bis,shape(0,5,3),env.gt(row)[col],shape(0,1,2),0.0,tmp6_left);
+
+         DArray<6> tmp6bis;
+         Permute(tmp6_left,shape(5,4,2,1,0,3),tmp6bis);
+
+         val -= 2.0 * Dot(tmp6bis,tmp6_right);
+
+         return val;
+
+      }
+      else{//row == Ly - 2
+
+         return 0.0;
+
+      }
 
    }
 

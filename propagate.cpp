@@ -2308,7 +2308,7 @@ namespace propagate {
                // --(1)-- left site
                //construct effective environment and right hand side for linear system of left site
                construct_lin_sys_diagonal_lurd(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
-/*
+
                //solve the system
                solve(N_eff,rhs);
 
@@ -2318,8 +2318,8 @@ namespace propagate {
                // --(2)-- right site
 
                //construct effective environment and right hand side for linear system of right site
-               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
-
+               construct_lin_sys_diagonal_lurd(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,false);
+/*
                //solve the system
                solve(N_eff,rhs);
 
@@ -3470,6 +3470,45 @@ namespace propagate {
 
          if(left){//left site of horizontal gate, so site (row,col) environment
 
+            // (1) construct N_eff
+            DArray<8> tmp8;
+            Contract(1.0,RI7,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp8);
+
+            //und again
+            DArray<5> tmp5;
+            Contract(1.0,tmp8,shape(3,6,7,4),peps(row,col+1),shape(1,2,3,4),0.0,tmp5);
+
+            //add top environment to intermediate
+            DArray<7> tmp7;
+            Contract(1.0,env.gt(row)[col],shape(3),tmp5,shape(0),0.0,tmp7);
+
+            //add LI7 to it
+            DArray<8> tmp8bis;
+            Contract(1.0,LI7,shape(0,5,6),tmp7,shape(0,4,3),0.0,tmp8bis);
+
+            N_eff.clear();
+            Permute(tmp8bis,shape(0,4,2,6,1,5,3,7),N_eff);
+
+            // (2) construct right hand side
+            
+            //add right operator to tmp8
+            DArray<6> tmp6;
+            Contract(1.0,tmp8,shape(3,6,7,4),rop,shape(1,2,4,5),0.0,tmp6);
+
+            //add top environment to intermediate
+            tmp8.clear();
+            Contract(1.0,env.gt(row)[col],shape(3),tmp6,shape(0),0.0,tmp8);
+
+            //add left operator
+            tmp8bis.clear();
+            Contract(1.0,lop,shape(1,3,5),tmp8,shape(1,7,3),0.0,tmp8bis);
+
+            //and close with LI7
+            tmp5.clear();
+            Contract(1.0,LI7,shape(0,1,3,5,6),tmp8bis,shape(3,0,2,6,7),0.0,tmp5);
+
+            rhs.clear();
+            Permute(tmp5,shape(0,3,1,4,2),rhs);
 
          }
          else{//right site of horizontal gate, so site (row+1,col) environment

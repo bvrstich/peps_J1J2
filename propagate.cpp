@@ -30,7 +30,6 @@ namespace propagate {
       // --- !!! (1) the bottom two rows (1) !!! ---// 
       // -------------------------------------------//
 
-
       //containers for the renormalized operators
       vector< DArray<5> > R(Lx - 1);
       DArray<5> L;
@@ -44,8 +43,10 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-      for(int col = 0;col < Lx - 1;++col){
+      //for(int col = 0;col < Lx - 1;++col){
       
+      int col = 0;
+
          // --- (1) update the vertical pair on column 'col' ---
          update_vertical(0,col,peps,L,R[col],n_sweeps); 
 
@@ -53,15 +54,15 @@ namespace propagate {
          update_horizontal(0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         // todo
+         update_diagonal_lurd(0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
          // todo
 
          contractions::update_L('b',col,peps,L);
 
-      }
-
+      //}
+/*
       //one last vertical update
       update_vertical(0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
@@ -138,7 +139,7 @@ namespace propagate {
 
       //finally the very last vertical gate
       update_vertical(Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
-
+*/
    }
 
    /** 
@@ -2239,6 +2240,116 @@ namespace propagate {
 
    }
 
+  /**
+    * update the tensors in a sweeping fashion, diagonal pairs, left up and right down tensor updated
+    * @param row , the row index of the horizontal row
+    * @param col column index of left site
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param n_iter nr of sweeps in the ALS algorithm
+    */
+   void update_diagonal_lurd(int row,int col,PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,int n_iter){
+
+      enum {i,j,k,l,m,n,o};
+
+      if(row == 0){
+
+         DArray<5> rhs;
+         DArray<8> N_eff;
+
+         //first make left and right intermediary objects
+         DArray<7> LI7;
+         DArray<7> RI7;
+
+         DArray<6> lop;
+         DArray<6> rop;
+
+         if(col == 0){
+
+            //create left and right intermediary operators: right
+            
+            //attach top environment to right side
+            DArray<7> tmp7;
+            Contract(1.0,env.gt(row)[col + 1],shape(3),R,shape(0),0.0,tmp7);
+
+            //add upper right peps to it
+            DArray<8> tmp8;
+            Contract(1.0,tmp7,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp8);
+
+            //and another
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp7);
+
+            Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
+            
+            //left: connect bottom left peps to itsself
+            DArray<4> tmp4;
+            Contract(1.0,peps(row,col),shape(0,2,3),peps(row,col),shape(0,2,3),0.0,tmp4);
+
+            DArray<4> tmp4bis;
+            Permute(tmp4,shape(0,2,1,3),tmp4bis);
+
+            LI7 = tmp4bis.reshape_clear( shape(1,1,1,D,D,D,D) );
+
+            //act with operators on left and right peps
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));//left up
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));//right down
+
+            // --- (1) --- initial guess:
+            
+            // LATER
+
+            // --- (2) start sweeping
+            int iter = 0;
+
+    //        while(iter < n_iter){
+
+               // --(1)-- left site
+               //construct effective environment and right hand side for linear system of left site
+               construct_lin_sys_diagonal_lurd(row,col,peps,lop,rop,N_eff,rhs,L,R,LI7,RI7,true);
+/*
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update upper peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+               // --(2)-- right site
+
+               //construct effective environment and right hand side for linear system of right site
+               construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
+
+               //solve the system
+               solve(N_eff,rhs);
+
+               //update lower peps
+               Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+               //repeat until converged
+               ++iter;
+  */
+   //         }
+
+            // --- (3) --- set left and right on the same footing after update
+
+         }
+         else if(col < Lx - 2){//col != 0
+
+         }
+         else{//col == Lx - 2
+         }
+
+      }
+      else if(row == Ly - 2){//bottom of upper two rows
+
+      }
+      else{//row == Ly - 1 uppermost row
+
+      }
+
+   }
+
    /**
     * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site on top or bottom rows
     * @param row the row index of the bottom site
@@ -2905,9 +3016,9 @@ namespace propagate {
 
    }
 
-
    /**
-    * construct the single-site effective environment and right hand side needed for the linear system of the horinzontal gate, for left or right site on top ro bottom row ( with R,L order 5)
+    * construct the single-site effective environment and right hand side needed for the linear system of the horinzontal gate,
+    * for left or right site on top ro bottom row ( with R,L order 5)
     * @param row , the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
@@ -3333,6 +3444,57 @@ namespace propagate {
 
          rhs.clear();
          Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+      }
+
+   }
+   /**
+    * construct the single-site effective environment and right hand side needed for the linear system of the diagonal, left-up right-down, gate
+    * for left or right site on top ro bottom row ( with R,L order 5)
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param N_eff output object, contains N_eff on output
+    * @param rhs output object, contains N_eff on output
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 Left intermediate object
+    * @param RI7 Right intermediate object
+    * @param left boolean flag for left-up (true) or right-down (false) site of horizontal gate
+    */
+   void construct_lin_sys_diagonal_lurd(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
+
+         const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7,bool left){
+
+      if(row == 0){
+
+         if(left){//left site of horizontal gate, so site (row,col) environment
+
+
+         }
+         else{//right site of horizontal gate, so site (row+1,col) environment
+
+         }
+
+      }
+      else if(row == Ly - 2){//bottom horizontal peps of topmost update
+
+         if(left){//left site of horizontal gate, so site (row,col) environment
+
+         }
+         else{//right site of horizontal gate, so site (row+1,col) environment
+
+         }
+
+      }
+      else{//row == Ly - 1
+
+         if(left){//left site of horizontal gate, so site (row,col) environment
+
+         }
+         else{//right site of horizontal gate, so site (row+1,col) environment
+
+         }
 
       }
 

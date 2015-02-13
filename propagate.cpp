@@ -296,293 +296,28 @@ namespace propagate {
 
       enum {i,j,k,l,m,n,o};
 
-      DArray<5> rhs;
-      DArray<8> N_eff;
-
-      //first make left and right intermediary objects
+      //storage for left and right intermediary objects
       DArray<8> LI8;
       DArray<8> RI8;
 
       DArray<6> lop;
       DArray<6> rop;
 
-      if(col == 0){
+      //act with operators on left and right peps
+      Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+      Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
-         //create left and right intermediary operators: right
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
+      // --- (a) --- initial guess:
+      initialize_horizontal(lop,rop,peps(row,col),peps(row,col+1));
 
-         DArray<9> tmp9;
-         Contract(1.0,RI8,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp9);
+      // --- (b) create left and right intermediary operators for N_eff, they do not change during update
+      construct_intermediate_horizontal(row,col,peps,LO,RO,LI8,RI8);
 
-         DArray<8> tmp8;
-         Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
+      // --- (c) --- start sweeping
+      sweep_horizontal(row,col,peps,lop,rop,LO,RO,LI8,RI8,n_iter);
 
-         RI8.clear();
-         Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
-
-         //left
-         DArray<5> tmp5;
-         Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[col],peps(row+1,col),0.0,tmp5);
-
-         DArray<6> tmp6;
-         Contract(1.0,tmp5,shape(0,2),peps(row+1,col),shape(1,2),0.0,tmp6);
-
-         DArray<6> tmp6bis;
-         Permute(tmp6,shape(0,2,5,1,4,3),tmp6bis);
-
-         LI8 = tmp6bis.reshape_clear( shape(env.gt(0)[col].shape(3),D,D,D,D,1,1,1) );
-
-         //act with operators on left and right peps
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-         // --- (1) --- initial guess:
-         tmp8.clear();
-         Contract(1.0,lop,shape(3,5),rop,shape(3,0),0.0,tmp8);
-
-         //svd the fucker
-         DArray<1> S;
-         Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
-
-         //take the square root of the sv's
-         for(int i = 0;i < S.size();++i)
-            S(i) = sqrt(S(i));
-
-         //and multiply it left and right to the tensors
-         Dimm(S,peps(row,col+1));
-         Dimm(peps(row,col),S);
-
-         // --- (2) --- start sweeping
-         int iter = 0;
-
-         while(iter < n_iter){
-
-            // --(1)-- left site
-
-            //construct effective environment and right hand side for linear system of left site
-            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
-
-            //solve the system
-            solve(N_eff,rhs);
-
-            //update upper peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col));
-
-            // --(2)-- right site
-
-            //construct effective environment and right hand side for linear system of right site
-            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
-
-            //solve the system
-            solve(N_eff,rhs);
-
-            //update lower peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
-
-            //repeat until converged
-            ++iter;
-
-         }
-
-         // --- (3) --- set left and right on the same footing after update
-         Contract(1.0,peps(row,col),shape(4),peps(row,col+1),shape(0),0.0,tmp8);
-
-         //svd the fucker
-         Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
-
-         //take the square root of the sv's
-         for(int i = 0;i < S.size();++i)
-            S(i) = sqrt(S(i));
-
-         //and multiply it left and right to the tensors
-         Dimm(S,peps(row,col+1));
-         Dimm(peps(row,col),S);
-
-      }
-      else if(col < Lx - 2){//col =! 0
-
-         //create left and right intermediary operators: right
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
-
-         DArray<9> tmp9;
-         Contract(1.0,RI8,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp9);
-
-         DArray<8> tmp8;
-         Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
-
-         RI8.clear();
-         Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
-
-         //left
-         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
-
-         tmp9.clear();
-         Contract(1.0,LI8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
-
-         tmp8.clear();
-         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
-
-         LI8.clear();
-         Permute(tmp8,shape(3,5,7,4,6,0,1,2),LI8);
-
-         //act with operators on left and right peps
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-         // --- (1) --- initial guess:
-         tmp8.clear();
-         Contract(1.0,lop,shape(3,5),rop,shape(3,0),0.0,tmp8);
-
-         //svd the fucker
-         DArray<1> S;
-         Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
-
-         //take the square root of the sv's
-         for(int i = 0;i < S.size();++i)
-            S(i) = sqrt(S(i));
-
-         //and multiply it left and right to the tensors
-         Dimm(S,peps(row,col+1));
-         Dimm(peps(row,col),S);
-
-         // --- (2) start sweeping
-         int iter = 0;
-
-         while(iter < n_iter){
-
-            // --(1)-- left site
-            //construct effective environment and right hand side for linear system of left site
-            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
-
-            //solve the system
-            solve(N_eff,rhs);
-
-            //update upper peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col));
-
-            // --(2)-- right site
-
-            //construct effective environment and right hand side for linear system of right site
-            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
-
-            //solve the system
-            solve(N_eff,rhs);
-
-            //update lower peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
-
-            //repeat until converged
-            ++iter;
-
-         }
-
-         // --- (3) --- set left and right on the same footing after update
-         Contract(1.0,peps(row,col),shape(4),peps(row,col+1),shape(0),0.0,tmp8);
-
-         //svd the fucker
-         Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
-
-         //take the square root of the sv's
-         for(int i = 0;i < S.size();++i)
-            S(i) = sqrt(S(i));
-
-         //and multiply it left and right to the tensors
-         Dimm(S,peps(row,col+1));
-         Dimm(peps(row,col),S);
-
-      }
-      else{//col == Lx - 2
-
-         //create left and right intermediary operators: right
-         DArray<5> tmp5;
-         Contract(1.0,env.gt(row)[Lx - 1],shape(2,3),peps(row+1,Lx - 1),shape(1,4),0.0,tmp5);
-
-         DArray<6> tmp6;
-         Contract(1.0,tmp5,shape(1,3),peps(row+1,Lx - 1),shape(1,2),0.0,tmp6);
-
-         DArray<6> tmp6bis;
-         Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
-
-         RI8 = tmp6bis.reshape_clear(shape(env.gt(row)[Lx-1].shape(0),D,D,D,D,1,1,1));
-
-         //left
-         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
-
-         DArray<9> tmp9;
-         Contract(1.0,LI8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
-
-         DArray<8> tmp8;
-         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
-
-         LI8.clear();
-         Permute(tmp8,shape(3,5,7,4,6,0,1,2),LI8);
-
-         //act with operators on left and right peps
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-         // --- (1) --- initial guess:
-         tmp8.clear();
-         Contract(1.0,lop,shape(3,5),rop,shape(3,0),0.0,tmp8);
-
-         //svd the fucker
-         DArray<1> S;
-         Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
-
-         //take the square root of the sv's
-         for(int i = 0;i < S.size();++i)
-            S(i) = sqrt(S(i));
-
-         //and multiply it left and right to the tensors
-         Dimm(S,peps(row,col+1));
-         Dimm(peps(row,col),S);
-
-         // --- (2) start sweeping
-         int iter = 0;
-
-         while(iter < n_iter){
-
-            // --(1)-- left site
-            //construct effective environment and right hand side for linear system of left site
-            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
-
-            //solve the system
-            solve(N_eff,rhs);
-
-            //update upper peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col));
-
-            // --(2)-- right site
-
-            //construct effective environment and right hand side for linear system of right site
-            construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
-
-            //solve the system
-            solve(N_eff,rhs);
-
-            //update lower peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
-
-            //repeat until converged
-            ++iter;
-
-         }
-
-         // --- (3) --- set left and right on the same footing after update
-         Contract(1.0,peps(row,col),shape(4),peps(row,col+1),shape(0),0.0,tmp8);
-
-         //svd the fucker
-         Gesvd ('S','S', tmp8, S,peps(row,col),peps(row,col+1),D);
-
-         //take the square root of the sv's
-         for(int i = 0;i < S.size();++i)
-            S(i) = sqrt(S(i));
-
-         //and multiply it left and right to the tensors
-         Dimm(S,peps(row,col+1));
-         Dimm(peps(row,col),S);
-
-      }
+      // --- (d) set left and right on the same footing after update
+      equilibrate_horizontal(peps(row,col),peps(row,col+1));
 
    }
 
@@ -853,6 +588,60 @@ namespace propagate {
       }
 
    }
+
+   /**
+    * Sweep back and forward between left and right peps, solving the linear system for compression until convergence is reached
+    * @param row row index of the bottom peps
+    * @param col col index 
+    * @param lop left peps acted on with left trotter operator
+    * @param rop right peps acted on with right trotter operator
+    * @param LO left contracted environment 
+    * @param RO right contracted environment 
+    * @param LI8 intermediate object created to simplify N_eff contstruction
+    * @param RI8 intermediate object created to simplify N_eff contstruction
+    * @param n_sweeps number of sweeps to execute
+    */
+   void sweep_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
+
+         const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8,int n_sweeps){
+
+      //storage
+      DArray<8> N_eff;
+      DArray<5> rhs;
+
+      int iter = 0;
+
+      while(iter < n_sweeps){
+
+         // --(1)-- left site
+
+         //construct effective environment and right hand side for linear system of left site
+         construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,true);
+
+         //solve the system
+         solve(N_eff,rhs);
+
+         //update upper peps
+         Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+
+         // --(2)-- right site
+
+         //construct effective environment and right hand side for linear system of right site
+         construct_lin_sys_horizontal(row,col,peps,lop,rop,N_eff,rhs,LO,RO,LI8,RI8,false);
+
+         //solve the system
+         solve(N_eff,rhs);
+
+         //update lower peps
+         Permute(rhs,shape(0,1,4,2,3),peps(row,col+1));
+
+         //repeat until converged
+         ++iter;
+
+      }
+
+   }
+
 
    /**
     * construct the single-site effective environment and right hand side needed for the linear system of the vertical gate, for top or bottom site on top or bottom rows
@@ -2499,7 +2288,7 @@ namespace propagate {
     * @param RI7 right intermediate object
     */
    double cost_function_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
-         
+
          const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7){
 
       if(row == 0){
@@ -2655,7 +2444,7 @@ namespace propagate {
     * @param RI8 right interediate object
     */
    double cost_function_horizontal(int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,const DArray<6> &LO,
-         
+
          const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8){
 
       //(1) overlap term
@@ -3258,6 +3047,103 @@ namespace propagate {
             Permute(tmp7,shape(0,1,3,5,4,6,2),LI7);
 
          }
+
+      }
+
+   }
+      
+   /**
+    * function that calculates intermediate objects that do not change during the sweeping update.
+    * By precalculating them a lot of work is avoided
+    * @param row row index of the pair
+    * @param col column index of the leftmost peps
+    * @param peps full PEPS object
+    * @param LO left contracted environment around the pair
+    * @param RO right contracted environment around the pair
+    * @param LI8 Left intermediate object to be constructed on output
+    * @param RI8 Right intermediate object to be constructed on output
+    */
+   void construct_intermediate_horizontal(int row,int col,const PEPS<double> &peps,const DArray<6> &LO,const DArray<6> &RO,DArray<8> &LI8,DArray<8> &RI8){
+
+      if(col == 0){
+
+         //create left and right intermediary operators: right
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
+
+         DArray<9> tmp9;
+         Contract(1.0,RI8,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp9);
+
+         DArray<8> tmp8;
+         Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
+
+         RI8.clear();
+         Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
+
+         //left
+         DArray<5> tmp5;
+         Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[col],peps(row+1,col),0.0,tmp5);
+
+         DArray<6> tmp6;
+         Contract(1.0,tmp5,shape(0,2),peps(row+1,col),shape(1,2),0.0,tmp6);
+
+         DArray<6> tmp6bis;
+         Permute(tmp6,shape(0,2,5,1,4,3),tmp6bis);
+
+         LI8 = tmp6bis.reshape_clear( shape(env.gt(0)[col].shape(3),D,D,D,D,1,1,1) );
+
+      }
+      else if(col < Lx - 2){
+
+         //create left and right intermediary operators: right
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
+
+         DArray<9> tmp9;
+         Contract(1.0,RI8,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp9);
+
+         DArray<8> tmp8;
+         Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
+
+         RI8.clear();
+         Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
+
+         //left
+         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
+
+         tmp9.clear();
+         Contract(1.0,LI8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
+
+         tmp8.clear();
+         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
+
+         LI8.clear();
+         Permute(tmp8,shape(3,5,7,4,6,0,1,2),LI8);
+
+      }
+      else{//col == Lx - 2
+
+         //create left and right intermediary operators: right
+         DArray<5> tmp5;
+         Contract(1.0,env.gt(row)[Lx - 1],shape(2,3),peps(row+1,Lx - 1),shape(1,4),0.0,tmp5);
+
+         DArray<6> tmp6;
+         Contract(1.0,tmp5,shape(1,3),peps(row+1,Lx - 1),shape(1,2),0.0,tmp6);
+
+         DArray<6> tmp6bis;
+         Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
+
+         RI8 = tmp6bis.reshape_clear(shape(env.gt(row)[Lx-1].shape(0),D,D,D,D,1,1,1));
+
+         //left
+         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
+
+         DArray<9> tmp9;
+         Contract(1.0,LI8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
+
+         DArray<8> tmp8;
+         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
+
+         LI8.clear();
+         Permute(tmp8,shape(3,5,7,4,6,0,1,2),LI8);
 
       }
 

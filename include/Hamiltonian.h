@@ -17,7 +17,7 @@ using namespace btas;
 /**
  * @author Brecht Verstichel
  * @date 24-10-2014\n\n
- * This class contains the nearest neighbour interaction operators which the Hamiltonian consists of
+ * This class contains the nearest-neighbour and next-to-nearest-neigbour interaction operators which the Hamiltonian consists of
  */
 class Hamiltonian {
 

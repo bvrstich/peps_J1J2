@@ -13,7 +13,21 @@ using namespace btas;
 namespace propagate {
 
    //!define a variable for the direction of the propagation
-   enum PROP_DIR {HORIZONTAL=0,VERTICAL=1,DIAGONAL_LURD=2,DIAGONAL_LDRU=3};
+   enum PROP_DIR {
+
+      //!vertical gate on two nearest neigbour peps (row,col) --> (row+1,col)
+      VERTICAL=0,
+
+      //!horizontal gate on two nearest neigbour peps (row,col) --> (row,col+1)
+      HORIZONTAL=1,
+      
+      //!diagonal gate connect two next-nearest neigbour peps, from top left to bottom right (row+1,col) --> (row,col+1)
+      DIAGONAL_LURD=2,
+
+      //!diagonal gate connect two next-nearest neigbour peps, from bottom left to top right (row,col) --> (row+1,col+1)
+      DIAGONAL_LDRU=3
+   
+   };
 
    void step(PEPS<double> &,int);
 

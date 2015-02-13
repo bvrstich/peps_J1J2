@@ -1,6 +1,9 @@
 /**
  * @mainpage 
- * This is an implementation of an imaginary time evolution algorithm for the optimization of PEPS.
+ * This is an implementation of an imaginary time evolution algorithm for the optimization of PEPS
+ * for the J1J2 model. The imaginary-time evolution is applied through a trotter decomposotion of the
+ * interactions. They are acted pairwise onto two peps. The compression of the bond dimensions is done
+ * using the full update, so using an alternating least squares algorithm.
  * @author Brecht Verstichel
  * @date 25-03-2014
  */
@@ -38,7 +41,7 @@ int main(int argc,char *argv[]){
    PEPS<double> peps(D);
    peps.normalize();
 
-   for(int i = 0;i < 1000;++i){
+   for(int i = 0;i < 10000;++i){
 
       propagate::step(peps,2);
 

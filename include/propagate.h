@@ -32,12 +32,18 @@ namespace propagate {
          
          const DArray<5> &,const DArray<7> &,const DArray<7> &, int);
 
+   void sweep_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<6> &,
+         
+         const DArray<6> &,const DArray<8> &,const DArray<8> &, int);
+
    void sweep_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
          
          const DArray<5> &,const DArray<7> &,const DArray<7> &, int);
    
    //construct intermediate objects for N_eff construction
    void construct_intermediate_vertical(int,int,const PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<7> &,DArray<7> &);
+
+   void construct_intermediate_vertical(int,int,const PEPS<double> &,const DArray<6> &,const DArray<6> &,DArray<8> &,DArray<8> &);
 
    void construct_intermediate_horizontal(int,int,const PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<7> &,DArray<7> &);
 

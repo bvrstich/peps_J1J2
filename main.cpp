@@ -40,7 +40,7 @@ int main(int argc,char *argv[]){
 
    for(int i = 0;i < 1000;++i){
 
-      propagate::step(peps,1);
+      propagate::step(peps,2);
 
       peps.rescale_tensors(1.0);
       peps.normalize();

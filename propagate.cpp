@@ -181,142 +181,29 @@ namespace propagate {
 
       enum {i,j,k,l,m,n,o};
 
-      if(row == 0){
+      //containers for left and right intermediary objects
+      DArray<7> LI7;
+      DArray<7> RI7;
 
-         //first make left and right intermediary objects
-         DArray<7> LI7;
-         DArray<7> RI7;
+      //containers for left and right operators acting on top and bottom peps
+      DArray<6> lop;
+      DArray<6> rop;
 
-         DArray<6> lop;
-         DArray<6> rop;
+      //act with operators on left and right peps
+      Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+      Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
-         if(col == 0){
+      // --- (a) --- initial guess:
+      initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
 
-            //act with operators on left and right peps
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+      // --- (b) --- create intermediary object using during N_eff construction, doesn't change during update
+      construct_intermediate_vertical(row,col,peps,L,R,LI7,RI7);
 
-            // --- (a) --- initial guess:
-            initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
+      // --- (c) --- sweeping update
+      sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
 
-            //create right intermediary for update, doesn't change during
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col],R,0.0,RI7);
-
-            // --- (b) --- sweeping update
-            sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
-
-            // --- (c) --- set top and bottom back on equal footing
-            equilibrate_vertical(peps(row,col),peps(row+1,col));
-
-         }
-         else if(col < Lx - 1){//col != 0
-
-            //act with operators on left and right peps
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-            // --- (a) --- initial guess:
-            initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
-
-            //construct left intermediate operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
-
-            // --- (b) --- sweeping update
-            sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
-           
-            // --- (c) --- set top and bottom back on equal footing
-            equilibrate_vertical(peps(row,col),peps(row+1,col));
-
-         }
-         else{//col == Lx-1
-
-            //construct left and right operator
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-            // --- (a) --- initial guess:
-            initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
-
-            //construct left intermediate operator LI7
-            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
-
-            // --- (b) --- sweeping update
-            sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
-            
-            // --- (c) --- set top and bottom back on equal footing
-            equilibrate_vertical(peps(row,col),peps(row+1,col));
-
-         }
-
-      }
-      else{//row == Lx - 2
-
-         //first make left and right intermediary objects
-         DArray<7> LI7;
-         DArray<7> RI7;
-
-         DArray<6> lop;
-         DArray<6> rop;
-
-         if(col == 0){//first col == 0
-
-            //act with operators on left and right peps
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-            // --- (a) --- initial guess:
-            initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
-
-            //make right intermediate operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Lx - 3)[col],R,0.0,RI7);
-
-            // --- (b) --- sweeping update
-            sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
-
-            // --- (c) --- set top and bottom back on equal footing
-            equilibrate_vertical(peps(row,col),peps(row+1,col));
-
-         }
-         else if(col < Lx - 1){//middle columns
-
-            //act with operators on left and right peps
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-            // --- (a) --- initial guess:
-            initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
-            
-            //make right intermediary operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Lx - 3)[col],R,0.0,RI7);
-
-            // --- (b) --- sweeping update
-            sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
-
-            // --- (c) --- set top and bottom back on equal footing
-            equilibrate_vertical(peps(row,col),peps(row+1,col));
-
-         }
-         else{//col == Lx - 1
-
-            //act with operators on left and right peps
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
-            // --- (a) --- initial guess:
-            initialize_vertical(lop,rop,peps(row,col),peps(row+1,col)); 
-            
-            //make left intermediate operator
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Lx - 3)[col],0.0,LI7);
-
-            // --- (b) --- sweeping update
-            sweep_vertical(row,col,peps,lop,rop,L,R,LI7,RI7,n_iter);
-
-            // --- (c) --- set top and bottom back on equal footing
-            equilibrate_vertical(peps(row,col),peps(row+1,col));
-
-         }
-
-      }
+      // --- (d) --- set top and bottom back on equal footing
+      equilibrate_vertical(peps(row,col),peps(row+1,col));
 
    }
 
@@ -3997,5 +3884,42 @@ namespace propagate {
       Permute(VR,shape(1,2,3,0,4),peps_up);
 
    }
+
+   /**
+    * function that calculates intermediate objects that do not change during the sweeping update.
+    * By precalculating them a lot of work is avoided
+    * @param row row index of the bottom peps of the vertical pair
+    * @param col column index
+    * @param peps full PEPS object
+    * @param L left contracted environment around the pair
+    * @param R right contracted environment around the pair
+    * @param LI7 Left intermediate object to be constructed on output
+    * @param RI7 Right intermediate object to be constructed on output
+    */
+   void construct_intermediate_vertical(int row,int col,const PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,DArray<7> &LI7,DArray<7> &RI7){
+
+      if(row == 0){
+
+         if(col == 0)
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col],R,0.0,RI7);
+         else if(col < Lx - 1)
+            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
+         else
+            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
+
+      }
+      else{
+
+         if(col == 0)
+            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Lx - 3)[col],R,0.0,RI7);
+         else if(col < Lx - 1)
+            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Lx - 3)[col],R,0.0,RI7);
+         else
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Lx - 3)[col],0.0,LI7);
+
+      }
+
+   }
+
 
 }

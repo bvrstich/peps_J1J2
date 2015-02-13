@@ -31,6 +31,9 @@ namespace propagate {
    void sweep_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
          
          const DArray<5> &,const DArray<7> &,const DArray<7> &, int);
+   
+   //construct intermediate objects for N_eff construction
+   void construct_intermediate_vertical(int,int,const PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<7> &,DArray<7> &);
 
    //linear systems construct
    void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,

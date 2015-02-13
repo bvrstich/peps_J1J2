@@ -31,9 +31,15 @@ namespace propagate {
    void sweep_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
          
          const DArray<5> &,const DArray<7> &,const DArray<7> &, int);
+
+   void sweep_horizontal(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,const DArray<5> &,
+         
+         const DArray<5> &,const DArray<7> &,const DArray<7> &, int);
    
    //construct intermediate objects for N_eff construction
    void construct_intermediate_vertical(int,int,const PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<7> &,DArray<7> &);
+
+   void construct_intermediate_horizontal(int,int,const PEPS<double> &,const DArray<5> &,const DArray<5> &,DArray<7> &,DArray<7> &);
 
    //linear systems construct
    void construct_lin_sys_vertical(int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,
@@ -78,10 +84,14 @@ namespace propagate {
          const DArray<5> &,const DArray<7> &,const DArray<7> &);
    
    //initialization by SVD
-   void initialize_vertical(const DArray<6> &lop,const DArray<6> &rop,DArray<5> &peps_down,DArray<5> &peps_up);
+   void initialize_vertical(const DArray<6> &,const DArray<6> &,DArray<5> &,DArray<5> &);
+   
+   void initialize_horizontal(const DArray<6> &,const DArray<6> &,DArray<5> &,DArray<5> &);
 
    //restore after update
-   void equilibrate_vertical(DArray<5> &,DArray<5> &s_up);
+   void equilibrate_vertical(DArray<5> &,DArray<5> &);
+
+   void equilibrate_horizontal(DArray<5> &,DArray<5> &);
 
 }
 

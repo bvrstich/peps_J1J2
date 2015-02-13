@@ -47,7 +47,7 @@ int main(int argc,char *argv[]){
 
       global::env.calc('A',peps); 
       cout << i << "\t" << peps.energy() << endl;
-
+  
    }
 
    return 0;

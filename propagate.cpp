@@ -36,9 +36,34 @@ namespace propagate {
          DArray<M+2> LI;
          DArray<M+2> RI;
 
-         //containers for left and right operators acting on top and bottom peps
+         //construct for left and right operators acting the correct peps elements
          DArray<6> lop;
          DArray<6> rop;
+
+         if(dir == VERTICAL){// (row,col) --> (row+1,col)
+
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         }
+         else if(dir == HORIZONTAL){// (row,col) --> (row,col+1)
+
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         }
+         else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
+
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         }
+         else{//(row,col) --> (row+1,col+1)
+
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+
+         }
 
          // --- (a) --- initial guess:
          initialize(dir,row,col,lop,rop,peps); 
@@ -55,10 +80,10 @@ namespace propagate {
       }
 
    /**
-    * Sweep back and forward between bottom and upper peps, solving the linear system for compression until convergence is reached
+    * Sweep back and forward between the two peps to be updated, solving the linear system for compression until convergence is reached
     * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
-    * @param row row index of the bottom peps
-    * @param col col index 
+    * @param row row index of the bottom left peps
+    * @param col col index of the bottom left peps
     * @param lop bottom peps acted on with left trotter operator
     * @param rop upper peps acted on with right trotter operator
     * @param L left contracted environment 
@@ -72,6 +97,26 @@ namespace propagate {
 
             const DArray<M> &L,const DArray<M> &R,const DArray<M+2> &LI,const DArray<M+2> &RI,int n_sweeps){
 
+         //indices of sites between which to jump back and forth
+         int l_row(row),l_col(col),r_row(row),r_col(col);
+
+         if(dir == VERTICAL)//(row,col) --> (row+1,col)
+            r_row++;
+         else if(dir == HORIZONTAL)//(row,col) --> (row,col+1)
+            r_col++;
+         else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
+
+            l_row++;
+            r_col++;
+
+         }
+         else{//(row,col) --> (row+1,col+1)
+
+            r_row++;
+            r_col++;
+
+         }
+
          //storage
          DArray<8> N_eff;
          DArray<5> rhs;
@@ -80,7 +125,7 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            // --(1)-- top site
+            // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,true);
@@ -88,10 +133,10 @@ namespace propagate {
             //solve the system
             solve(N_eff,rhs);
 
-            //update upper peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row+1,col));
+            //update 'left' peps
+            Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
 
-            // --(2)-- bottom site
+            // --(2)-- 'right' site
 
             //construct effective environment and right hand side for linear system of bottom site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,false);
@@ -99,8 +144,8 @@ namespace propagate {
             //solve the system
             solve(N_eff,rhs);
 
-            //update lower peps
-            Permute(rhs,shape(0,1,4,2,3),peps(row,col));
+            //update 'right' peps
+            Permute(rhs,shape(0,1,4,2,3),peps(r_row,r_col));
 
             //repeat until converged
             ++iter;
@@ -287,7 +332,7 @@ namespace propagate {
 
                if(col == 0){
 
-                  if(left){//top site of vertical, so site (row,col+1) environment
+                  if(!left){//top site of vertical, so site (row,col+1) environment
 
                      //paste bottom peps to right intermediate
                      DArray<10> tmp10;
@@ -348,7 +393,7 @@ namespace propagate {
                }
                else if(col < Lx - 1){//col != 0
 
-                  if(left){//top site
+                  if(!left){//top site
 
                      // (1) calculate N_eff
 
@@ -427,7 +472,7 @@ namespace propagate {
                }
                else{ //col == Lx - 1
 
-                  if(left){//top site
+                  if(!left){//top site
 
                      // (1) calculate N_eff
 
@@ -496,7 +541,7 @@ namespace propagate {
 
                if(col == 0){
 
-                  if(left){//top site of vertical, so site (row,col+1) environment
+                  if(!left){//top site of vertical, so site (row,col+1) environment
 
                      // (1) construct N_eff
 
@@ -565,7 +610,7 @@ namespace propagate {
                }
                else if(col < Lx - 1){//middle columns
 
-                  if(left){//top site of vertical, so site (row,col+1) environment
+                  if(!left){//top site of vertical, so site (row,col+1) environment
 
                      // (1) construct N_eff
 
@@ -641,7 +686,7 @@ namespace propagate {
                }
                else{//col == Lx - 1
 
-                  if(left){//top site of vertical, so site (row,col+1) environment
+                  if(!left){//top site of vertical, so site (row,col+1) environment
 
                      // (1) construct N_eff
 
@@ -763,7 +808,7 @@ namespace propagate {
                }
                else{//right site of horizontal gate, so site (row+1,col) environment
 
-                  //(1) constsruct N_eff
+                  //(1) construct N_eff
 
                   //add left peps to LI7
                   DArray<8> tmp8;
@@ -1140,7 +1185,7 @@ namespace propagate {
 
             if(col == 0){
 
-               if(left){//top site environment
+               if(!left){//top site environment
 
                   // (1) calculate N_eff
 
@@ -1202,7 +1247,7 @@ namespace propagate {
             }
             else if(col < Lx - 1){//col != 0
 
-               if(left){//top site environment
+               if(!left){//top site environment
 
                   // (1) calculate N_eff
 
@@ -1279,7 +1324,7 @@ namespace propagate {
             }
             else{//col == Lx - 1
 
-               if(left){//top site environment
+               if(!left){//top site environment
 
                   // (1) calculate N_eff
 
@@ -2190,7 +2235,7 @@ namespace propagate {
       else if(dir == HORIZONTAL){//col --> col + 1
 
          DArray<8> tmp8;
-         Contract(1.0,lop,shape(1,3),rop,shape(4,3),0.0,tmp8);
+         Contract(1.0,lop,shape(3,5),rop,shape(3,0),0.0,tmp8);
 
          //svd the fucker
          DArray<1> S;

@@ -72,7 +72,7 @@ namespace global{
       I(1,1) = 1.0;
 
       //set the number of sweeps for environment contraction
-      comp_sweeps = 100;
+      comp_sweeps = 2;
 
       //initialize/allocate the environment
       env = Environment(D_in,D_aux,comp_sweeps);

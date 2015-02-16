@@ -134,8 +134,6 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            cout << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
-
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
@@ -185,17 +183,19 @@ namespace propagate {
       //construct the full top environment:
       env.calc('T',peps);
 
+      //and the lowest row bottom environment
+      env.gb(0).fill('b',peps);
+
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
-      cout << endl;
 
 //      for(int col = 0;col < Lx - 1;++col){
 int col = 0;
          // --- (1) update the vertical pair on column 'col' ---
-//         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-//         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -204,8 +204,6 @@ int col = 0;
          // todo
 
          contractions::update_L('b',col,peps,L);
-
-         cout << endl;
 
       //}
 /*
@@ -2313,14 +2311,6 @@ int col = 0;
          Permute(UL,shape(0,1,2,4,3),peps(row+1,col));
          Permute(VR,shape(1,0,2,3,4),peps(row,col));
 
-         //make a three-site object: connect lop with peps(row,col)
-         tmp8.clear();
-         Contract(1.0,peps(row+1,col),shape(3),peps(row,col),shape(1),0.0,tmp8);
-
-         //attach right operator to 
-         tmp11.clear();
-         Contract(1.0,tmp8,shape(7),peps(row,col+1),shape(0),0.0,tmp11);
-
       }
       else{//diagonal LDRU
 
@@ -2381,6 +2371,46 @@ int col = 0;
 
       }
       else if(dir == DIAGONAL_LURD){
+
+         //make a three-site object: connect upper and lower peps
+         DArray<8> tmp8;
+         Contract(1.0,peps(row+1,col),shape(3),peps(row,col),shape(1),0.0,tmp8);
+
+         //attach right peps to it
+         DArray<11> tmp11;
+         Contract(1.0,tmp8,shape(7),peps(row,col+1),shape(0),0.0,tmp11);
+
+         //first split up in 2 - 1 part
+         DArray<5> tmp5;
+
+         DArray<1> S;
+         Gesvd ('S','S', tmp11, S,tmp8,peps(row,col+1),D);
+
+         //take the square root of the sv's
+         for(int i = 0;i < S.size();++i)
+            S(i) = sqrt(S(i));
+
+         //and multiply it left and right to the tensors
+         Dimm(S,peps(row,col+1));
+         Dimm(tmp8,S);
+
+         //now just SVD the two-site part
+         DArray<5> UL;//left unitary
+         DArray<5> VR;//right unitary
+
+         Gesvd ('S','S', tmp8, S,UL,VR,D);
+
+         //take the square root of the sv's
+         for(int i = 0;i < S.size();++i)
+            S(i) = sqrt(S(i));
+
+         //and multiply it left and right to the tensors
+         Dimm(S,VR);
+         Dimm(UL,S);
+
+         //permute back to the peps
+         Permute(UL,shape(0,1,2,4,3),peps(row+1,col));
+         Permute(VR,shape(1,0,2,3,4),peps(row,col));
 
       }
       else{//diagonal ldru

@@ -59,7 +59,7 @@ namespace global{
       J2 = 0.1*J2_in;
 
       //set the interaction
-      ham.set_J1J2(false);
+      ham.set_J1J2(true);
 
       trot = Trotter(tau);
 
@@ -72,7 +72,7 @@ namespace global{
       I(1,1) = 1.0;
 
       //set the number of sweeps for environment contraction
-      comp_sweeps = 1;
+      comp_sweeps = 100;
 
       //initialize/allocate the environment
       env = Environment(D_in,D_aux,comp_sweeps);

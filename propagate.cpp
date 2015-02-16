@@ -36,9 +36,15 @@ namespace propagate {
          DArray<M+2> LI;
          DArray<M+2> RI;
 
+         DArray<M+2> b_L;
+         DArray<M+2> b_R;
+
          //construct for left and right operators acting the correct peps elements
          DArray<6> lop;
          DArray<6> rop;
+
+         //for diagonal update we need a 'middle' site connecting left and right
+         DArray<5> mop;
 
          if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
@@ -53,6 +59,9 @@ namespace propagate {
 
          }
          else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
+
+            //middle peps is left bottom 
+            mop = peps(row,col);
 
             Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
@@ -69,10 +78,10 @@ namespace propagate {
          initialize(dir,row,col,lop,rop,peps); 
 
          // --- (b) --- create intermediary object using during N_eff construction, doesn't change during update
-         construct_intermediate(dir,row,col,peps,L,R,LI,RI);
+         construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
 
          // --- (c) --- sweeping update
-         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,n_iter);
+         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
@@ -95,7 +104,7 @@ namespace propagate {
    template<size_t M>
       void sweep(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
 
-            const DArray<M> &L,const DArray<M> &R,const DArray<M+2> &LI,const DArray<M+2> &RI,int n_sweeps){
+            const DArray<M> &L,const DArray<M> &R,const DArray<M+2> &LI,const DArray<M+2> &RI,const DArray<M+2> &b_L,const DArray<M+2> &b_R, int n_sweeps){
 
          //indices of sites between which to jump back and forth
          int l_row(row),l_col(col),r_row(row),r_col(col);
@@ -125,10 +134,12 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
+            cout << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
-            construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,true);
+            construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
 
             //solve the system
             solve(N_eff,rhs);
@@ -139,7 +150,7 @@ namespace propagate {
             // --(2)-- 'right' site
 
             //construct effective environment and right hand side for linear system of bottom site
-            construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,false);
+            construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,false);
 
             //solve the system
             solve(N_eff,rhs);
@@ -153,8 +164,6 @@ namespace propagate {
          }
 
       }
-
-
 
    /**
     * propagate the peps one imaginary time step
@@ -176,30 +185,30 @@ namespace propagate {
       //construct the full top environment:
       env.calc('T',peps);
 
-      //and the bottom row environment
-      env.gb(0).fill('b',peps);
-
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
+      cout << endl;
 
-      for(int col = 0;col < Lx - 1;++col){
-
+//      for(int col = 0;col < Lx - 1;++col){
+int col = 0;
          // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+//         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+//         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         //         update_diagonal_lurd(0,col,peps,L,R[col+1],n_sweeps); 
+         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
          // todo
 
          contractions::update_L('b',col,peps,L);
 
-      }
+         cout << endl;
 
+      //}
+/*
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
@@ -276,7 +285,7 @@ namespace propagate {
 
       //finally the very last vertical gate
       update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
-
+  */
    }
 
    /** 
@@ -319,12 +328,14 @@ namespace propagate {
     * @param R Right environment contraction
     * @param LI7 left intermediate object
     * @param RI7 right intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
     * @param left boolean flag for peps with left operator or right operator acting on it
     */
    template<>
       void construct_lin_sys(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
 
-            const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7,bool left){
+            const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7, const DArray<7> &b_L,const DArray<7> &b_R,bool left){
 
          if(dir == VERTICAL){
 
@@ -1082,13 +1093,13 @@ namespace propagate {
                   tmp8.clear();
                   Contract(1.0,env.gt(row)[col],shape(3),tmp6,shape(0),0.0,tmp8);
 
-                  //add left operator
-                  tmp8bis.clear();
-                  Contract(1.0,lop,shape(1,3,5),tmp8,shape(1,7,3),0.0,tmp8bis);
+                  //add left operator to b_L
+                  DArray<9> tmp9;
+                  Contract(1.0,b_L,shape(1,3),lop,shape(0,4),0.0,tmp9);
 
-                  //and close with LI7
+                  //contract both sides to form right hand side of equation
                   tmp5.clear();
-                  Contract(1.0,LI7,shape(0,1,3,5,6),tmp8bis,shape(3,0,2,7,6),0.0,tmp5);
+                  Contract(1.0,tmp9,shape(0,5,8,7,3,4),tmp8,shape(0,1,3,7,6,5),0.0,tmp5);
 
                   rhs.clear();
                   Permute(tmp5,shape(0,3,1,4,2),rhs);
@@ -1120,6 +1131,9 @@ namespace propagate {
                   N_eff = tmp6bis.reshape_clear( shape(D,D,1,D,D,D,1,D) );
 
                   // (2) construct right hand side
+
+                  //add upper-left peps to intermediate b_L
+                  Contract(1.0,b_L,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp8);
 
                   //add left operator to tmp8
                   DArray<8> tmp8bis;
@@ -1173,12 +1187,14 @@ namespace propagate {
     * @param RO Right environment contraction
     * @param LI8 left intermediate object
     * @param RI8 right intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
     * @param left boolean flag for PEPS with left or right operator acted upon
     */
    template<>
       void construct_lin_sys(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
 
-            const DArray<6> &LO, const DArray<6> &RO, const DArray<8> &LI8,const DArray<8> &RI8,bool left){
+            const DArray<6> &LO, const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8,const DArray<8> &b_L,const DArray<8> &b_R,bool left){
 
          if(dir == VERTICAL){
 
@@ -1512,11 +1528,13 @@ namespace propagate {
     * @param R Right environment contraction
     * @param LI7 left intermediate object
     * @param RI7 left intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
     */
    template<>
       double cost_function(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
 
-            const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7){
+            const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7,const DArray<7> &b_L,const DArray<7> &b_R){ 
 
          if(dir == VERTICAL){
 
@@ -1953,11 +1971,14 @@ namespace propagate {
 
                // --- (2) calculate 'b' part of overlap
 
-               //add right operator to tmp8
+               //add right operator to tmp8_right
                DArray<6> tmp6_right;
                Contract(1.0,tmp8_right,shape(3,6,7,4),rop,shape(1,2,4,5),0.0,tmp6_right);
 
-               //add left operator to tmp8
+               //add top peps to b_L
+               tmp8_left.clear();
+               Contract(1.0,b_L,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp8_left);
+
                DArray<8> tmp8bis;
                Contract(1.0,tmp8_left,shape(1,6,2),lop,shape(0,2,4),0.0,tmp8bis);
 
@@ -2004,7 +2025,7 @@ namespace propagate {
    template<>
       double cost_function(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
 
-            const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8){
+            const DArray<6> &LO,const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8,const DArray<8> &b_L,const DArray<8> &b_R){
 
          if(dir == VERTICAL){
 
@@ -2251,6 +2272,55 @@ namespace propagate {
       }
       else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
 
+         //make a three-site object: connect lop with peps(row,col)
+         DArray<9> tmp9;
+         Contract(1.0,lop,shape(4),peps(row,col),shape(1),0.0,tmp9);
+
+         //attach right operator to 
+         DArray<11> tmp11;
+         Contract(1.0,tmp9,shape(3,8),rop,shape(3,0),0.0,tmp11);
+
+         //first split up in 2 - 1 part
+         DArray<8> tmp8;//left unitary: 2-site part
+         DArray<5> tmp5;
+
+         DArray<1> S;
+         Gesvd ('S','S', tmp11, S,tmp8,peps(row,col+1),D);
+
+         //take the square root of the sv's
+         for(int i = 0;i < S.size();++i)
+            S(i) = sqrt(S(i));
+
+         //and multiply it left and right to the tensors
+         Dimm(S,peps(row,col+1));
+         Dimm(tmp8,S);
+
+         //now just SVD the two-site part
+         DArray<5> UL;//left unitary
+         DArray<5> VR;//right unitary
+
+         Gesvd ('S','S', tmp8, S,UL,VR,D);
+
+         //take the square root of the sv's
+         for(int i = 0;i < S.size();++i)
+            S(i) = sqrt(S(i));
+
+         //and multiply it left and right to the tensors
+         Dimm(S,VR);
+         Dimm(UL,S);
+
+         //permute back to the peps
+         Permute(UL,shape(0,1,2,4,3),peps(row+1,col));
+         Permute(VR,shape(1,0,2,3,4),peps(row,col));
+
+         //make a three-site object: connect lop with peps(row,col)
+         tmp8.clear();
+         Contract(1.0,peps(row+1,col),shape(3),peps(row,col),shape(1),0.0,tmp8);
+
+         //attach right operator to 
+         tmp11.clear();
+         Contract(1.0,tmp8,shape(7),peps(row,col+1),shape(0),0.0,tmp11);
+
       }
       else{//diagonal LDRU
 
@@ -2326,13 +2396,18 @@ namespace propagate {
     * @param row row index of the bottom peps of the vertical pair
     * @param col column index
     * @param peps full PEPS object
+    * @param mop 'middle' peps, connecting the two peps to be updated for diagonal gates
     * @param L left contracted environment around the pair
     * @param R right contracted environment around the pair
     * @param LI7 Left intermediate object to be constructed on output
     * @param RI7 Right intermediate object to be constructed on output
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
     */
    template<>
-      void construct_intermediate(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,const DArray<5> &L,const DArray<5> &R,DArray<7> &LI7,DArray<7> &RI7){
+      void construct_intermediate(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,const DArray<5> &mop,
+
+            const DArray<5> &L,const DArray<5> &R,DArray<7> &LI7,DArray<7> &RI7,DArray<7> &b_L,DArray<7> &b_R){
 
          if(dir == VERTICAL){
 
@@ -2648,6 +2723,8 @@ namespace propagate {
 
                   Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
 
+                  //b_R is just equal to RI7 for LURD! so leave empty
+
                   //left: connect bottom left peps to itsself
                   DArray<4> tmp4;
                   Contract(1.0,peps(row,col),shape(0,2,3),peps(row,col),shape(0,2,3),0.0,tmp4);
@@ -2656,6 +2733,13 @@ namespace propagate {
                   Permute(tmp4,shape(0,2,1,3),tmp4bis);
 
                   LI7 = tmp4bis.reshape_clear( shape(1,1,1,D,D,D,D) );
+
+                  //for b_L contract mop with peps(row,col)
+                  Contract(1.0,mop,shape(0,2,3),peps(row,col),shape(0,2,3),0.0,tmp4);
+
+                  Permute(tmp4,shape(0,2,1,3),tmp4bis);
+
+                  b_L = tmp4bis.reshape_clear( shape(1,1,1,D,D,D,D) );
 
                }
                else if(col < Lx - 2){
@@ -2694,13 +2778,18 @@ namespace propagate {
     * @param row row index of the bottom peps of the vertical pair
     * @param col column index
     * @param peps full PEPS object
+    * @param mop 'middle' peps, connecting the two peps to be updated for diagonal gates
     * @param LO left contracted environment around the pair
     * @param RO right contracted environment around the pair
     * @param LI8 Left intermediate object to be constructed on output
     * @param RI8 Right intermediate object to be constructed on output
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
     */
    template<>
-      void construct_intermediate(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,const DArray<6> &LO,const DArray<6> &RO,DArray<8> &LI8,DArray<8> &RI8){
+      void construct_intermediate(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,const DArray<5> &mop,
+            
+            const DArray<6> &LO,const DArray<6> &RO,DArray<8> &LI8,DArray<8> &RI8,DArray<8> &b_L,DArray<8> &b_R){
 
          if(dir == VERTICAL){
 

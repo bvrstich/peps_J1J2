@@ -166,8 +166,8 @@ void Hamiltonian::set_J1J2(bool ladder) {
       R[2](1,1) = 0.5;
 
       //nearest-neigbour coefficients:
-      coef_n[0] = -0.5;//minus sign because of the Marshall sign rule
-      coef_n[1] = -0.5;//minus sign because of the Marshall sign rule
+      coef_n[0] = 0.5;//add minus sign to use the Marshall sign rule
+      coef_n[1] = 0.5;//add minus sign to use the Marshall sign rule
       coef_n[2] = 1.0;
       
       //next-nearest neigbour coefficients:

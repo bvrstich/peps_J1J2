@@ -69,6 +69,9 @@ namespace propagate {
          }
          else{//(row,col) --> (row+1,col+1)
 
+            //middle peps is bottom right
+            mop = peps(row,col+1);
+
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
@@ -79,13 +82,13 @@ namespace propagate {
 
          // --- (b) --- create intermediary object using during N_eff construction, doesn't change during update
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
-
+/*
          // --- (c) --- sweeping update
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
-
+*/
       }
 
    /**
@@ -192,18 +195,19 @@ namespace propagate {
 //      for(int col = 0;col < Lx - 1;++col){
 int col = 0;
          // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
+         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
          // todo
 
-         contractions::update_L('b',col,peps,L);
+         //contractions::update_L('b',col,peps,L);
 
       //}
 /*
@@ -2280,7 +2284,6 @@ int col = 0;
 
          //first split up in 2 - 1 part
          DArray<8> tmp8;//left unitary: 2-site part
-         DArray<5> tmp5;
 
          DArray<1> S;
          Gesvd ('S','S', tmp11, S,tmp8,peps(row,col+1),D);
@@ -2313,6 +2316,46 @@ int col = 0;
 
       }
       else{//diagonal LDRU
+
+         //make a three-site object: connect lop with peps(row,col+1) (a.k.a. mop)
+         DArray<9> tmp9;
+         Contract(1.0,lop,shape(5),peps(row,col+1),shape(0),0.0,tmp9);
+
+         //attach right operator to 
+         DArray<11> tmp11;
+         Contract(1.0,tmp9,shape(3,5),rop,shape(3,4),0.0,tmp11);
+
+         //first split up in 1 site - 2 site part
+         DArray<8> tmp8;//right unitary: 2-site part
+
+         DArray<1> S;
+         Gesvd ('S','S', tmp11, S,peps(row,col),tmp8,D);
+
+         //take the square root of the sv's
+         for(int i = 0;i < S.size();++i)
+            S(i) = sqrt(S(i));
+
+         //and multiply it left and right to the tensors
+         Dimm(S,tmp8);
+         Dimm(peps(row,col),S);
+
+         //now just SVD the two-site part
+         DArray<5> UL;//left unitary
+         DArray<5> VR;//right unitary
+
+         Gesvd ('S','S', tmp8, S,UL,VR,D);
+
+         //take the square root of the sv's
+         for(int i = 0;i < S.size();++i)
+            S(i) = sqrt(S(i));
+
+         //and multiply it left and right to the tensors
+         Dimm(S,VR);
+         Dimm(UL,S);
+
+         //permute back to the peps
+         Permute(UL,shape(0,4,1,2,3),peps(row,col+1));
+         Permute(VR,shape(1,2,3,0,4),peps(row+1,col+1));
 
       }
 
@@ -2796,6 +2839,38 @@ int col = 0;
 
          }
          else{//DIAGONAL LDRU
+
+            if(row == 0){
+
+               if(col == 0){
+
+                  //create left and right intermediary operators: right
+                  
+
+                  //left
+
+               }
+               else if(col < Lx - 2){
+
+               }
+               else{//col == Lx - 2
+
+               }
+
+            }
+            else{// row == Ly - 2)
+
+               if(col == 0){
+
+               }
+               else if(col < Lx - 2){
+
+               }
+               else{//col == Lx - 2
+
+               }
+
+            }
 
          }
 

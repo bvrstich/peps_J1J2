@@ -82,10 +82,10 @@ namespace propagate {
 
          // --- (b) --- create intermediary object using during N_eff construction, doesn't change during update
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
-/*
+
          // --- (c) --- sweeping update
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
-
+/*
          // --- (d) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
 */
@@ -100,8 +100,8 @@ namespace propagate {
     * @param rop upper peps acted on with right trotter operator
     * @param L left contracted environment 
     * @param R right contracted environment 
-    * @param LI intermediate object created to simplify N_eff contstruction
-    * @param RI intermediate object created to simplify N_eff contstruction
+    * @param LI intermediate object created to simplify N_eff construction
+    * @param RI intermediate object created to simplify N_eff construction
     * @param n_sweeps number of sweeps to execute
     */
    template<size_t M>
@@ -135,13 +135,13 @@ namespace propagate {
 
          int iter = 0;
 
-         while(iter < n_sweeps){
+         //while(iter < n_sweeps){
 
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
-
+/*
             //solve the system
             solve(N_eff,rhs);
 
@@ -162,8 +162,8 @@ namespace propagate {
             //repeat until converged
             ++iter;
 
-         }
-
+   //      }
+  */
       }
 
    /**
@@ -1161,17 +1161,71 @@ int col = 0;
             }
             else{//bottom horizontal peps of topmost update
 
+            }
+
+         }
+         else{//DIAGONAL LDRU
+
+            if(row == 0){
+
                if(left){//left site of horizontal gate, so site (row,col) environment
 
+                  // (1) construct N_eff
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row+1,col+1),shape(3,4),RI7,shape(4,2),0.0,tmp8);
+
+                  //und again
+                  DArray<7> tmp7;
+                  Contract(1.0,peps(row+1,col+1),shape(2,3,4),tmp8,shape(2,5,4),0.0,tmp7);
+
+                  //and add top environment to intermediate
+                  DArray<5> tmp5;
+                  Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp7,shape(1,3,4),0.0,tmp5);
+
+                  //add LI7 to it
+                  DArray<6> tmp6;
+                  Gemm(CblasTrans,CblasNoTrans,1.0,LI7,tmp5,0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+
+                  int DL = peps(row,col).shape(0);
+                  int DU = peps(row,col).shape(1);
+                  int DD = peps(row,col).shape(3);
+                  int DR = peps(row,col).shape(4);
+
+                  N_eff = tmp6bis.reshape_clear( shape(DL,DU,DR,DD,DL,DU,DD,DR) );
+
+                  // (2) construct right hand side
+
+                  //add top right peps to b_R
+                  Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(4,2),0.0,tmp8);
+
+                  //add right operator to tmp8
+                  DArray<8> tmp8bis;
+                  Contract(1.0,rop,shape(2,4,5),tmp8,shape(2,5,4),0.0,tmp8bis);
+
+                  //add top environment to intermediate
+                  tmp6.clear();
+                  Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp8bis,shape(1,4,5),0.0,tmp6);
+
+                  //add left operator to LI7
+                  DArray<9> tmp9;
+                  Contract(1.0,LI7,shape(5,3),lop,shape(0,1),0.0,tmp9);
+
+                  //contract both sides to form right hand side of equation
+                  tmp5.clear();
+                  Contract(1.0,tmp9,shape(0,1,2,6,8),tmp6,shape(0,1,3,2,4),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(1,0,3,4,2),rhs);
+
                }
-               else{//right site of horizontal gate, so site (row+1,col) environment
+               else{//right site of horizontal gate, so site (row+1,col+1) environment
 
                }
 
             }
-
-         }//close DIAGONAL_LURD
-         else{//DIAGONAL LDRU
 
          }
 
@@ -1342,7 +1396,7 @@ int col = 0;
             else{//col == Lx - 1
 
                if(left){//top site environment
-                  
+
                   // (1) calculate N_eff
 
                   //add top to intermediate
@@ -1368,7 +1422,7 @@ int col = 0;
 
                   rhs.clear();
                   Permute(tmp5,shape(0,2,1,3,4),rhs);
-               
+
                }
                else{//bottom site
 

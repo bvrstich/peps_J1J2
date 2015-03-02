@@ -2798,7 +2798,7 @@ int col = 0;
 
                   //b_R is just equal to RI7 for LURD! so leave empty
 
-                  //left: connect bottom left peps to itsself
+                  //left: connect bottom left peps to itself
                   DArray<4> tmp4;
                   Contract(1.0,peps(row,col),shape(0,2,3),peps(row,col),shape(0,2,3),0.0,tmp4);
 
@@ -2845,9 +2845,35 @@ int col = 0;
                if(col == 0){
 
                   //create left and right intermediary operators: right
-                  
 
-                  //left
+                  //add bottom-right peps to right side
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col+1),shape(4),R,shape(4),0.0,tmp8);
+
+                  //and another one for RI7
+                  DArray<7> tmp7;
+                  Contract(1.0,peps(row,col+1),shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
+
+                  //set in the right order
+                  Permute(tmp7,shape(4,5,6,1,3,0,2),RI7);
+
+                  //now add mop to tmp8 for b_R construction
+                  Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
+
+                  //set in the right order
+                  Permute(tmp7,shape(4,5,6,1,3,0,2),b_R);
+
+                  //left: connect top environment to top right peps
+                  DArray<5> tmp5;
+                  Contract(1.0,env.gt(row)[col],shape(0,1),peps(row+1,col),shape(0,1),0.0,tmp5);
+
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp5,shape(0,2),peps(row+1,col),shape(1,2),0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(0,2,5,1,4,3),tmp6bis);
+
+                  LI7 = tmp6bis.reshape_clear( shape(env.gt(row)[col].shape(3),D,D,D,D,1,1) );
 
                }
                else if(col < Lx - 2){
@@ -2893,7 +2919,7 @@ int col = 0;
     */
    template<>
       void construct_intermediate(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,const DArray<5> &mop,
-            
+
             const DArray<6> &LO,const DArray<6> &RO,DArray<8> &LI8,DArray<8> &RI8,DArray<8> &b_L,DArray<8> &b_R){
 
          if(dir == VERTICAL){

@@ -43,7 +43,7 @@ int main(int argc,char *argv[]){
 
    //for(int i = 0;i < 100000;++i){
 
-      propagate::step(peps,5);
+      propagate::step(peps,100);
 /*
       peps.rescale_tensors(1.0);
       peps.normalize();

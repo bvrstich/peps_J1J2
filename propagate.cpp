@@ -137,8 +137,6 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
-
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
@@ -197,18 +195,18 @@ namespace propagate {
 //      for(int col = 0;col < Lx - 1;++col){
 int col = 0;
          // --- (1) update the vertical pair on column 'col' ---
-//         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
          update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-         //contractions::update_L('b',col,peps,L);
+         contractions::update_L('b',col,peps,L);
 
       //}
 /*

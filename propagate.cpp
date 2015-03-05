@@ -84,10 +84,10 @@ namespace propagate {
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
 
          // --- (c) --- sweeping update
-         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
+         //sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
-         equilibrate(dir,row,col,peps);
+         //equilibrate(dir,row,col,peps);
 
       }
 
@@ -188,7 +188,7 @@ namespace propagate {
 
       //and the lowest row bottom environment
       env.gb(0).fill('b',peps);
-
+/*
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
@@ -215,7 +215,7 @@ namespace propagate {
 
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
-/*
+  */
       // ---------------------------------------------------//
       // --- !!! (2) the middle rows (1 -> Ly-2) (2) !!! ---// 
       // ---------------------------------------------------//
@@ -224,29 +224,29 @@ namespace propagate {
       vector< DArray<6> > RO(Lx - 1);
       DArray<6> LO;
 
-      for(int row = 1;row < Ly-2;++row){
-
+      //for(int row = 1;row < Ly-2;++row){
+int row = 1;
          //first create right renormalized operator
          contractions::init_ro(row,peps,RO);
 
-         for(int col = 0;col < Lx - 1;++col){
-
+         //for(int col = 0;col < Lx - 1;++col){
+int col = 0;
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+       //     update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+        //    update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
-            // todo
-
+            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+/*
             // --- (4) update diagonal LD-RU
-            // todo
+         //   update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             //first construct a double layer object for the newly updated bottom 
-            contractions::update_L(row,col,peps,LO);
+          //  contractions::update_L(row,col,peps,LO);
 
-         }
+         //}
 
          //finally, last vertical gate
          update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
@@ -254,7 +254,7 @@ namespace propagate {
          //finally update the 'bottom' environment for the row
          env.add_layer('b',row,peps);
 
-      }
+      //}
 
       // ----------------------------------------------------//
       // --- !!! (3) the top two rows (Ly-2,Ly-1) (3) !!! ---// 
@@ -3378,9 +3378,137 @@ namespace propagate {
 
             }
 
-
          }
          else if(dir == DIAGONAL_LURD){
+
+            if(col == 0){
+
+               //create left and right intermediary operators: right
+
+               //attach top environment to right
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
+
+               //and upper peps
+               DArray<9> tmp9;
+               Contract(1.0,RI8,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp9);
+
+               //again to create RI8
+               DArray<8> tmp8;
+               Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
+
+               RI8.clear();
+               Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
+
+               //b_R is equal to RI8, for lurd, so leave empty
+
+               //left
+
+               //attach bottom environment to bottom peps
+               DArray<7> tmp7;
+               Contract(1.0,env.gb(row-1)[col],shape(2),peps(row,col),shape(3),0.0,tmp7);
+
+               //add another bottom peps for LI8 construction
+               DArray<6> tmp6;
+               Contract(1.0,tmp7,shape(0,1,5),peps(row,col),shape(0,1,2),0.0,tmp6);
+
+               DArray<6> tmp6bis;
+               Permute(tmp6,shape(0,4,2,5,3,1),tmp6bis);
+
+               LI8 = tmp6bis.reshape_clear( shape(1,1,1,D,D,D,D,env.gb(row-1)[col].shape(3)) );
+
+               //add mop to tmp9 for b_L construction
+               Contract(1.0,tmp7,shape(0,1,5),mop,shape(0,1,2),0.0,tmp6);
+
+               Permute(tmp6,shape(0,4,2,5,3,1),tmp6bis);
+
+               b_L = tmp6bis.reshape_clear( shape(1,1,1,D,D,D,D,env.gb(row-1)[col].shape(3)) );
+
+            }
+            else if(col < Lx - 2){
+
+               //create left and right intermediary operators: right
+
+               //attach top environment to right
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col+1],RO,0.0,RI8);
+
+               //and upper peps
+               DArray<9> tmp9;
+               Contract(1.0,RI8,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp9);
+
+               //again to create RI8
+               DArray<8> tmp8;
+               Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp8);
+
+               RI8.clear();
+               Permute(tmp8,shape(0,4,6,5,7,1,2,3),RI8);
+
+               //b_R is equal to RI8, for lurd, so leave empty
+
+               //left
+
+               //attach bottom environment to LO
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,LO,env.gb(row-1)[col],0.0,LI8);
+
+               //attach bottom-left peps
+               tmp9.clear();
+               Contract(1.0,LI8,shape(4,6),peps(row,col),shape(0,3),0.0,tmp9);
+
+               //add another one for LI8 construction
+               tmp8.clear();
+               Contract(1.0,tmp9,shape(3,7,4),peps(row,col),shape(0,2,3),0.0,tmp8);
+
+               LI8.clear();
+               Permute(tmp8,shape(0,1,2,6,4,7,5,3),LI8);
+
+               //attach mop to tmp9 for b_L construction
+               Contract(1.0,tmp9,shape(3,7,4),mop,shape(0,2,3),0.0,tmp8);
+
+               b_L.clear();
+               Permute(tmp8,shape(0,1,2,6,4,7,5,3),b_L);
+
+            }
+            else{//col == Lx - 2
+
+               //create left and right intermediary operators: right
+
+               //attach top environment to upper-right peps
+               DArray<5> tmp5;
+               Contract(1.0,env.gt(row)[col+1],shape(2,3),peps(row+1,col+1),shape(1,4),0.0,tmp5);
+
+               //and another one for RI8 construction
+               DArray<6> tmp6;
+               Contract(1.0,tmp5,shape(1,3),peps(row+1,col+1),shape(1,2),0.0,tmp6);
+
+               DArray<6> tmp6bis;
+               Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
+
+               RI8 = tmp6bis.reshape_clear( shape(env.gt(row)[col+1].shape(0),D,D,D,D,1,1,1 ) );
+
+               //b_R is equal to RI8, for lurd, so leave empty
+
+               //left
+
+               //attach bottom environment to LO
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,LO,env.gb(row-1)[col],0.0,LI8);
+
+               //attach bottom-left peps
+               DArray<9> tmp9;
+               Contract(1.0,LI8,shape(4,6),peps(row,col),shape(0,3),0.0,tmp9);
+
+               //add another one for LI8 construction
+               DArray<8> tmp8;
+               Contract(1.0,tmp9,shape(3,7,4),peps(row,col),shape(0,2,3),0.0,tmp8);
+
+               LI8.clear();
+               Permute(tmp8,shape(0,1,2,6,4,7,5,3),LI8);
+
+               //attach mop to tmp9 for b_L construction
+               Contract(1.0,tmp9,shape(3,7,4),mop,shape(0,2,3),0.0,tmp8);
+
+               b_L.clear();
+               Permute(tmp8,shape(0,1,2,6,4,7,5,3),b_L);
+
+            }
 
          }
          else{///dir == diagonal_ldru

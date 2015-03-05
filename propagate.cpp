@@ -192,8 +192,8 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-//      for(int col = 0;col < Lx - 1;++col){
-int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
+
          // --- (1) update the vertical pair on column 'col' ---
          update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
@@ -204,11 +204,11 @@ int col = 0;
          update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
-         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          contractions::update_L('b',col,peps,L);
 
-      //}
+      }
 /*
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
@@ -1129,7 +1129,12 @@ int col = 0;
                   DArray<6> tmp6bis;
                   Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
 
-                  N_eff = tmp6bis.reshape_clear( shape(D,D,1,D,D,D,1,D) );
+                  int DL = peps(row,col+1).shape(0);
+                  int DU = peps(row,col+1).shape(1);
+                  int DD = peps(row,col+1).shape(3);
+                  int DR = peps(row,col+1).shape(4);
+
+                  N_eff = tmp6bis.reshape_clear( shape(DL,DU,DD,DR,DL,DU,DD,DR) );
 
                   // (2) construct right hand side
 
@@ -3010,13 +3015,84 @@ int col = 0;
                }
                else if(col < Lx - 2){
 
+                  //create left and right intermediary operators: right
+
+                  //attach top environment to right side
+                  DArray<7> tmp7;
+                  Contract(1.0,env.gt(row)[col + 1],shape(3),R,shape(0),0.0,tmp7);
+
+                  //add upper right peps to it
+                  DArray<8> tmp8;
+                  Contract(1.0,tmp7,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp8);
+
+                  //and another
+                  tmp7.clear();
+                  Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp7);
+
+                  Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
+
+                  //b_R is just equal to RI7 for LURD! so leave empty
+
+                  //left: connect bottom left peps to L
+                  tmp8.clear();
+                  Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
+
+                  //add another peps to make LI7
+                  tmp7.clear();
+                  Contract(1.0,tmp8,shape(3,5,6),peps(row,col),shape(0,2,3),0.0,tmp7);
+
+                  LI7.clear();
+                  Permute(tmp7,shape(0,1,2,5,3,6,4),LI7);
+
+                  //for b_L contract tmp8 with mop
+                  tmp7.clear();
+                  Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
+
+                  b_L.clear();
+                  Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
+
                }
                else{//col == Lx - 2
+
+                  //create left and right intermediary operators: right
+
+                  //attach top environment to upper peps
+                  DArray<5> tmp5;
+                  Contract(1.0,env.gt(row)[col + 1],shape(2,3),peps(row+1,col+1),shape(1,4),0.0,tmp5);
+
+                  //add another one to it to form RI7
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp5,shape(1,3),peps(row+1,col+1),shape(1,2),0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
+
+                  RI7 = tmp6bis.reshape_clear( shape(env.gt(row)[col+1].shape(0),D,D,D,D,1,1) );
+
+                  //b_R is just equal to RI7 for LURD! so leave empty
+
+                  //left: connect bottom left peps to L
+                  DArray<8> tmp8;
+                  Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
+
+                  //add another peps to make LI7
+                  DArray<7> tmp7;
+                  Contract(1.0,tmp8,shape(3,5,6),peps(row,col),shape(0,2,3),0.0,tmp7);
+
+                  LI7.clear();
+                  Permute(tmp7,shape(0,1,2,5,3,6,4),LI7);
+
+                  //for b_L contract tmp8 with mop
+                  tmp7.clear();
+                  Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
+
+                  b_L.clear();
+                  Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
 
                }
 
             }
-            else{// row == Ly - 2)
+            else{// row == Ly - 2
 
                if(col == 0){
 

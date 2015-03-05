@@ -84,7 +84,7 @@ namespace propagate {
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
 
          // --- (c) --- sweeping update
-         //sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
+         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
          //equilibrate(dir,row,col,peps);
@@ -135,13 +135,13 @@ namespace propagate {
 
          int iter = 0;
 
-         while(iter < n_sweeps){
+      //   while(iter < n_sweeps){
 
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
-
+/*
             //solve the system
             solve(N_eff,rhs);
 
@@ -163,7 +163,7 @@ namespace propagate {
             ++iter;
 
          }
-
+*/
       }
 
    /**
@@ -1608,7 +1608,118 @@ int col = 0;
          }//end horizontal
          else if(dir == DIAGONAL_LURD){
 
-         }//end diagonal lurd
+            if(left){//left site of gate, so site (row+1,col) environment
+
+               //(1) construct N_eff
+
+               //add right peps to intermediate
+               DArray<9> tmp9;
+               Contract(1.0,RI8,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp9);
+
+               //add second peps
+               DArray<8> tmp8;
+               Contract(1.0,tmp9,shape(3,7,4),peps(row,col+1),shape(1,2,4),0.0,tmp8);
+
+               //add bottom environment
+               DArray<6> tmp6;
+               Contract(1.0,tmp8,shape(7,5,3),env.gb(row-1)[col+1],shape(1,2,3),0.0,tmp6);
+
+               //and top bottom environment on col
+               tmp8.clear();
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp6,0.0,tmp8);
+
+               //contract with left hand side
+               DArray<8> tmp8bis;
+               Contract(1.0,LI8,shape(0,5,6,7),tmp8,shape(0,6,5,7),0.0,tmp8bis);
+
+               N_eff.clear();
+               Permute(tmp8bis,shape(0,4,2,6,1,5,3,7),N_eff);
+
+               // (2) construct right hand side
+
+               //add right operator
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(3,7,4),rop,shape(1,2,5),0.0,tmp9bis);
+
+               //add bottom environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(8,5,3),env.gb(row-1)[col+1],shape(1,2,3),0.0,tmp7);
+
+               //and top environment
+               tmp9.clear();
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp7,0.0,tmp9);
+
+               //now add left operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(1,7,3),lop,shape(1,3,5),0.0,tmp9bis);
+
+               //attach b_L to right side
+               DArray<5> tmp5;
+               Contract(1.0,b_L,shape(0,1,3,5,6,7),tmp9bis,shape(0,6,8,4,3,5),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,2,1,3,4),rhs);
+
+            }
+            else{//right site of gate, so site (row,col+1) environment
+
+               //(1) constsruct N_eff
+
+               //add left-up peps to LI8
+               DArray<9> tmp9;
+               Contract(1.0,LI8,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp9);
+
+               //and another peps
+               DArray<8> tmp8;
+               Contract(1.0,tmp9,shape(1,7,2),peps(row+1,col),shape(0,2,3),0.0,tmp8);
+
+               //now contract with top environment
+               DArray<6> tmp6;
+               Contract(1.0,tmp8,shape(0,6,4),env.gt(row)[col],shape(0,1,2),0.0,tmp6);
+
+               //and next bottom environment
+               tmp8.clear();
+               Contract(1.0,tmp6,shape(2),env.gb(row-1)[col+1],shape(0),0.0,tmp8);
+
+               //finally contract with RI8
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8,shape(4,3,2,7),RI8,shape(0,1,2,7),0.0,tmp8bis);
+
+               N_eff.clear();
+               Permute(tmp8bis,shape(0,4,2,6,1,5,3,7),N_eff);
+
+               // (2) construct right hand side
+
+               //add left-up peps to b_L
+               tmp9.clear();
+               Contract(1.0,b_L,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp9);
+
+               //add left operator to intermediate
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(1,7,2),lop,shape(0,2,4),0.0,tmp9bis);
+
+               //now contract with top environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(0,6,4),env.gt(row)[col],shape(0,1,2),0.0,tmp7);
+
+               //and next bottom environment
+               tmp9.clear();
+               Contract(1.0,tmp7,shape(2),env.gb(row-1)[col+1],shape(0),0.0,tmp9);
+
+               //finally add right operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(0,3,6),rop,shape(0,3,4),0.0,tmp9bis);
+
+               //and contract with RI8 (same as b_R for lurd) to make right hand side
+               DArray<5> tmp5;
+               Contract(1.0,tmp9bis,shape(3,2,1,6,8,5),RI8,shape(0,1,2,3,5,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+            }
+
+         }
          else{//diagonal lrdu
 
          }
@@ -2105,7 +2216,7 @@ int col = 0;
             if(row == 0){
 
                // --- (1) calculate overlap of approximated state:
-               
+
                //RIGHT
                DArray<8> tmp8_right;
                Contract(1.0,peps(row+1,col+1),shape(3,4),RI7,shape(4,2),0.0,tmp8_right);
@@ -2132,9 +2243,9 @@ int col = 0;
                double val = Dot(tmp5_left,tmp5_right);
 
                // --- (2) calculate 'b' part of overlap
-               
+
                //RIGHT
-               
+
                //add top right peps to b_R
                tmp8_right.clear();
                Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(4,2),0.0,tmp8_right);
@@ -3146,7 +3257,7 @@ int col = 0;
 
                }
                else if(col < Lx - 2){
-                  
+
                   //create left and right intermediary operators: right
 
                   //add bottom-right peps to right side
@@ -3200,9 +3311,9 @@ int col = 0;
                   Gemm(CblasNoTrans,CblasTrans,1.0,mop,peps(row,col+1),0.0,tmp4);
 
                   Permute(tmp4,shape(1,3,0,2),tmp4bis);
-                  
+
                   b_R = tmp4bis.reshape_clear( shape(1,1,1,D,D,D,D) );
-                  
+
                   //left: connect top environment to L
                   DArray<7> tmp7;
                   Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(row)[col],0.0,tmp7);

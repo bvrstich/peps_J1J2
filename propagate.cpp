@@ -137,9 +137,6 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            cout << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
-
-
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
@@ -212,13 +209,13 @@ namespace propagate {
          contractions::update_L('b',col,peps,L);
 
       }
-/*
+
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
-
+/*
       // ---------------------------------------------------//
       // --- !!! (2) the middle rows (1 -> Ly-2) (2) !!! ---// 
       // ---------------------------------------------------//
@@ -1194,7 +1191,7 @@ namespace propagate {
                   Gemm(CblasTrans,CblasNoTrans,1.0,LI7,tmp5,0.0,tmp6);
 
                   DArray<6> tmp6bis;
-                  Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+                  Permute(tmp6,shape(2,0,4,3,1,5),tmp6bis);
 
                   int DL = peps(row,col).shape(0);
                   int DU = peps(row,col).shape(1);

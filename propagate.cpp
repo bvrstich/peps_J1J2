@@ -84,7 +84,7 @@ namespace propagate {
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
 
          // --- (c) --- sweeping update
-         //sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
+         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
          //equilibrate(dir,row,col,peps);
@@ -135,15 +135,14 @@ namespace propagate {
 
          int iter = 0;
 
-         while(iter < n_sweeps){
+//         while(iter < n_sweeps){
 
-            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
-
+/*
             //solve the system
             solve(N_eff,rhs);
 
@@ -164,8 +163,8 @@ namespace propagate {
             //repeat until converged
             ++iter;
 
-         }
-
+ //        }
+*/
       }
 
    /**
@@ -1724,6 +1723,21 @@ int col = 0;
          }
          else{//diagonal lrdu
 
+            if(left){//left site of gate, so site (row,col) environment
+
+               //(1) construct N_eff
+
+               // (2) construct right hand side
+
+            }
+            else{//right site of gate, so site (row+1,col+1) environment
+
+               //(1) constsruct N_eff
+
+               // (2) construct right hand side
+
+            }
+
          }
 
       }
@@ -2494,7 +2508,7 @@ int col = 0;
             //add bottom environment
             DArray<6> tmp6_right;
             Contract(1.0,tmp8,shape(7,5,3),env.gb(row-1)[col+1],shape(1,2,3),0.0,tmp6_right);
-            
+
             //LEFT
 
             //add left-up peps to LI8
@@ -2515,7 +2529,7 @@ int col = 0;
             double val = Dot(tmp6_left,tmp6_right);
 
             // (2) operator term
-            
+
             //add right operator
             DArray<9> tmp9bis;
             Contract(1.0,tmp9_right,shape(3,7,4),rop,shape(1,2,5),0.0,tmp9bis);

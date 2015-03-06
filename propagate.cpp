@@ -87,7 +87,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
-         //equilibrate(dir,row,col,peps);
+         equilibrate(dir,row,col,peps);
 
       }
 
@@ -190,7 +190,7 @@ namespace propagate {
 
       //and the lowest row bottom environment
       env.gb(0).fill('b',peps);
-/*
+
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
@@ -217,7 +217,7 @@ namespace propagate {
 
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
- */ 
+ 
       // ---------------------------------------------------//
       // --- !!! (2) the middle rows (1 -> Ly-2) (2) !!! ---// 
       // ---------------------------------------------------//
@@ -226,29 +226,29 @@ namespace propagate {
       vector< DArray<6> > RO(Lx - 1);
       DArray<6> LO;
 
-      //for(int row = 1;row < Ly-2;++row){
-int row = 1;
+      for(int row = 1;row < Ly-2;++row){
+
          //first create right renormalized operator
          contractions::init_ro(row,peps,RO);
 
-         //for(int col = 0;col < Lx - 1;++col){
-int col = 0;
+         for(int col = 0;col < Lx - 1;++col){
+
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-  //          update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-  //          update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
- //           update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (4) update diagonal LD-RU
             update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
-/*
-            //first construct a double layer object for the newly updated bottom 
-          //  contractions::update_L(row,col,peps,LO);
 
-         //}
+            //first construct a double layer object for the newly updated bottom 
+            contractions::update_L(row,col,peps,LO);
+
+         }
 
          //finally, last vertical gate
          update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
@@ -256,12 +256,12 @@ int col = 0;
          //finally update the 'bottom' environment for the row
          env.add_layer('b',row,peps);
 
-      //}
+      }
 
       // ----------------------------------------------------//
       // --- !!! (3) the top two rows (Ly-2,Ly-1) (3) !!! ---// 
       // ----------------------------------------------------//
-
+/*
       //make the right operators
       contractions::init_ro('t',peps,R);
 
@@ -288,7 +288,7 @@ int col = 0;
 
       //finally the very last vertical gate
       update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
-  */
+ */ 
    }
 
    /** 
@@ -3951,7 +3951,7 @@ int col = 0;
 
                //and another
                DArray<6> tmp6;
-               Contract(1.0,tmp5,shape(2,4),peps(row,col+1),shape(2,3),0.0,tmp6);
+               Contract(1.0,peps(row,col+1),shape(2,3),tmp5,shape(2,4),0.0,tmp6);
 
                DArray<6> tmp6bis;
                Permute(tmp6,shape(2,1,4,0,3,5),tmp6bis);
@@ -3959,7 +3959,7 @@ int col = 0;
                RI8 = tmp6bis.reshape_clear( shape(1,1,1,D,D,D,D,env.gb(row-1)[col+1].shape(0)) );
 
                //add mop to tmp5 for b_R construction
-               Contract(1.0,tmp5,shape(2,4),mop,shape(2,3),0.0,tmp6);
+               Contract(1.0,mop,shape(2,3),tmp5,shape(2,4),0.0,tmp6);
 
                Permute(tmp6,shape(2,1,4,0,3,5),tmp6bis);
 

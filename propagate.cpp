@@ -1727,7 +1727,57 @@ int col = 0;
 
                //(1) construct N_eff
 
+               //add upper right peps to intermediate RI8
+               DArray<9> tmp9;
+               Contract(1.0,peps(row+1,col+1),shape(3,4),RI8,shape(4,2),0.0,tmp9);
+
+               //and another
+               DArray<8> tmp8;
+               Contract(1.0,peps(row+1,col+1),shape(2,3,4),tmp9,shape(2,5,4),0.0,tmp8);
+
+               //add top environment
+               DArray<6> tmp6;
+               Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp8,shape(1,3,4),0.0,tmp6);
+
+               //add bottom envirnoment
+               tmp8.clear();
+               Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],tmp6,0.0,tmp8);
+
+               //now contract LI8 with tmp8
+               DArray<8> tmp8bis;
+               Contract(1.0,LI8,shape(0,1,2,7),tmp8,shape(3,4,5,0),0.0,tmp8bis);
+
+               N_eff.clear();
+               Permute(tmp8bis,shape(2,0,4,6,3,1,5,7),N_eff);
+
                // (2) construct right hand side
+               
+               //add upper right peps to intermediate b_R
+               tmp9.clear();
+               Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(4,2),0.0,tmp9);
+
+               //and right operator to intermediate
+               DArray<9> tmp9bis;
+               Contract(1.0,rop,shape(2,4,5),tmp9,shape(2,5,4),0.0,tmp9bis);
+
+               //add top environment
+               DArray<7> tmp7;
+               Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp9bis,shape(1,4,5),0.0,tmp7);
+
+               //add bottom envirnoment
+               tmp9.clear();
+               Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],tmp7,0.0,tmp9);
+
+               //finally add left operator
+               tmp9bis.clear();
+               Contract(1.0,lop,shape(3,4,5),tmp9,shape(5,1,7),0.0,tmp9bis);
+
+               //now attach to LI8 (which is b_L)
+               DArray<5> tmp5;
+               Contract(1.0,LI8,shape(0,1,2,3,5,7),tmp9bis,shape(5,6,7,1,0,3),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(1,0,3,4,2),rhs);
 
             }
             else{//right site of gate, so site (row+1,col+1) environment

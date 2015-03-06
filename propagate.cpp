@@ -135,8 +135,9 @@ namespace propagate {
 
          int iter = 0;
 
-//         while(iter < n_sweeps){
+         while(iter < n_sweeps){
 
+            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
@@ -163,7 +164,7 @@ namespace propagate {
             //repeat until converged
             ++iter;
 
- //        }
+         }
 
       }
 
@@ -2656,7 +2657,69 @@ int col = 0;
          }
          else{//diagonal ldru
 
-            return 0.0;
+            //(1) overlap term
+
+            //RIGHT
+
+            //add upper right peps to intermediate RI8
+            DArray<9> tmp9_right;
+            Contract(1.0,peps(row+1,col+1),shape(3,4),RI8,shape(4,2),0.0,tmp9_right);
+
+            //and another
+            DArray<8> tmp8;
+            Contract(1.0,peps(row+1,col+1),shape(2,3,4),tmp9_right,shape(2,5,4),0.0,tmp8);
+
+            //add top environment
+            DArray<6> tmp6_right;
+            Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp8,shape(1,3,4),0.0,tmp6_right);
+
+            //LEFT
+            
+            //add bottom left peps to intermediate LI8
+            DArray<9> tmp9_left;
+            Contract(1.0,LI8,shape(6,4),peps(row,col),shape(0,1),0.0,tmp9_left);
+
+            //and another
+            tmp8.clear();
+            Contract(1.0,tmp9_left,shape(4,3,6),peps(row,col),shape(0,1,2),0.0,tmp8);
+
+            //add bottom environment
+            DArray<6> tmp6;
+            Contract(1.0,tmp8,shape(3,6,4),env.gb(row-1)[col],shape(0,1,2),0.0,tmp6);
+
+            DArray<6> tmp6_left;
+            Permute(tmp6,shape(0,1,2,4,3,5),tmp6_left);
+
+            double val = Dot(tmp6_left,tmp6_right);
+
+            // (2) operator term
+            
+            //add upper right peps to intermediate b_R
+            tmp9_right.clear();
+            Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(4,2),0.0,tmp9_right);
+
+            //and right operator to intermediate
+            DArray<9> tmp9bis;
+            Contract(1.0,rop,shape(2,4,5),tmp9_right,shape(2,5,4),0.0,tmp9bis);
+
+            //add top environment
+            DArray<7> tmp7_right;
+            Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp9bis,shape(1,4,5),0.0,tmp7_right);
+
+            //add left operator to tmp9
+            tmp9bis.clear();
+            Contract(1.0,tmp9_left,shape(4,3,6),lop,shape(0,1,2),0.0,tmp9bis);
+
+            //add bottom environment
+            DArray<7> tmp7;
+            Contract(1.0,tmp9bis,shape(3,7,4),env.gb(row-1)[col],shape(0,1,2),0.0,tmp7);
+
+            DArray<7> tmp7_left;
+            Permute(tmp7,shape(0,1,4,2,5,3,6),tmp7_left);
+
+            val -= 2.0 * Dot(tmp7_left,tmp7_right);
+
+            return val;
 
          }
 

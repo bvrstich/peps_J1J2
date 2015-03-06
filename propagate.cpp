@@ -142,7 +142,7 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
-/*
+
             //solve the system
             solve(N_eff,rhs);
 
@@ -164,7 +164,7 @@ namespace propagate {
             ++iter;
 
  //        }
-*/
+
       }
 
    /**
@@ -1782,9 +1782,55 @@ int col = 0;
             }
             else{//right site of gate, so site (row+1,col+1) environment
 
-               //(1) constsruct N_eff
+               //(1) construct N_eff
+
+               //add bottom left peps to intermediate LI8
+               DArray<9> tmp9;
+               Contract(1.0,LI8,shape(6,4),peps(row,col),shape(0,1),0.0,tmp9);
+
+               //and another
+               DArray<8> tmp8;
+               Contract(1.0,tmp9,shape(4,3,6),peps(row,col),shape(0,1,2),0.0,tmp8);
+
+               //add bottom environment
+               DArray<6> tmp6;
+               Contract(1.0,tmp8,shape(3,6,4),env.gb(row-1)[col],shape(0,1,2),0.0,tmp6);
+
+               //add next top envirnoment
+               tmp8.clear();
+               Gemm(CblasTrans,CblasNoTrans,1.0,tmp6,env.gt(row)[col+1],0.0,tmp8);
+
+               //now attach RI8 to tmp8 
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8,shape(7,3,2,4),RI8,shape(0,5,6,7),0.0,tmp8bis);
+
+               N_eff.clear();
+               Permute(tmp8bis,shape(0,2,6,4,1,3,7,5),N_eff);
 
                // (2) construct right hand side
+
+               //add left operator to tmp9
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(4,3,6),lop,shape(0,1,2),0.0,tmp9bis);
+
+               //add bottom environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(3,7,4),env.gb(row-1)[col],shape(0,1,2),0.0,tmp7);
+
+               //add next top envirnoment
+               tmp9.clear();
+               Gemm(CblasTrans,CblasNoTrans,1.0,tmp7,env.gt(row)[col+1],0.0,tmp9);
+
+               //add right operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(0,6,3),rop,shape(0,1,3),0.0,tmp9bis);
+
+               //connect tmp9bis with b_R to construct right hand side of equation
+               DArray<5> tmp5;
+               Contract(1.0,tmp9bis,shape(5,8,7,2,1,3),b_R,shape(0,1,3,5,6,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,1,4,3,2),rhs);
 
             }
 

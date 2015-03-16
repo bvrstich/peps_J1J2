@@ -135,7 +135,7 @@ namespace propagate {
 
          int iter = 0;
 
-         //while(iter < n_sweeps){
+         while(iter < n_sweeps){
 
             cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
@@ -143,14 +143,12 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
-
+            
             //solve the system
             solve(N_eff,rhs);
 
             //update 'left' peps
             Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
-
-            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(2)-- 'right' site
 
@@ -163,12 +161,10 @@ namespace propagate {
             //update 'right' peps
             Permute(rhs,shape(0,1,4,2,3),peps(r_row,r_col));
 
-            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
-
             //repeat until converged
             ++iter;
 
-         //}
+         }
 
       }
 
@@ -1208,7 +1204,7 @@ namespace propagate {
 
                   //add bottom environment
                   tmp6.clear();
-                  Contract(1.0,env.gb(Ly-3)[col+1],shape(1,2,3),tmp8bis,shape(7,4,2),0.0,tmp6);
+                  Contract(1.0,env.gb(row-1)[col+1],shape(1,2,3),tmp8bis,shape(7,4,2),0.0,tmp6);
 
                   //now add left operator
                   tmp8.clear();
@@ -1261,7 +1257,7 @@ namespace propagate {
 
                   //and add right operator to tmp8
                   DArray<8> tmp8bis;
-                  Contract(1.0,tmp8,shape(0,5,3),rop,shape(0,1,3),0.0,tmp8bis);
+                  Contract(1.0,tmp8,shape(0,3,5),rop,shape(0,3,4),0.0,tmp8bis);
                   
                   tmp5.clear();
                   Contract(1.0,tmp8bis,shape(2,1,5,7,4),RI7,shape(0,1,2,4,6),0.0,tmp5);
@@ -2448,6 +2444,29 @@ namespace propagate {
                Permute(tmp5,shape(2,4,3,1,0),tmp5_left);
 
                double val = Dot(tmp5_left,tmp5_right);
+
+               // --- (2) operator part of cost function
+
+               //add right operator to tmp8_right
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8_right,shape(2,6,3),rop,shape(1,2,5),0.0,tmp8bis);
+
+               //add bottom environment
+               DArray<6> tmp6_right;
+               Contract(1.0,env.gb(row-1)[col+1],shape(1,2,3),tmp8bis,shape(7,4,2),0.0,tmp6_right);
+
+               //add upper-left peps to b_L
+               tmp8_left.clear();
+               Contract(1.0,b_L,shape(1,3),peps(row+1,col),shape(0,3),0.0,tmp8_left);
+
+               //next add left operator to tmp8
+               DArray<6> tmp6;
+               Contract(1.0,tmp8_left,shape(0,5,6,1),lop,shape(0,1,2,4),0.0,tmp6);
+
+               DArray<6> tmp6_left;
+               Permute(tmp6,shape(2,5,3,1,0,4),tmp6_left);
+
+               val -= 2.0 * Dot(tmp6_left,tmp6_right);
 
                return val;
 

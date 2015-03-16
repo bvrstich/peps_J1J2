@@ -41,17 +41,15 @@ int main(int argc,char *argv[]){
    PEPS<double> peps(D);
    peps.normalize();
 
-   //for(int i = 0;i < 100000;++i){
+   global::env.calc('A',peps);
+   propagate::step(peps,100);
 
-      global::env.calc('A',peps);
-      propagate::step(peps,100);
-/*
+   /*
       peps.rescale_tensors(1.0);
       peps.normalize();
 
-      cout << i << "\t" << peps.energy() << endl;
-  */
-   //}
+      cout << peps.energy() << endl;
+      */
 
    return 0;
 

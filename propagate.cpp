@@ -183,7 +183,7 @@ namespace propagate {
       //containers for the renormalized operators
       vector< DArray<5> > R(Lx - 1);
       DArray<5> L;
-      /*
+
       //construct the full top environment:
       env.calc('T',peps);
 
@@ -195,19 +195,19 @@ namespace propagate {
 
       for(int col = 0;col < Lx - 1;++col){
 
-      // --- (1) update the vertical pair on column 'col' ---
-      update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         // --- (1) update the vertical pair on column 'col' ---
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-      update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-      contractions::update_L('b',col,peps,L);
+         contractions::update_L('b',col,peps,L);
 
       }
 
@@ -227,36 +227,36 @@ namespace propagate {
 
       for(int row = 1;row < Ly-2;++row){
 
-      //first create right renormalized operator
-      contractions::init_ro(row,peps,RO);
+         //first create right renormalized operator
+         contractions::init_ro(row,peps,RO);
 
-      for(int col = 0;col < Lx - 1;++col){
+         for(int col = 0;col < Lx - 1;++col){
 
-      // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-      update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-      update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (3) update diagonal LU-RD
+            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (4) update diagonal LD-RU
+            update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      //first construct a double layer object for the newly updated bottom 
-      contractions::update_L(row,col,peps,LO);
+            //first construct a double layer object for the newly updated bottom 
+            contractions::update_L(row,col,peps,LO);
+
+         }
+
+         //finally, last vertical gate
+         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+
+         //finally update the 'bottom' environment for the row
+         env.add_layer('b',row,peps);
 
       }
 
-      //finally, last vertical gate
-      update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
-
-      //finally update the 'bottom' environment for the row
-      env.add_layer('b',row,peps);
-
-   }
-   */
       // ----------------------------------------------------//
       // --- !!! (3) the top two rows (Ly-2,Ly-1) (3) !!! ---// 
       // ----------------------------------------------------//
@@ -264,30 +264,29 @@ namespace propagate {
       //make the right operators
       contractions::init_ro('t',peps,R);
 
-   //for(int col = 0;col < Lx - 1;++col){
-   int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
 
-   // --- (1) update vertical pair on column 'col' on upper two rows
-   //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         // --- (1) update vertical pair on column 'col' on upper two rows
+         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
-   // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
-   //update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
+         update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
-   // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
-   //update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
+         update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
 
-   // --- (3) update diagonal LU-RD
-   //update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
-   // --- (4) update diagonal LD-RU
-   update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
-   //contractions::update_L('t',col,peps,L);
+         contractions::update_L('t',col,peps,L);
 
-   //}
+      }
 
-   //finally the very last vertical gate
-   //      update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+      //finally the very last vertical gate
+      update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
    }
 
@@ -2826,12 +2825,12 @@ namespace propagate {
                   Contract(1.0,tmp8,shape(2,6,3),peps(row,col),shape(0,2,3),0.0,tmp7);
 
                   LI7.clear();
-                  Permute(tmp7,shape(0,1,3,5,4,6,2),LI7);
+                  Permute(tmp7,shape(0,1,5,3,6,4,2),LI7);
 
                   //for b_L construction, add mop to tmp8
                   Contract(1.0,tmp8,shape(2,6,3),mop,shape(0,2,3),0.0,tmp7);
 
-                  Permute(tmp7,shape(0,1,3,5,4,6,2),LI7);
+                  Permute(tmp7,shape(0,1,5,3,6,4,2),b_L);
 
                }
                else{//col == Lx - 2
@@ -2850,6 +2849,7 @@ namespace propagate {
                   //left
 
                   //add bottom env to left
+                  LI7.clear();
                   Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Ly-3)[col],0.0,LI7);
 
                   //add bottom peps to intermediate
@@ -2861,12 +2861,12 @@ namespace propagate {
                   Contract(1.0,tmp8,shape(2,6,3),peps(row,col),shape(0,2,3),0.0,tmp7);
 
                   LI7.clear();
-                  Permute(tmp7,shape(0,1,3,5,4,6,2),LI7);
+                  Permute(tmp7,shape(0,1,5,3,6,4,2),LI7);
 
                   //for b_L construction, add mop to tmp8
                   Contract(1.0,tmp8,shape(2,6,3),mop,shape(0,2,3),0.0,tmp7);
 
-                  Permute(tmp7,shape(0,1,3,5,4,6,2),LI7);
+                  Permute(tmp7,shape(0,1,5,3,6,4,2),b_L);
 
                }
 
@@ -3044,6 +3044,9 @@ namespace propagate {
 
                   //for b_R construction add mop to tmp8
                   Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+                  b_R.clear();
+                  Permute(tmp7,shape(5,6,1,3,0,2,4),b_R);
 
                   //left
 

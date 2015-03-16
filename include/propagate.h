@@ -55,12 +55,6 @@ namespace propagate {
 
             const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,bool);
 
-   //cost functions
-   template<size_t M>
-      double cost_function(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,
-
-            const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &);
-
    //initialization by SVD
    void initialize(const PROP_DIR &,int,int,const DArray<6> &,const DArray<6> &,PEPS<double> &);
 

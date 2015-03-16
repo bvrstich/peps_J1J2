@@ -21,3 +21,5 @@
 
 #include "Trotter.h"
 #include "propagate.h"
+
+#include "debug.h"

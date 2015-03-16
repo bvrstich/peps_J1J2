@@ -19,6 +19,7 @@ CPPSRC	= main.cpp\
            contractions.cpp\
 			  Trotter.cpp\
 			  propagate.cpp\
+			  debug.cpp\
            btas_defs.cpp
 
 OBJ	= $(CPPSRC:.cpp=.o)

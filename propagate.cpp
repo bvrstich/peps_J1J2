@@ -86,7 +86,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
-         //equilibrate(dir,row,col,peps);
+         equilibrate(dir,row,col,peps);
 
       }
 
@@ -134,9 +134,9 @@ namespace propagate {
 
          int iter = 0;
 
-         //while(iter < n_sweeps){
+         while(iter < n_sweeps){
 
-            //cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
@@ -163,7 +163,7 @@ namespace propagate {
             //repeat until converged
             ++iter;
  
-         //}
+         }
 
       }
 
@@ -1411,7 +1411,7 @@ namespace propagate {
 
                   //contract left and righ
                   tmp5.clear();
-                  Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,6,2,0,3),0.0,tmp5);
+                  Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,6,1,0,3),0.0,tmp5);
                   
                   rhs.clear();
                   Permute(tmp5,shape(1,0,3,4,2),rhs);
@@ -1460,7 +1460,7 @@ namespace propagate {
 
                   //finally contract left with right
                   tmp5.clear();
-                  Contract(1.0,tmp8,shape(7,6,2,1,3),RI7,shape(0,2,4,5,6),0.0,tmp5);
+                  Contract(1.0,tmp8,shape(7,6,2,1,3),b_R,shape(0,2,4,5,6),0.0,tmp5);
 
                   rhs.clear();
                   Permute(tmp5,shape(0,1,4,3,2),rhs);
@@ -2038,7 +2038,8 @@ namespace propagate {
       }
 
    /**
-    * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS 
+    * with operator and \Psi is old PEPS.
     * for top or bottom rows, i.e. with L and R of order 5 and intermediates of order 7
     * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
     * @param row , the row index of the bottom site
@@ -2635,7 +2636,62 @@ namespace propagate {
             }
             else{//row == Ly - 2
 
-               return 0.0;
+               // --- (1) calculate overlap of approximated state:
+               
+               //right
+               
+               DArray<8> tmp8_right;
+               Contract(1.0,peps(row+1,col+1),shape(3,4),RI7,shape(3,1),0.0,tmp8_right);
+
+               //and again
+               DArray<5> tmp5_right;
+               Contract(1.0,peps(row+1,col+1),shape(1,2,3,4),tmp8_right,shape(1,2,4,3),0.0,tmp5_right);
+
+               //left
+
+               //add bottom peps to LI7
+               DArray<8> tmp8_left;
+               Contract(1.0,LI7,shape(5,3),peps(row,col),shape(0,1),0.0,tmp8_left);
+
+               //and again
+               DArray<7> tmp7;
+               Contract(1.0,tmp8_left,shape(3,2,5),peps(row,col),shape(0,1,2),0.0,tmp7);
+
+               //now add bottom environment
+               DArray<5> tmp5;
+               Contract(1.0,tmp7,shape(2,5,3),env.gb(row-1)[col],shape(0,1,2),0.0,tmp5);
+
+               DArray<5> tmp5_left;
+               Permute(tmp5,shape(0,1,3,2,4),tmp5_left);
+
+               double val = Dot(tmp5_left,tmp5_right);
+               
+               // --- (2) calculate 'b' part of overlap
+
+               //RIGHT
+               tmp8_right.clear();
+               Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(3,1),0.0,tmp8_right);
+
+               //and add right operator
+               DArray<6> tmp6_right;
+               Contract(1.0,rop,shape(1,2,4,5),tmp8_right,shape(1,2,4,3),0.0,tmp6_right);
+
+               //LEFT
+
+               //add left operator to intermediate
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8_left,shape(3,2,5),lop,shape(0,1,2),0.0,tmp8bis);
+
+               //now add bottom environment
+               DArray<6> tmp6;
+               Contract(1.0,tmp8bis,shape(2,6,3),env.gb(row-1)[col],shape(0,1,2),0.0,tmp6);
+
+               DArray<6> tmp6_left;
+               Permute(tmp6,shape(0,3,1,4,2,5),tmp6_left);
+
+               val -= 2.0 * Dot(tmp6_left,tmp6_right);
+
+               return val;
 
             }
 
@@ -2644,7 +2700,8 @@ namespace propagate {
       }
 
    /**
-    * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full PEPS with operator and \Psi is old PEPS
+    * evaluate the cost function of the linear system for two vertically connected PEPS: -2 <\Psi|\Psi'> + <\Psi'|\Psi'> where \Psi full
+    * PEPS with operator and \Psi is old PEPS
     * for middle rows, i.e. with R and L order 6 and intermediates of order 8
     * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
     * @param row , the row index of the bottom site

@@ -74,7 +74,6 @@ namespace propagate {
 
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
-
          }
 
          // --- (a) --- initial guess:
@@ -87,7 +86,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
-         equilibrate(dir,row,col,peps);
+         //equilibrate(dir,row,col,peps);
 
       }
 
@@ -135,15 +134,15 @@ namespace propagate {
 
          int iter = 0;
 
-         while(iter < n_sweeps){
+         //while(iter < n_sweeps){
 
-            cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+            //cout << iter << "\t" << cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
             construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
-            
+          
             //solve the system
             solve(N_eff,rhs);
 
@@ -163,8 +162,8 @@ namespace propagate {
 
             //repeat until converged
             ++iter;
-
-         }
+ 
+         //}
 
       }
 
@@ -278,10 +277,10 @@ namespace propagate {
          //update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
-         // todo
+         update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          //contractions::update_L('t',col,peps,L);
 
@@ -1345,6 +1344,7 @@ namespace propagate {
                   DArray<8> tmp8bis;
                   Contract(1.0,tmp7,shape(6,3,2),RI7,shape(0,5,6),0.0,tmp8bis);
 
+                  N_eff.clear();
                   Permute(tmp8bis,shape(0,2,6,4,1,3,7,5),N_eff);
                   
                   // (2) construct right hand side
@@ -1363,6 +1363,104 @@ namespace propagate {
                   //contract both sides to form right hand side of equation
                   tmp5.clear();
                   Contract(1.0,tmp8,shape(7,5,0,4,3,2),tmp9,shape(4,1,0,7,3,8),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,1,4,3,2),rhs);
+
+               }
+
+            }
+            else{//row = Ly - 2
+
+               if(left){//left site of diagonal gate, so site (row,col) environment
+
+                  // (1) construct N_eff
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row+1,col+1),shape(3,4),RI7,shape(3,1),0.0,tmp8);
+
+                  //and again
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row+1,col+1),shape(1,2,3,4),tmp8,shape(1,2,4,3),0.0,tmp5);
+
+                  //now add bottom environment to tmp5
+                  DArray<7> tmp7;
+                  Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],tmp5,0.0,tmp7);
+
+                  //now contract left and right for N_eff construction
+                  tmp8.clear();
+                  Contract(1.0,LI7,shape(0,1,6),tmp7,shape(3,4,0),0.0,tmp8);
+
+                  N_eff.clear();
+                  Permute(tmp8,shape(2,0,4,6,3,1,5,7),N_eff);
+
+                  // (2) construct right hand side: work with b_R instead of RI7
+                  tmp8.clear();
+                  Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(3,1),0.0,tmp8);
+
+                  //and add right operator
+                  DArray<6> tmp6;
+                  Contract(1.0,rop,shape(1,2,4,5),tmp8,shape(1,2,4,3),0.0,tmp6);
+
+                  //now add bottom environment to tmp6
+                  tmp8.clear();
+                  Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],tmp6,0.0,tmp8);
+
+                  //finally add left operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,lop,shape(3,4,5),tmp8,shape(4,1,6),0.0,tmp8bis);
+
+                  //contract left and righ
+                  tmp5.clear();
+                  Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,6,2,0,3),0.0,tmp5);
+                  
+                  rhs.clear();
+                  Permute(tmp5,shape(1,0,3,4,2),rhs);
+ 
+               }
+               else{//right site of diagonal gate, so site (row+1,col+1) environment
+
+                  // (1) construct N_eff
+
+                  //add bottom peps to LI7
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(5,3),peps(row,col),shape(0,1),0.0,tmp8);
+
+                  //and again
+                  DArray<7> tmp7;
+                  Contract(1.0,tmp8,shape(3,2,5),peps(row,col),shape(0,1,2),0.0,tmp7);
+
+                  //now add bottom environment
+                  DArray<5> tmp5;
+                  Contract(1.0,tmp7,shape(2,5,3),env.gb(row-1)[col],shape(0,1,2),0.0,tmp5);
+
+                  //contract left and right for N_eff construction
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp5,shape(3,2,4),RI7,shape(4,5,6),0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(0,4,2,1,5,3),tmp6bis);
+
+                  int DR = peps(row+1,col+1).shape(4);
+
+                  N_eff = tmp6bis.reshape_clear( shape(D,1,D,DR,D,1,D,DR) );
+
+                  // (2) construct right hand side
+
+                  //add left operator to intermediate
+                  DArray<8> tmp8bis;
+                  Contract(1.0,tmp8,shape(3,2,5),lop,shape(0,1,2),0.0,tmp8bis);
+
+                  //now add bottom environment
+                  tmp6.clear();
+                  Contract(1.0,tmp8bis,shape(2,6,3),env.gb(row-1)[col],shape(0,1,2),0.0,tmp6);
+
+                  //and add right operator
+                  tmp8.clear();
+                  Contract(1.0,tmp6,shape(0,3),rop,shape(0,3),0.0,tmp8);
+
+                  //finally contract left with right
+                  tmp5.clear();
+                  Contract(1.0,tmp8,shape(7,6,2,1,3),RI7,shape(0,2,4,5,6),0.0,tmp5);
 
                   rhs.clear();
                   Permute(tmp5,shape(0,1,4,3,2),rhs);
@@ -1852,7 +1950,7 @@ namespace propagate {
                Permute(tmp8bis,shape(2,0,4,6,3,1,5,7),N_eff);
 
                // (2) construct right hand side
-               
+
                //add upper right peps to intermediate b_R
                tmp9.clear();
                Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(4,2),0.0,tmp9);
@@ -3830,11 +3928,107 @@ namespace propagate {
 
                if(col == 0){
 
+                  //right
+
+                  //add bottom env to right
+                  Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Ly-3)[col+1],R,0.0,RI7);
+
+                  //add bottom peps to intermediate
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(2,6),0.0,tmp8);
+
+                  //add second bottom peps
+                  DArray<7> tmp7;
+                  Contract(1.0,peps(row,col+1),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+                  RI7.clear();
+                  Permute(tmp7,shape(5,6,1,3,0,2,4),RI7);
+
+                  //for b_R construction add mop to tmp8
+                  Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+                  b_R.clear();
+                  Permute(tmp7,shape(5,6,1,3,0,2,4),b_R);
+
+                  //left, b_L is equal to LI7
+                  DArray<4> tmp4;
+                  Gemm(CblasTrans,CblasNoTrans,1.0,peps(row+1,col),peps(row+1,col),0.0,tmp4);
+
+                  DArray<4> tmp4bis;
+                  Permute(tmp4,shape(1,3,0,2),tmp4bis);
+
+                  LI7 = tmp4bis.reshape_clear( shape(D,D,D,D,1,1,1) );
+
                }
                else if(col < Lx - 2){
 
+                  //right
+
+                  //add bottom env to right
+                  Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Ly-3)[col+1],R,0.0,RI7);
+
+                  //add bottom peps to intermediate
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(2,6),0.0,tmp8);
+
+                  //add second bottom peps
+                  DArray<7> tmp7;
+                  Contract(1.0,peps(row,col+1),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+                  RI7.clear();
+                  Permute(tmp7,shape(5,6,1,3,0,2,4),RI7);
+
+                  //for b_R construction add mop to tmp8
+                  Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+                  //left
+
+                  //add top peps to left
+                  tmp8.clear();
+                  Contract(1.0,L,shape(0),peps(row+1,col),shape(0),0.0,tmp8);
+
+                  tmp7.clear();
+                  Contract(1.0,tmp8,shape(0,4,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+                  LI7.clear();
+                  Permute(tmp7,shape(4,6,3,5,0,1,2),LI7);
+
                }
                else{//col == Lx - 2
+
+                  //right
+
+                  //attach bottom peps to bottom env
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row,col+1),shape(3,4),env.gb(Ly-3)[col+1],shape(2,3),0.0,tmp5);
+
+                  //and another
+                  DArray<6> tmp6;
+                  Contract(1.0,peps(row,col+1),shape(2,3),tmp5,shape(2,4),0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(2,1,4,0,3,5),tmp6bis);
+
+                  RI7 = tmp6bis.reshape_clear( shape(1,1,D,D,D,D,env.gb(Ly-3)[col+1].shape(0)) );
+
+                  //for b_R add mop to tmp5
+                  Contract(1.0,mop,shape(2,3),tmp5,shape(2,4),0.0,tmp6);
+
+                  Permute(tmp6,shape(2,1,4,0,3,5),tmp6bis);
+
+                  b_R = tmp6bis.reshape_clear( shape(1,1,D,D,D,D,env.gb(Ly-3)[col+1].shape(0)) );
+
+                  //left
+
+                  //add top peps to left
+                  DArray<8> tmp8;
+                  Contract(1.0,L,shape(0),peps(row+1,col),shape(0),0.0,tmp8);
+
+                  DArray<7> tmp7;
+                  Contract(1.0,tmp8,shape(0,4,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+
+                  LI7.clear();
+                  Permute(tmp7,shape(4,6,3,5,0,1,2),LI7);
 
                }
 

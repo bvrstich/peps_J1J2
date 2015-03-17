@@ -136,8 +136,6 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
-
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
@@ -185,7 +183,15 @@ namespace propagate {
       DArray<5> L;
 
       //construct the full top environment:
+      auto start = std::chrono::high_resolution_clock::now();
       env.calc('T',peps);
+      auto end = std::chrono::high_resolution_clock::now();
+
+      cout << "Calculate full top environment:\t";
+      cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+      cout << endl;
+
+      start = std::chrono::high_resolution_clock::now();
 
       //and the lowest row bottom environment
       env.gb(0).fill('b',peps);
@@ -217,6 +223,12 @@ namespace propagate {
       //update the bottom row for the new peps
       env.gb(0).fill('b',peps);
 
+      end = std::chrono::high_resolution_clock::now();
+      cout << endl;
+      cout << "Update of bottom two rows ";
+      cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+      cout << endl;
+
       // ---------------------------------------------------//
       // --- !!! (2) the middle rows (1 -> Ly-2) (2) !!! ---// 
       // ---------------------------------------------------//
@@ -228,21 +240,52 @@ namespace propagate {
       for(int row = 1;row < Ly-2;++row){
 
          //first create right renormalized operator
+         start = std::chrono::high_resolution_clock::now();
          contractions::init_ro(row,peps,RO);
+         end = std::chrono::high_resolution_clock::now();
+         cout << endl;
+         cout << "Contruct renormalized operator on row\t" << row << "\t";
+         cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+         cout << endl;
 
          for(int col = 0;col < Lx - 1;++col){
 
+            cout << "**************************************" << endl;
+            cout << "Update of site (" << row << "," << col << ")" << endl;
+            cout << "**************************************" << endl;
+            cout << endl;
+
             // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+            start = std::chrono::high_resolution_clock::now();
             update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            end = std::chrono::high_resolution_clock::now();
+            cout << "VERTICAL\t";
+            cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+            cout << endl;
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            start = std::chrono::high_resolution_clock::now();
             update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            end = std::chrono::high_resolution_clock::now();
+            cout << "HORIZONTAL\t";
+            cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+            cout << endl;
 
             // --- (3) update diagonal LU-RD
+            start = std::chrono::high_resolution_clock::now();
             update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            end = std::chrono::high_resolution_clock::now();
+            cout << "DIAGONAL LU-RD\t";
+            cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+            cout << endl;
 
             // --- (4) update diagonal LD-RU
+            start = std::chrono::high_resolution_clock::now();
             update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+            end = std::chrono::high_resolution_clock::now();
+            cout << "DIAGONAL LD-RU\t";
+            cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+            cout << endl;
 
             //first construct a double layer object for the newly updated bottom 
             contractions::update_L(row,col,peps,LO);
@@ -250,10 +293,20 @@ namespace propagate {
          }
 
          //finally, last vertical gate
+         start = std::chrono::high_resolution_clock::now();
          update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+         end = std::chrono::high_resolution_clock::now();
+         cout << "LAST VERTICAL\t";
+         cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+         cout << endl;
 
          //finally update the 'bottom' environment for the row
+         start = std::chrono::high_resolution_clock::now();
          env.add_layer('b',row,peps);
+         end = std::chrono::high_resolution_clock::now();
+         cout << "Update bottom environment:\t";
+         cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+         cout << endl;
 
       }
 
@@ -262,6 +315,7 @@ namespace propagate {
       // ----------------------------------------------------//
 
       //make the right operators
+      start = std::chrono::high_resolution_clock::now();
       contractions::init_ro('t',peps,R);
 
       for(int col = 0;col < Lx - 1;++col){
@@ -287,6 +341,10 @@ namespace propagate {
 
       //finally the very last vertical gate
       update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+      end = std::chrono::high_resolution_clock::now();
+      cout << "Update top two rows:\t";
+      cout << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+      cout << endl;
 
    }
 

@@ -39,9 +39,23 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
-   peps.initialize_jastrow(0.74);
 
-   for(int i = 0;i < 10000;++i){
+   //for(int i = 0;i < 1000;++i){
+
+      propagate::step(peps,4);
+/*
+      peps.rescale_tensors(1.0);
+      peps.normalize();
+
+      global::env.calc('A',peps);
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
+
+   tau *= 0.1;
+   global::stau(tau);
+
+   for(int i = 1000;i < 5000;++i){
 
       propagate::step(peps,4);
 
@@ -52,7 +66,7 @@ int main(int argc,char *argv[]){
       cout << i << "\t" << peps.energy() << endl;
 
    }
-
+  */
    return 0;
 
 }

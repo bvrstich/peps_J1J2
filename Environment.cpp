@@ -3,6 +3,7 @@
 #include <cmath>
 #include <vector>
 #include <complex>
+#include <omp.h>
 
 using std::cout;
 using std::endl;
@@ -105,7 +106,38 @@ Environment::~Environment(){ }
  */
 void Environment::calc(const char option,const PEPS<double> &peps){
 
-   if(option == 'B' || option == 'A'){
+   if(option == 'A'){
+
+#pragma omp parallel sections
+      {
+
+#pragma omp section
+         {
+
+            b[0].fill('b',peps);
+
+            for(int i = 1;i < Ly - 2;++i)
+               this->add_layer('b',i,peps);
+
+            flag_b = true;
+
+         }
+#pragma omp section
+         {
+
+            t[Ly - 3].fill('t',peps);
+
+            for(int i = Ly - 4;i >= 0;--i)
+               this->add_layer('t',i,peps);
+
+            flag_t = true;
+
+         }
+
+      } 
+
+   }
+   else if(option == 'B'){
 
       b[0].fill('b',peps);
 
@@ -115,8 +147,7 @@ void Environment::calc(const char option,const PEPS<double> &peps){
       flag_b = true;
 
    }
-
-   if(option == 'T' || option == 'A'){
+   else if(option == 'T'){
 
       t[Ly - 3].fill('t',peps);
 

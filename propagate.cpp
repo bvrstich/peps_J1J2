@@ -3,6 +3,7 @@
 #include <fstream>
 #include <complex>
 #include <chrono>
+#include <omp.h>
 
 using std::cout;
 using std::endl;
@@ -181,118 +182,146 @@ namespace propagate {
       // ****************************************** //
 
       //calculate top and bottom environment
-      global::env.calc('A',peps);
+      env.calc('A',peps);
 
-      // -------------------------------------------//
-      // --- !!! (1) the bottom two rows (1) !!! ---// 
-      // -------------------------------------------//
+      cout << endl;
+      cout << "EVEN" << endl;
+      cout << endl;
 
-      //containers for the renormalized operators
-      vector< DArray<5> > R(Lx - 1);
-      DArray<5> L;
+#pragma omp parallel for schedule(dynamic,1)
+      for(int row = 0;row < Ly;row+=2){
 
-      //initialize the right operators for the bottom row
-      contractions::init_ro('b',peps,R);
+         auto start = std::chrono::high_resolution_clock::now();
 
-      for(int col = 0;col < Lx - 1;++col){
+         if(row == 0){
 
-         // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+            //containers for the renormalized operators
+            vector< DArray<5> > R(Lx - 1);
+            DArray<5> L;
 
-         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+            //initialize the right operators for the bottom row
+            contractions::init_ro('b',peps,R);
 
-         // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+            for(int col = 0;col < Lx - 1;++col){
 
-         // --- (4) update diagonal LD-RU
-         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+               // --- (1) update the vertical pair on column 'col' ---
+               update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
-         contractions::update_L('b',col,peps,L);
+               // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+               update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
-      }
+               // --- (3) update diagonal LU-RD
+               update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-      //one last vertical update
-      update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+               // --- (4) update diagonal LD-RU
+               update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // ---------------------------------------------------//
-      // --- !!! (2) the middle rows (1 -> Ly-2) (2) !!! ---// 
-      // ---------------------------------------------------//
+               contractions::update_L('b',col,peps,L);
 
-      //renormalized operators for the middle sites
-      vector< DArray<6> > RO(Lx - 1);
-      DArray<6> LO;
+            }
 
-      for(int row = 2;row < Ly-2;row+=2){
+            //one last vertical update
+            update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
-         //first create right renormalized operator
-         contractions::init_ro(row,peps,RO);
+         }
+         else if(row < Lx - 2){
 
-         for(int col = 0;col < Lx - 1;++col){
+            //renormalized operators for the middle sites
+            vector< DArray<6> > RO(Lx - 1);
+            DArray<6> LO;
 
-            // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            //first create right renormalized operator
+            contractions::init_ro(row,peps,RO);
 
-            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            for(int col = 0;col < Lx - 1;++col){
 
-            // --- (3) update diagonal LU-RD
-            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+               // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+               update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
-            // --- (4) update diagonal LD-RU
-            update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+               // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+               update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-            //first construct a double layer object for the newly updated bottom 
-            contractions::update_L(row,col,peps,LO);
+               // --- (3) update diagonal LU-RD
+               update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+
+               // --- (4) update diagonal LD-RU
+               update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+
+               //first construct a double layer object for the newly updated bottom 
+               contractions::update_L(row,col,peps,LO);
+
+            }
+
+            //finally, last vertical gate
+            update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+
+         }
+         else{//row == Lx - 2
+
+            //containers for the renormalized operators
+            vector< DArray<5> > R(Lx - 1);
+            DArray<5> L;
+
+
+            //make the right operators
+            contractions::init_ro('t',peps,R);
+
+            for(int col = 0;col < Lx - 1;++col){
+
+               // --- (1) update vertical pair on column 'col' on upper two rows
+               update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+
+               // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
+               update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+
+               // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
+               update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
+
+               // --- (3) update diagonal LU-RD
+               update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+
+               // --- (4) update diagonal LD-RU
+               update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+
+               contractions::update_L('t',col,peps,L);
+
+            }
+
+            //finally the very last vertical gate
+            update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
          }
 
-         //finally, last vertical gate
-         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+         auto end = std::chrono::high_resolution_clock::now();
+
+#pragma omp critical
+         cout << "row\t" << row << "\ton thread number\t" << omp_get_thread_num() << "\t"
+            
+            << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
 
       }
-
-      // ----------------------------------------------------//
-      // --- !!! (3) the top two rows (Ly-2,Ly-1) (3) !!! ---// 
-      // ----------------------------------------------------//
-
-      //make the right operators
-      contractions::init_ro('t',peps,R);
-
-      for(int col = 0;col < Lx - 1;++col){
-
-         // --- (1) update vertical pair on column 'col' on upper two rows
-         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
-
-         // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
-         update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
-
-         // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
-         update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
-
-         // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
-
-         // --- (4) update diagonal LD-RU
-         update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
-
-         contractions::update_L('t',col,peps,L);
-
-      }
-
-      //finally the very last vertical gate
-      update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
       // ****************************************** //
       // ****************************************** //
       //    (B)     THEN THE ODD ROWS               //
       // ****************************************** //
       // ****************************************** //
-      
-      //calculate top and bottom environment
+
+      //update top and bottom environment
       global::env.calc('A',peps);
 
+      cout << endl;
+      cout << "ODD" << endl;
+      cout << endl;
+
+#pragma omp parallel for schedule(dynamic,1)
       for(int row = 1;row < Ly-2;row+=2){
+
+         auto start = std::chrono::high_resolution_clock::now();
+         
+         //renormalized operators for the middle sites
+         vector< DArray<6> > RO(Lx - 1);
+         DArray<6> LO;
 
          //first create right renormalized operator
          contractions::init_ro(row,peps,RO);
@@ -318,6 +347,14 @@ namespace propagate {
 
          //finally, last vertical gate
          update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+
+         auto end = std::chrono::high_resolution_clock::now();
+
+#pragma omp critical
+         cout << "row\t" << row << "\ton thread number\t" << omp_get_thread_num() << "\t" 
+            
+            << std::chrono::duration_cast<std::chrono::duration<double,std::ratio<1>>>(end-start).count() << endl;
+
 
       }
 

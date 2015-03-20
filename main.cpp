@@ -38,24 +38,31 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
-   PEPS<double> peps(D);
+   PEPS<double> peps;
+   peps.load("output/4x4/D=2");
+   peps.grow_bond_dimension(D,0.001);
+   peps.normalize();
 
-   //for(int i = 0;i < 1000;++i){
+   global::env.calc('A',peps);
+   cout << "initial:" << peps.energy() << endl;
 
-      propagate::step(peps,4);
-/*
+   //for(int i = 0;i < 2000;++i){
+   int i = 0;
+
+      propagate::step(peps,1);
+
       peps.rescale_tensors(1.0);
       peps.normalize();
 
       global::env.calc('A',peps);
       cout << i << "\t" << peps.energy() << endl;
 
-   }
-
+   //}
+/*
    tau *= 0.1;
    global::stau(tau);
 
-   for(int i = 1000;i < 5000;++i){
+   for(int i = 2000;i < 6000;++i){
 
       propagate::step(peps,4);
 
@@ -66,7 +73,7 @@ int main(int argc,char *argv[]){
       cout << i << "\t" << peps.energy() << endl;
 
    }
-  */
+*/
    return 0;
 
 }

@@ -188,7 +188,7 @@ namespace propagate {
       cout << "EVEN" << endl;
       cout << endl;
 
-#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(static,1)
       for(int row = 0;row < Ly;row+=2){
 
          auto start = std::chrono::high_resolution_clock::now();
@@ -314,7 +314,7 @@ namespace propagate {
       cout << "ODD" << endl;
       cout << endl;
 
-#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(static,1)
       for(int row = 1;row < Ly-2;row+=2){
 
          auto start = std::chrono::high_resolution_clock::now();

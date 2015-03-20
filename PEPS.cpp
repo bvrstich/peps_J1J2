@@ -154,6 +154,25 @@ void PEPS<double>::rescale_tensors(double max_num){
 }
 
 /**
+ * @param D_in value to the D to
+ */
+template<typename T>
+void PEPS<T>::fill_Random(){
+
+   //now initialize with random numbers
+   for(int r = 0;r < Ly;++r)
+      for(int c = 0;c < Lx;++c){
+
+         (*this)[ r*Lx + c ].generate(rgen<T>);
+
+         Normalize((*this)[ r*Lx + c ]);
+         Scal((T)D,(*this)[ r*Lx + c ]);
+
+      }
+
+}
+
+/**
  * initialize the peps a completely spin polarized state
  * @param D_in input D
  * @param option up or down spin
@@ -779,7 +798,7 @@ double PEPS<double>::energy(){
 
    //construct left hamiltonian operators, first upper sites
    for(int i = 0;i < delta;++i){
-   
+
       //contract peps with the operator
       peps_op.clear();
       Contract(1.0,ham.gL(i),shape(j,k),(*this)(1,0),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
@@ -1068,7 +1087,7 @@ double PEPS<double>::energy(){
       Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,(*this)(0,col),0.0,R[col]);
 
    }
-  
+
    //last site of bottom row: close down the left operators
 
    //start with Left Up
@@ -1109,7 +1128,7 @@ double PEPS<double>::energy(){
       val += ham.gcoef_nn(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
 
    }
-  
+
    //Left down - close down with a diagonal and horizontal term!
    for(int i = 0;i < delta;++i){
 
@@ -2170,6 +2189,9 @@ template void PEPS< complex<double> >::scal(complex<double> val);
 
 template void PEPS<double>::load(const char *filename);
 template void PEPS< complex<double> >::load(const char *filename);
+
+template void PEPS<double>::fill_Random();
+template void PEPS< complex<double> >::fill_Random();
 
 template void PEPS<double>::save(const char *filename);
 template void PEPS< complex<double> >::save(const char *filename);

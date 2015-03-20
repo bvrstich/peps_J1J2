@@ -37,13 +37,21 @@ int main(int argc,char *argv[]){
 
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
+   memory::init();
 
    PEPS<double> peps(D);
 
+   for(int i = 0;i < 10;++i){
+
+      peps.fill_Random();
+      global::env.calc('A',peps);
+
+   }
+/*
    //for(int i = 0;i < 1000;++i){
 
       propagate::step(peps,4);
-/*
+
       peps.rescale_tensors(1.0);
       peps.normalize();
 

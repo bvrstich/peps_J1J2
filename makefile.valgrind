@@ -20,6 +20,7 @@ CPPSRC	= main.cpp\
 			  Trotter.cpp\
 			  propagate.cpp\
 			  debug.cpp\
+			  memory.cpp\
            btas_defs.cpp
 
 OBJ	= $(CPPSRC:.cpp=.o)
@@ -35,7 +36,7 @@ BTASLIB= /home/bright/btas/lib
 INCLUDE = ./include
 
 #LIBS= -lpthread -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core
-LIBS= -lblas -llapacke
+LIBS= -lblas -llapacke -lgomp
 
 CC	= clang
 CXX	= clang++

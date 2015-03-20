@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
-
+#include "tbb/scalable_allocator.h"
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
 
@@ -60,10 +60,10 @@ private:
 public:
 
   //! TArray<T, N>::iterator
-  typedef typename std::vector<T>::iterator       iterator;
+  typedef typename std::vector<T >::iterator       iterator;
 
   //! TArray<T, N>::const_iterator
-  typedef typename std::vector<T>::const_iterator const_iterator;
+  typedef typename std::vector<T >::const_iterator const_iterator;
 
 //####################################################################################################
 // Member Functions
@@ -74,14 +74,14 @@ public:
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //! default constructor
-  TArray() : m_shape(uniform<int, N>(0)), m_stride(uniform<int, N>(0)), m_store(new std::vector<T>()) { }
+  TArray() : m_shape(uniform<int, N>(0)), m_stride(uniform<int, N>(0)), m_store(new std::vector<T >()) { }
 
   //! destructor
  ~TArray() { }
 
   //! copy constructor
 //explicit TArray(const TArray& other) : m_store(new std::vector<T>()) {
-  TArray(const TArray& other) : m_store(new std::vector<T>()) {
+  TArray(const TArray& other) : m_store(new std::vector<T >()) {
     copy(other);
   }
 
@@ -173,7 +173,7 @@ public:
    {
 
       //make sure the other still point to something, else it will give errors when going out of scope.
-      other.m_store = shared_ptr< std::vector<T> >(new std::vector<T>());
+      other.m_store = shared_ptr< std::vector<T > >(new std::vector<T >());
       other.m_shape = uniform<int, N>(0);
       other.m_stride = uniform<int, N>(0);
 
@@ -202,12 +202,12 @@ public:
   }
 
   //! convenient constructor with array shape, for N = 1
-  explicit TArray(int n01) : m_store(new std::vector<T>()) {
+  explicit TArray(int n01) : m_store(new std::vector<T >()) {
      resize(n01);
   }
 
   //! convenient constructor with array shape, for N = 2
-  TArray(int n01, int n02) : m_store(new std::vector<T>()) {
+  TArray(int n01, int n02) : m_store(new std::vector<T >()) {
      resize(n01, n02);
   }
 
@@ -841,7 +841,7 @@ public:
       m_stride;
 
    //! array storage
-   shared_ptr<std::vector<T>>
+   shared_ptr< std::vector<T> >
       m_store;
 
 }; // class TArray

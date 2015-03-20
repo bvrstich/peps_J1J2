@@ -44,6 +44,8 @@ class PEPS : public vector< TArray<T,5> > {
 
       void initialize_jastrow(double);
 
+      void fill_Random();
+
       void initialize_ising(int,int,double);
 
       const TArray<T,5> &operator()(int,int) const;

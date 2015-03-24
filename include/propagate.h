@@ -37,6 +37,10 @@ namespace propagate {
    template<size_t M>
       void update(const PROP_DIR &,int,int,PEPS<double> &,const DArray<M> &,const DArray<M> &,int);
 
+   //quasi-canonicalization of the environment
+   template<size_t M>
+      void canonicalize(const PROP_DIR &,int,int,PEPS<double> &,const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &);
+
    //sweeping sections
    template<size_t M>
       void sweep(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,

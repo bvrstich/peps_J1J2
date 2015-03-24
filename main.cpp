@@ -46,7 +46,7 @@ int main(int argc,char *argv[]){
    global::env.calc('A',peps);
    cout << "initial:" << peps.energy() << endl;
   
- //  for(int i = 0;i < 2000;++i){
+   //for(int i = 0;i < 2000;++i){
 
       propagate::step(peps,1);
 
@@ -56,7 +56,7 @@ int main(int argc,char *argv[]){
       global::env.calc('A',peps);
       cout << peps.energy() << endl;
 
-  // }
+//   }
 /*
    tau *= 0.1;
    global::stau(tau);

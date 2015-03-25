@@ -3725,29 +3725,37 @@ for(int row = 1;row < Ly-2;row+=2){
 
             const DArray<7> &LI7,const DArray<7> &RI7){
 
+         //LEFT SITE
+
+         //calculate the environment for the left site
          DArray<8> N_eff;
          calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,true);
 
+         //eigenvalues
          DArray<1> eig;
          diagonalize(N_eff,eig);
 
+         //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          DArray<5> X;
          get_X(N_eff,eig,X);
-/*
-         DArray<3> X(N_eff.shape(0),matdim,N_eff.shape(1));
 
-         //get the square root of the positive approximant:
-         for(int iL = 0;iL < N_eff.shape(0);++iL)
-            for(int iR = 0;iR < N_eff.shape(1);++iR)
-               for(int kL = 0;kL < N_eff.shape(0);++kL)
-                  for(int kR = 0;kR < N_eff.shape(1);++kR){
+         DArray<5> X_copy(X);
 
-                     if(eig(kL*N_eff.shape(1) + kR) > 0.0)
-                        X(iL,kL*N_eff.shape(1) + kR,iR) = sqrt( eig(kL*N_eff.shape(1) + kR) ) * N_eff(iL,iR,kL,kR);
+         if(dir == VERTICAL){
 
-                  }
+            if(N_eff.shape(0) > 1){
 
-*/
+               DArray<2> tmp2;
+               Gelqf(tmp2,X);
+
+               //test
+               DArray<2> tmp2bis;
+               Contract(1.0,X,shape(1,2,3,4),X,shape(1,2,3,4),0.0,tmp2bis);
+               cout << tmp2bis << endl;
+
+            }
+
+         }
 
       }
 
@@ -3801,7 +3809,13 @@ for(int row = 1;row < Ly-2;row+=2){
 
       int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
 
-      X.resize( shape(N_eff.shape(0),N_eff.shape(1),n,N_eff.shape(2),N_eff.shape(3)) );
+      X.resize( shape(N_eff.shape(0),N_eff.shape(1),N_eff.shape(2),N_eff.shape(3),n) );
+
+      //get the square root of the positive approximant:
+      for(int i = 0;i < n;++i)
+         for(int j = 0;j < n;++j)
+            if(eig(j) > 0.0)
+               X.data()[i*n + j] = sqrt( eig(j) ) * N_eff.data()[i*n + j];
 
    }
 

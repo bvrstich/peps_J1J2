@@ -1011,4 +1011,24 @@ namespace debug {
 
       }
 
+   /**
+    * diagonalize the effictive environment, for testing purposes
+    */
+   void diagonalize(DArray<8> &N_eff,DArray<1> &eig){
+
+      int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
+
+      for(int i = 0;i < n;++i)
+         for(int j = i + 1;j < n;++j){
+
+            N_eff.data()[i + n*j] = 0.5 * ( N_eff.data()[i + n*j] + N_eff.data()[j + n*i] );
+            N_eff.data()[j + n*i] = N_eff.data()[i + n*j];
+
+         }
+
+      eig.resize(n);
+      lapack::syev(CblasRowMajor,'V','U',n,N_eff.data(),n,eig.data());
+
+   }
+
 } 

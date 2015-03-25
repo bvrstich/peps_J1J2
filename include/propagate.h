@@ -58,6 +58,18 @@ namespace propagate {
       void construct_lin_sys(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &, DArray<8> &,DArray<5> &,
 
             const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,bool);
+   
+   //calculate the effective environment
+   template<size_t M>
+      void calc_N_eff(const PROP_DIR &,int,int,PEPS<double> &, DArray<8> &, const DArray<M> &,const DArray<M> &, 
+
+            const DArray<M+2> &,const DArray<M+2> &,bool);
+ 
+   //calculate right hand of the linear system of equations
+   template<size_t M>
+      void calc_rhs(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,DArray<5> &,
+
+            const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,bool);
 
    //initialization by SVD
    void initialize(const PROP_DIR &,int,int,const DArray<6> &,const DArray<6> &,PEPS<double> &);

@@ -20,7 +20,6 @@ CPPSRC	= main.cpp\
 			  Trotter.cpp\
 			  propagate.cpp\
 			  debug.cpp\
-			  memory.cpp\
            btas_defs.cpp
 
 OBJ	= $(CPPSRC:.cpp=.o)

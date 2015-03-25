@@ -52,12 +52,6 @@ namespace propagate {
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
-            // --- (a) --- create intermediary object using during N_eff construction, doesn't change during update
-            construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
-
-            // --- (b) --- calculate the N_eff of the two sites to be updated, and QR the different bonds for quasi-canonicalization
-            canonicalize(dir,row,col,peps,L,R,LI,RI);
-
          }
          else if(dir == HORIZONTAL){// (row,col) --> (row,col+1)
 
@@ -82,18 +76,18 @@ namespace propagate {
             Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
             Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
          }
-/*
+
          // --- (a) --- initial guess:
          initialize(dir,row,col,lop,rop,peps); 
 
          // --- (b) --- create intermediary object using during N_eff construction, doesn't change during update
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
-  */
+       
          // --- (c) --- sweeping update
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (d) --- set top and bottom back on equal footing
-   //      equilibrate(dir,row,col,peps);
+         //equilibrate(dir,row,col,peps);
 
       }
 
@@ -113,7 +107,9 @@ namespace propagate {
    template<size_t M>
       void sweep(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
 
-            const DArray<M> &L,const DArray<M> &R,const DArray<M+2> &LI,const DArray<M+2> &RI,const DArray<M+2> &b_L,const DArray<M+2> &b_R, int n_sweeps){
+            const DArray<M> &L,const DArray<M> &R,const DArray<M+2> &LI,const DArray<M+2> &RI,
+            
+            const DArray<M+2> &b_L,const DArray<M+2> &b_R, int n_sweeps){
 
          //indices of sites between which to jump back and forth
          int l_row(row),l_col(col),r_row(row),r_col(col);
@@ -141,45 +137,48 @@ namespace propagate {
 
          int iter = 0;
 
-         //       while(iter < n_sweeps){
+         //while(iter < n_sweeps){
 
-         //            cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+            // cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
-         // --(1)-- 'left' site
+            // --(1)-- 'left' site
 
-         //construct effective environment and right hand side for linear system of top site
-         construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
+            //construct effective environment and right hand side for linear system of top site
+            construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,true);
 
-         int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
+            DArray<1> eig;
+            debug::diagonalize(N_eff,eig);
 
-         DArray<8> tmp8 = N_eff;
+            cout << endl;
+            cout << "left\t" << eig(0) << "\t" << eig(eig.size() - 1) << "\t|\t" << eig(eig.size()-1)/eig(0) << endl;
+/*
+            //solve the system
+            solve(N_eff,rhs);
 
-         DArray<1> eig(n);
-         lapack::syev(CblasRowMajor, 'V','U',n , tmp8.data(), n, eig.data());
+            //update 'left' peps
+            Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
+    */
+            // --(2)-- 'right' site
 
-         cout << eig(eig.size()-1)/eig(0) << endl;
-         /*
-         //solve the system
-         solve(N_eff,rhs);
+            //construct effective environment and right hand side for linear system of bottom site
+            construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,false);
 
-         //update 'left' peps
-         Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
+            eig.clear();
+            debug::diagonalize(N_eff,eig);
 
-         // --(2)-- 'right' site
+            cout << "right\t" << eig(0) << "\t" << eig(eig.size() - 1) << "\t|\t" << eig(eig.size()-1)/eig(0) << endl;
+            cout << endl;
+/*
+            //solve the system
+            solve(N_eff,rhs);
 
-         //construct effective environment and right hand side for linear system of bottom site
-         construct_lin_sys(dir,row,col,peps,lop,rop,N_eff,rhs,L,R,LI,RI,b_L,b_R,false);
-
-         //solve the system
-         solve(N_eff,rhs);
-
-         //update 'right' peps
-         Permute(rhs,shape(0,1,4,2,3),peps(r_row,r_col));
-
-         //repeat until converged
-         ++iter;
-         */
-         //        }
+            //update 'right' peps
+            Permute(rhs,shape(0,1,4,2,3),peps(r_row,r_col));
+  */
+            //repeat until converged
+            ++iter;
+  
+         //}
 
       }
 
@@ -214,27 +213,26 @@ namespace propagate {
             contractions::init_ro('b',peps,R);
 
             //for(int col = 0;col < Lx - 1;++col){
+           int col = 0; 
 
-            // --- (1) update the vertical pair on column 'col' ---
-            int col = 0;
+               // --- (1) update the vertical pair on column 'col' ---
+               update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
-            update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+               // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+               //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
-            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+               // --- (3) update diagonal LU-RD
+               //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-            // --- (3) update diagonal LU-RD
-            //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+               // --- (4) update diagonal LD-RU
+               //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-            // --- (4) update diagonal LD-RU
-            //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
-
-            contractions::update_L('b',col,peps,L);
+               contractions::update_L('b',col,peps,L);
 
             //}
 
             //one last vertical update
-            //update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+//            update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
 
          }
          else if(row < Lx - 2){
@@ -255,10 +253,10 @@ namespace propagate {
                update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
                // --- (3) update diagonal LU-RD
-               update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+               //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
                // --- (4) update diagonal LD-RU
-               update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+               //update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
                //first construct a double layer object for the newly updated bottom 
                contractions::update_L(row,col,peps,LO);
@@ -281,7 +279,7 @@ namespace propagate {
             for(int col = 0;col < Lx - 1;++col){
 
                // --- (1) update vertical pair on column 'col' on upper two rows
-               // update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+               //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
                // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
                //update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
@@ -295,7 +293,7 @@ namespace propagate {
                // --- (4) update diagonal LD-RU
                //update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
-               //contractions::update_L('t',col,peps,L);
+               contractions::update_L('t',col,peps,L);
 
             }
 
@@ -311,44 +309,44 @@ namespace propagate {
       //    (B)     THEN THE ODD ROWS               //
       // ****************************************** //
       // ****************************************** //
-
+/*
       //update top and bottom environment
       global::env.calc('A',peps);
-      /*
+
 #pragma omp parallel for schedule(static,1)
-for(int row = 1;row < Ly-2;row+=2){
+      for(int row = 1;row < Ly-2;row+=2){
 
-      //renormalized operators for the middle sites
-      vector< DArray<6> > RO(Lx - 1);
-      DArray<6> LO;
+         //renormalized operators for the middle sites
+         vector< DArray<6> > RO(Lx - 1);
+         DArray<6> LO;
 
-      //first create right renormalized operator
-      contractions::init_ro(row,peps,RO);
+         //first create right renormalized operator
+         contractions::init_ro(row,peps,RO);
 
-      for(int col = 0;col < Lx - 1;++col){
+         for(int col = 0;col < Lx - 1;++col){
 
-      // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-      update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-      update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (3) update diagonal LU-RD
+            //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (4) update diagonal LD-RU
+            //update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      //first construct a double layer object for the newly updated bottom 
-      contractions::update_L(row,col,peps,LO);
+            //first construct a double layer object for the newly updated bottom 
+            contractions::update_L(row,col,peps,LO);
+
+         }
+
+         //finally, last vertical gate
+         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
 
       }
-
-      //finally, last vertical gate
-      update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
-
-      }
-      */
+*/
    }
 
    /** 
@@ -380,7 +378,8 @@ for(int row = 1;row < Ly-2;row+=2){
    }
 
    /**
-    * construct the single-site effective environment and right hand side needed for the linear system of any gate direction specified by 'dir'
+    * construct the single-site effective environment and right hand side needed for 
+    * the linear system of any gate direction specified by 'dir'
     * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
     * @param row the row index of the bottom site
     * @param col column index of the vertical column
@@ -396,9 +395,11 @@ for(int row = 1;row < Ly-2;row+=2){
     * @param left boolean flag for peps with left operator or right operator acting on it
     */
    template<>
-      void construct_lin_sys(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
-
-            const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7, const DArray<7> &b_L,const DArray<7> &b_R,bool left){
+      void construct_lin_sys(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
+            
+            DArray<8> &N_eff,DArray<5> &rhs, const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7,
+            
+            const DArray<7> &b_L,const DArray<7> &b_R,bool left){
 
          if(dir == VERTICAL){
 
@@ -408,31 +409,9 @@ for(int row = 1;row < Ly-2;row+=2){
 
                   if(left){//bottom site of vertical, so site (row,col) environment
 
-                     //paste top peps to right intermediate
-                     DArray<6> tmp6;
-                     Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
+                     calc_N_eff();
 
-                     //add another top peps for N_eff
-                     DArray<5> tmp5;
-                     Contract(1.0,tmp6,shape(0,4,1),peps(row+1,col),shape(1,2,4),0.0,tmp5);
-
-                     DArray<5> tmp5bis;
-                     Permute(tmp5,shape(3,4,0,2,1),tmp5bis);
-
-                     N_eff = tmp5bis.reshape_clear( shape(1,D,1,D,1,D,1,D) );
-
-                     //right hand side
-                     DArray<6> tmp6bis;
-                     Contract(1.0,tmp6,shape(0,4,1),rop,shape(1,2,5),0.0,tmp6bis);
-
-                     DArray<4> tmp4;
-                     Contract(1.0,tmp6bis,shape(3,5,4,0),lop,shape(0,1,3,5),0.0,tmp4);
-
-                     DArray<4> tmp4bis;
-                     Permute(tmp4,shape(1,3,0,2),tmp4bis);
-
-                     rhs = tmp4bis.reshape_clear( shape(1,D,1,D,d) );
-
+                     calc_rhs();
                   }
                   else{//top site (row,col)
 
@@ -1550,9 +1529,11 @@ for(int row = 1;row < Ly-2;row+=2){
     * @param left boolean flag for PEPS with left or right operator acted upon
     */
    template<>
-      void construct_lin_sys(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs,
-
-            const DArray<6> &LO, const DArray<6> &RO,const DArray<8> &LI8,const DArray<8> &RI8,const DArray<8> &b_L,const DArray<8> &b_R,bool left){
+      void construct_lin_sys(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,
+            
+            const DArray<6> &rop,DArray<8> &N_eff,DArray<5> &rhs, const DArray<6> &LO, const DArray<6> &RO,
+            
+            const DArray<8> &LI8,const DArray<8> &RI8,const DArray<8> &b_L,const DArray<8> &b_R,bool left){
 
          if(dir == VERTICAL){
 
@@ -3578,112 +3559,11 @@ for(int row = 1;row < Ly-2;row+=2){
     * @param RI7 right intermediate object
     */
    template<>
-      void canonicalize(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7){
+      void canonicalize(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<5> &L, const DArray<5> &R,
+            
+            const DArray<7> &LI7,const DArray<7> &RI7){
 
          if(dir == VERTICAL){
-
-            if(row == 0){
-
-               if(col == 0){
-
-                  //paste top peps to right intermediate
-                  DArray<6> tmp6;
-                  Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
-
-                  //add another top peps for N_eff
-                  DArray<5> tmp5;
-                  Contract(1.0,tmp6,shape(0,4,1),peps(row+1,col),shape(1,2,4),0.0,tmp5);
-
-                  DArray<5> tmp5bis;
-                  Permute(tmp5,shape(3,4,0,2,1),tmp5bis);
-
-                  DArray<4> tmp4 = tmp5bis.reshape_clear( shape(D,D,D,D) );
-
-                  int n = D*D;
-
-                  //symmetrize
-                  for(int i = 0;i < n;++i)
-                     for(int j = i + 1;j < n;++j){
-
-                        tmp4.data()[i*n + j] = 0.5 * (tmp4.data()[i*n + j]  + tmp4.data()[j*n + i]);
-                        tmp4.data()[j*n + i] = tmp4.data()[i*n + j];
-
-                     }
-
-                  DArray<1> eig(n);
-
-                  //diagonalize
-                  lapack::syev(CblasRowMajor, 'V','U', n, tmp4.data(), n, eig.data());
-
-                  //construct new environment PEPS
-                  DArray<3> X(D,n,D);
-
-                  //get the square root of the positive approximant:
-                  for(int iL = 0;iL < D;++iL)
-                     for(int iR = 0;iR < D;++iR)
-                        for(int kL = 0;kL < D;++kL)
-                           for(int kR = 0;kR < D;++kR){
-
-                              if(eig(kL*D + kR) > 0.0)
-                                 X(iL,kL*D + kR,iR) = sqrt( eig(kL*D + kR) ) * tmp4(iL,iR,kL,kR);
-
-                           }
-
-                  //now QR and LQ the X matrix and paste it on the aR and aL
-                  DArray<3> X_copy(X);
-
-                  //QR
-                  DArray<2> tmp2;
-                  Geqrf(X_copy,tmp2);
-
-                  //first paste it on the reduced tensor: a_R * R
-                  DArray<3> tmp3;
-                  Contract(1.0,a_R,shape(2),tmp2,shape(1),0.0,tmp3);
-
-                  a_R = std::move(tmp3);
-
-                  //paste the inverse to the environment tensor: R^{-1} * QR
-                  invert(tmp2);
-
-                  DArray<4> tmp4;
-                  Contract(1.0,tmp2,shape(0),QR,shape(0),0.0,tmp4);
-
-                  QR = std::move(tmp4);
-
-                  //LQ
-                  Gelqf(tmp2,X);
-
-                  //first paste it on the reduced tensor: L * a_L
-                  tmp3.clear();
-                  Contract(1.0,tmp2,shape(0),a_L,shape(0),0.0,tmp3);
-
-                  a_L = std::move(tmp3);
-
-                  //paste the inverse to the environment tensor: QL * L^{-1}
-                  invert(tmp2);
-
-                  tmp4.clear();
-                  Contract(1.0,QL,shape(3),tmp2,shape(1),0.0,tmp4);
-
-                  QL = std::move(tmp4);
-
-                  /*
-                  //paste bottom peps to right intermediate
-                  DArray<10> tmp10;
-                  Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
-
-                  //construct right hand side, attach operator to tmp10:
-                  DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
-
-                  //another bottom peps to this one
-                  DArray<8> tmp8;
-                  Contract(1.0,tmp7,shape(6,4),peps(row,col),shape(2,4),0.0,tmp8);
-
-                  Permute(tmp8,shape(5,0,6,2,7,1,4,3),N_eff);
-                  */
-               }
-
-            }
 
          }
 
@@ -3709,4 +3589,137 @@ for(int row = 1;row < Ly-2;row+=2){
 
       }
 
-}
+  /**
+    * construct the single-site effective environment around a site to be updated
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param N_eff output object, contains N_eff on output
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 right intermediate object
+    * @param left boolean flag for peps with left operator or right operator acting on it
+    */
+   template<>
+      void calc_N_eff(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<8> &N_eff,
+
+            const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7, bool left){
+
+         if(dir == VERTICAL){
+
+            if(row == 0){
+
+               if(col == 0){
+
+                  if(left){//bottom site of vertical, so site (row,col) environment
+
+                     //paste top peps to right intermediate
+                     DArray<6> tmp6;
+                     Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
+
+                     //add another top peps for N_eff
+                     DArray<5> tmp5;
+                     Contract(1.0,tmp6,shape(0,4,1),peps(row+1,col),shape(1,2,4),0.0,tmp5);
+
+                     DArray<5> tmp5bis;
+                     Permute(tmp5,shape(3,4,0,2,1),tmp5bis);
+
+                     N_eff = tmp5bis.reshape_clear( shape(1,D,1,D,1,D,1,D) );
+
+                  }
+                  else{//top site (row,col)
+
+                     //paste bottom peps to right intermediate
+                     DArray<10> tmp10;
+                     Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
+
+                     //construct right hand side, attach operator to tmp10:
+                     DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
+
+                     //another bottom peps to this one
+                     DArray<8> tmp8;
+                     Contract(1.0,tmp7,shape(6,4),peps(row,col),shape(2,4),0.0,tmp8);
+
+                     Permute(tmp8,shape(5,0,6,2,7,1,4,3),N_eff);
+
+                  }
+
+               }
+
+            }
+
+         }
+
+      }
+
+   /**
+    * construct the single-site effective environment around a site to be updated
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param N_eff output object, contains N_eff on output
+    * @param LO Left environment contraction
+    * @param RO Right environment contraction
+    * @param LI8 left intermediate object
+    * @param RI8 right intermediate object
+    * @param left boolean flag for peps with left operator or right operator acting on it
+    */
+   template<>
+      void calc_N_eff(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<8> &N_eff,
+
+            const DArray<6> &LO, const DArray<6> &RO, const DArray<8> &LI8,const DArray<8> &RI8, bool left){
+
+      }
+
+   /**
+    * construct the single-site effective environment and right hand side needed for 
+    * the linear system of any gate direction specified by 'dir'
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param rhs output object, contains N_eff on output
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 right intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
+    * @param left boolean flag for peps with left operator or right operator acting on it
+    */
+   template<>
+      void calc_rhs(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
+
+            DArray<5> &rhs, const DArray<5> &L, const DArray<5> &R, const DArray<7> &LI7,const DArray<7> &RI7,
+
+            const DArray<7> &b_L,const DArray<7> &b_R,bool left){
+
+      }
+
+   /**
+    * construct the single-site effective environment and right hand side needed for 
+    * the linear system of any gate direction specified by 'dir'
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param rhs output object, contains N_eff on output
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 right intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
+    * @param left boolean flag for peps with left operator or right operator acting on it
+    */
+   template<>
+      void calc_rhs(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
+
+            DArray<5> &rhs, const DArray<6> &L, const DArray<6> &R, const DArray<8> &LI8,const DArray<8> &RI8,
+
+            const DArray<8> &b_L,const DArray<8> &b_R,bool left){
+
+      }

@@ -19,6 +19,8 @@ namespace debug {
 
             const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &);
 
+   void diagonalize(DArray<8> &,DArray<1> &);
+
 }
 
 #endif

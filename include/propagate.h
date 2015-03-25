@@ -77,6 +77,10 @@ namespace propagate {
    //restore after update
    void equilibrate(const PROP_DIR &,int,int,PEPS<double> &);
 
+   void diagonalize(DArray<8> &,DArray<1> &);
+
+   void get_X(const DArray<8> &,const DArray<1> &,DArray<5> &);
+
 }
 
 #endif

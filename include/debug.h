@@ -19,6 +19,12 @@ namespace debug {
 
             const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &);
 
+   //cost function for testing the ALS solution of the tensor update
+   template<size_t M>
+      void svd_test(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,
+
+            const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,int);
+
 }
 
 #endif

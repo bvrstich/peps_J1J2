@@ -35,11 +35,11 @@ namespace propagate {
 
    //updates
    template<size_t M>
-      void update(const PROP_DIR &,int,int,PEPS<double> &,const DArray<M> &,const DArray<M> &,int);
+      void update(const PROP_DIR &,int,int,PEPS<double> &,DArray<M> &,DArray<M> &,int);
 
    //quasi-canonicalization of the environment
    template<size_t M>
-      void canonicalize(const PROP_DIR &,int,int,PEPS<double> &,const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &);
+      void canonicalize(const PROP_DIR &,int,int,PEPS<double> &,DArray<M> &,DArray<M> &,DArray<M+2> &,DArray<M+2> &);
 
    //sweeping sections
    template<size_t M>
@@ -80,6 +80,8 @@ namespace propagate {
    void diagonalize(DArray<8> &,DArray<1> &);
 
    void get_X(const DArray<8> &,const DArray<1> &,DArray<5> &);
+
+   void invert(DArray<2> &);
 
 }
 

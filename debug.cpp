@@ -1011,4 +1011,111 @@ namespace debug {
 
       }
 
+   /**
+    * test for the performance of the SVD approximation 
+    * for top or bottom rows, i.e. with L and R of order 5 and intermediates of order 7
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 left intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
+    */
+   template<>
+      void svd_test(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
+
+            const DArray<5> &L,const DArray<5> &R,const DArray<7> &LI7,const DArray<7> &RI7,int Dr){
+
+         if(dir == VERTICAL){
+
+            if(row == 0){
+
+               if(col == 0){
+
+                  DArray<8> tmp8;
+                  Contract(1.0,lop,shape(1,3),rop,shape(4,3),0.0,tmp8);
+
+                  //now get the "cost function limit"
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp8,shape(0,1,2,4,6),tmp8,shape(0,1,2,4,6),0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(1,4,2,5,0,3),tmp6bis);
+
+                  cout << -blas::dot(tmp6bis.size(),tmp6bis.data(),1,RI7.data(),1) << endl;
+
+                  //svd the fucker
+                  DArray<5> UL;//left unitary
+                  DArray<5> VR;//right unitary
+
+                  DArray<1> S;
+                  Gesvd ('S','S', tmp8, S,UL,VR,0);
+                  cout << std::scientific << S << endl;
+
+                  //take the square root of the sv's
+                  for(int i = 0;i < S.size();++i)
+                     S(i) = sqrt(S(i));
+
+                  //and multiply it left and right to the tensors
+                  Dimm(S,VR);
+                  Dimm(UL,S);
+
+                  DArray<8> tmp8_reduced;
+                  Contract(1.0,UL,shape(4),VR,shape(0),0.0,tmp8_reduced);
+
+                  //now get the "reduced value for the cost function"
+                  Contract(1.0,tmp8_reduced,shape(0,1,2,4,6),tmp8_reduced,shape(0,1,2,4,6),0.0,tmp6);
+
+                  Permute(tmp6,shape(1,4,2,5,0,3),tmp6bis);
+
+                  double overlap = blas::dot(tmp6bis.size(),tmp6bis.data(),1,RI7.data(),1);
+
+                  Contract(1.0,tmp8_reduced,shape(0,1,2,4,6),tmp8,shape(0,1,2,4,6),0.0,tmp6);
+
+                  Permute(tmp6,shape(1,4,2,5,0,3),tmp6bis);
+
+                  cout << overlap - 2.0 * blas::dot(tmp6bis.size(),tmp6bis.data(),1,RI7.data(),1) << endl;
+
+               }
+            }
+         }
+      }
+
+   /**
+    * test for the performance of the SVD approximation 
+    * for top or bottom rows, i.e. with L and R of order 5 and intermediates of order 7
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row , the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI7 left intermediate object
+    * @param RI7 left intermediate object
+    * @param b_L left intermediate object
+    * @param b_R right intermediate object
+    */
+   template<>
+      void svd_test(const PROP_DIR &dir,int row,int col,PEPS<double> &peps,const DArray<6> &lop,const DArray<6> &rop,
+
+            const DArray<6> &L,const DArray<6> &R,const DArray<8> &LI8,const DArray<8> &RI8,int Dr){
+
+         if(dir == VERTICAL){
+
+            if(row == 0){
+
+               if(col == 0){
+
+                  cout << "fuckityfuckityfuck" << endl;
+
+               }
+            }
+         }
+      }
+
+
 } 

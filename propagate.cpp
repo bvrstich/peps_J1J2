@@ -55,38 +55,38 @@ namespace propagate {
          std::vector< DArray<2> > R_r(4);
 
          // --- (b) --- canonicalize the environments around the sites to be updated
-         //canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
+         canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
+         /*
+            if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
-         if(dir == VERTICAL){// (row,col) --> (row+1,col)
-
-            //left and right operators:
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+         //left and right operators:
+         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else if(dir == HORIZONTAL){// (row,col) --> (row,col+1)
 
-            //left and right operators:
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+         //left and right operators:
+         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
 
-            //middle peps is left bottom 
-            mop = peps(row,col);
+         //middle peps is left bottom 
+         mop = peps(row,col);
 
-            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else{//(row,col) --> (row+1,col+1)
 
-            //middle peps is bottom right
-            mop = peps(row,col+1);
+         //middle peps is bottom right
+         mop = peps(row,col+1);
 
-            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-            Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+         Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
 
@@ -101,7 +101,7 @@ namespace propagate {
 
          // --- (f) --- set top and bottom back on equal footing
          //equilibrate(dir,row,col,peps);
-
+         */
       }
 
    /**
@@ -212,16 +212,18 @@ namespace propagate {
 
             //containers for the renormalized operators
             vector< DArray<5> > R(Lx);
-            DArray<5> L;
 
             //initialize the right operators for the bottom row
             contractions::init_ro('b',peps,R);
 
-            for(int col = 0;col < Lx - 1;++col){
+            DArray<5> L(1,1,1,1,1);
+            L = 1.0;
+
+            //for(int col = 0;col < Lx - 1;++col){
+            int col = 0;
 
             // --- (1) update the vertical pair on column 'col' ---
-               if(col == 1)
-                  update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+            update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
             //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
@@ -232,9 +234,9 @@ namespace propagate {
             // --- (4) update diagonal LD-RU
             //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-            contractions::update_L('b',col,peps,L);
+            //contractions::update_L('b',col,peps,L);
 
-            }
+            //}
 
             //one last vertical update
             //            update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
@@ -2352,14 +2354,13 @@ for(int row = 1;row < Ly-2;row+=2){
 
          if(dir == VERTICAL){
 
+            //only LI7
             if(row == 0){
 
-               if(col == 0)
-                  Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col],R,0.0,RI7);
-               else if(col < Lx - 1)
-                  Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
-               else
-                  Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
+               DArray<7> tmp7;
+               Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,tmp7);
+
+               Permute(tmp7,shape(6,4,5,0,1,2,3),LI7);
 
             }
             else{//row == Lx - 2
@@ -3538,85 +3539,45 @@ for(int row = 1;row < Ly-2;row+=2){
 
             if(row == 0){
 
-               if(col == 0){
+               if(left){//bottom site
 
-                  if(left){//bottom site of vertical, so site (row,col) environment
+                  //paste top peps to left
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(3,1),peps(row+1,col),shape(0,1),0.0,tmp8);
 
-                     //paste top peps to right intermediate
-                     DArray<6> tmp6;
-                     Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
+                  //and another: watch out, order is reversed!
+                  DArray<7> tmp7;
+                  Contract(1.0,tmp8,shape(2,1,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
 
-                     //add another top peps for N_eff
-                     DArray<5> tmp5;
-                     Contract(1.0,tmp6,shape(0,4,1),peps(row+1,col),shape(1,2,4),0.0,tmp5);
+                  //now add right side to it
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp7,shape(0,3,5),R,shape(0,1,2),0.0,tmp6);
 
-                     DArray<5> tmp5bis;
-                     Permute(tmp5,shape(3,4,0,2,1),tmp5bis);
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
 
-                     N_eff = tmp5bis.reshape_clear( shape(1,D,1,D,1,D,1,D) );
+                  int DL = peps(row,col).shape(0);
+                  int DR = peps(row,col).shape(4);
 
-                  }
-                  else{//top site (row,col)
-
-                     //paste bottom peps to right intermediate
-                     DArray<10> tmp10;
-                     Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
-
-                     //construct right hand side, attach operator to tmp10:
-                     DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
-
-                     //another bottom peps to this one
-                     DArray<8> tmp8;
-                     Contract(1.0,tmp7,shape(6,4),peps(row,col),shape(2,4),0.0,tmp8);
-
-                     Permute(tmp8,shape(5,0,6,2,7,1,4,3),N_eff);
-
-                  }
+                  N_eff = tmp6bis.reshape_clear(shape(DL,D,1,DR,DL,D,1,DR));
 
                }
-               else if(col < Lx - 1){//col != 0
+               else{//top site
 
-                  if(left){//bottom site
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col),shape(4),R,shape(4),0.0,tmp8);
 
-                     //paste top peps to left
-                     DArray<8> tmp8;
-                     Contract(1.0,LI7,shape(1,5),peps(row+1,col),shape(0,1),0.0,tmp8);
+                  DArray<7> tmp7;
+                  Contract(1.0,peps(row,col),shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
 
-                     //and another: watch out, order is reversed!
-                     DArray<7> tmp7;
-                     Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
+                  //contract left and right
+                  tmp8.clear();
+                  Contract(1.0,LI7,shape(0,5,6),tmp7,shape(4,0,2),0.0,tmp8);
 
-                     //now add right side to it
-                     DArray<6> tmp6;
-                     Contract(1.0,tmp7,shape(2,6,4),R,shape(0,1,2),0.0,tmp6);
-
-                     DArray<6> tmp6bis;
-                     Permute(tmp6,shape(0,3,4,1,2,5),tmp6bis);
-
-                     N_eff = tmp6bis.reshape_clear(shape(D,D,1,D,D,D,1,D));
-
-                  }
-                  else{//bottom site
-
-                     //paste bottom peps to right
-                     DArray<8> tmp8;
-                     Gemm(CblasNoTrans,CblasTrans,1.0,peps(row,col),R,0.0,tmp8);
-
-                     //and another!
-                     DArray<7> tmp7;
-                     Contract(1.0,peps(row,col),shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
-
-                     //add to LI7
-                     DArray<8> tmp8bis;
-                     Contract(1.0,LI7,shape(2,3,6),tmp7,shape(0,2,4),0.0,tmp8bis);
-
-                     N_eff.clear();
-                     Permute(tmp8bis,shape(0,2,4,6,1,3,5,7),N_eff);
-
-                  }
+                  N_eff.clear();
+                  Permute(tmp8,shape(2,0,4,6,3,1,5,7),N_eff);
 
                }
-
 
             }
 
@@ -3774,12 +3735,10 @@ for(int row = 1;row < Ly-2;row+=2){
          //calculate the environment for the left site
          DArray<8> N_eff;
          calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,true);
-
+         
          //eigenvalues
          DArray<1> eig;
          diagonalize(N_eff,eig);
-
-         cout << eig(eig.size()-1)/eig(0) << endl;
 
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          DArray<5> X;
@@ -3815,10 +3774,6 @@ for(int row = 1;row < Ly-2;row+=2){
 
                }
 
-               if(N_eff.shape(2) > 1){//down
-
-               }
-
                if(N_eff.shape(3) > 1){//right
 
                   Permute(X,shape(0,1,2,4,3),X_copy);
@@ -3835,31 +3790,18 @@ for(int row = 1;row < Ly-2;row+=2){
                   //add  inverse to environment, for upper and lower layer
                   invert(R_l[3]);
 
-                  if(col == 0){
+                  tmp5.clear();
+                  Contract(1.0,R,shape(3),R_l[3],shape(0),0.0,tmp5);
 
-                     DArray<7> tmp7;
-                     Contract(1.0,RI7,shape(5),R_l[3],shape(0),0.0,tmp7);
+                  //and again
+                  Contract(1.0,tmp5,shape(3),R_l[3],shape(0),0.0,R);
 
-                     //and again
-                     Contract(1.0,tmp7,shape(5),R_l[3],shape(0),0.0,RI7);
-
-                  }
-                  else{
-
-                     tmp5.clear();
-                     Contract(1.0,R,shape(3),R_l[3],shape(0),0.0,tmp5);
-
-                     //and again
-                     Contract(1.0,tmp5,shape(3),R_l[3],shape(0),0.0,R);
-
-                  }
-  
                }
 
             }
 
          }
-         /*
+
          // -----------------------------//
          // --- (B) ---- RIGHT SITE ---- //
          // -----------------------------//
@@ -3872,222 +3814,229 @@ for(int row = 1;row < Ly-2;row+=2){
          eig.clear();
          diagonalize(N_eff,eig);
 
+         cout << eig(eig.size()-1)/eig(0) << endl;
+
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          X.clear();
          get_X(N_eff,eig,X);
 
          if(dir == VERTICAL){
 
-         if(N_eff.shape(0) > 1){//left
+            if(N_eff.shape(0) > 1){//left
+
+            }
+
+            if(N_eff.shape(1) > 1){//up
+
+               Permute(X,shape(0,2,3,4,1),X_copy);
+
+               //QR
+               Geqrf(X_copy,R_r[1]);
+
+               //add to up side of tensor
+               DArray<5> tmp5;
+               Contract(1.0,peps(row+1,col),shape(1),R_r[1],shape(1),0.0,tmp5);
+
+               Permute(tmp5,shape(0,4,1,2,3),peps(row+1,col));
+
+               //add  inverse to environment, for upper and lower layer
+               invert(R_r[1]);
+
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(1),R_r[1],shape(0),0.0,tmp7);
+
+               //and again
+               LI7.clear();
+               Contract(1.0,tmp7,shape(1),R_r[1],shape(0),0.0,LI7);
+
+               tmp7.clear();
+               Permute(LI7,shape(0,5,6,1,2,3,4),tmp7);
+
+               LI7 = std::move(tmp7);
+
+            }
+
+            if(N_eff.shape(3) > 1){//right
+
+               Permute(X,shape(0,1,2,4,3),X_copy);
+
+               //QR
+               Geqrf(X_copy,R_r[3]);
+
+               //add to right side of tensor
+               DArray<5> tmp5;
+               Contract(1.0,peps(row+1,col),shape(4),R_r[3],shape(1),0.0,tmp5);
+
+               peps(row+1,col) = std::move(tmp5);
+
+               //add  inverse to environment, for upper and lower layer
+               invert(R_r[3]);
+
+               tmp5.clear();
+               Contract(1.0,R,shape(3),R_r[3],shape(0),0.0,tmp5);
+
+               //and again
+               Contract(1.0,tmp5,shape(3),R_r[3],shape(0),0.0,R);
+
+            }
 
          }
 
-         if(N_eff.shape(1) > 1){//up
+         //calculate the environment for the right site
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,false);
 
-         Permute(X,shape(0,2,3,4,1),X_copy);
+         //eigenvalues
+         eig.clear();
+         diagonalize(N_eff,eig);
 
-         //QR
-         Geqrf(X_copy,R_r[1]);
+         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
 
-         //add to up side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(row+1,col),shape(1),R_r[1],shape(1),0.0,tmp5);
+      }
 
-         Permute(tmp5,shape(0,4,1,2,3),peps(row+1,col));
+   /**
+    * quasi canonicalize the environment of the sites to be updated, for stability reaons in the program.
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param L Left environment contraction
+    * @param R Right environment contraction
+    * @param LI8 left intermediate object
+    * @param RI8 right intermediate object
+    * @param R_l vector of DArray<2> objects containing the inverse R of the QR decompostion (left site)
+    * @param R_r vector of DArray<2> objects containing the inverse R of the QR decompostion (right site)
+    */
+   template<>
+      void canonicalize(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<6> &L, DArray<6> &R,
 
-         //add  inverse to environment, for upper and lower layer
-         invert(R_r[1]);
+            DArray<8> &LI8,DArray<8> &RI8,std::vector< DArray<2> > &R_l,std::vector< DArray<2> > &R_r){
 
-         DArray<7> tmp7;
-         Contract(1.0,RI7,shape(1),R_r[1],shape(0),0.0,tmp7);
+      }
 
-         //and again
-         Contract(1.0,tmp7,shape(1),R_r[1],shape(0),0.0,RI7);
+   /**
+    * diagonalize the effective environment:
+    * @param N_eff is the effective environmnt: output eigenvectors
+    * @param eig output eigenvalues
+    */
+   void diagonalize(DArray<8> &N_eff,DArray<1> &eig){
 
-         tmp7.clear();
-         Permute(RI7,shape(0,5,6,1,2,3,4),tmp7);
+      int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
 
-         RI7 = std::move(tmp7);
+      for(int i = 0;i < n;++i)
+         for(int j = i + 1;j < n;++j){
+
+            N_eff.data()[i + n*j] = 0.5 * ( N_eff.data()[i + n*j] + N_eff.data()[j + n*i] );
+            N_eff.data()[j + n*i] = N_eff.data()[i + n*j];
 
          }
 
-         if(N_eff.shape(3) > 1){//right
+      eig.resize(n);
+      lapack::syev(CblasRowMajor,'V','U',n,N_eff.data(),n,eig.data());
 
-         Permute(X,shape(0,1,2,4,3),X_copy);
-
-         //QR
-         Geqrf(X_copy,R_r[3]);
-
-         //add to right side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(row+1,col),shape(4),R_r[3],shape(1),0.0,tmp5);
-
-         peps(row+1,col) = std::move(tmp5);
-
-         //add  inverse to environment, for upper and lower layer
-         invert(R_r[3]);
-
-         DArray<7> tmp7;
-         Contract(1.0,RI7,shape(3),R_r[3],shape(0),0.0,tmp7);
-
-         //and again
-         Contract(1.0,tmp7,shape(3),R_r[3],shape(0),0.0,RI7);
-
-         tmp7.clear();
-         Permute(RI7,shape(0,1,2,5,6,3,4),tmp7);
-
-         RI7 = std::move(tmp7);
-
-}
-
-}
-*/
-}
-
-/**
- * quasi canonicalize the environment of the sites to be updated, for stability reaons in the program.
- * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
- * @param row the row index of the bottom site
- * @param col column index of the vertical column
- * @param peps, full PEPS object before update
- * @param L Left environment contraction
- * @param R Right environment contraction
- * @param LI8 left intermediate object
- * @param RI8 right intermediate object
- * @param R_l vector of DArray<2> objects containing the inverse R of the QR decompostion (left site)
- * @param R_r vector of DArray<2> objects containing the inverse R of the QR decompostion (right site)
- */
-template<>
-void canonicalize(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<6> &L, DArray<6> &R,
+   }
 
 
-      DArray<8> &LI8,DArray<8> &RI8,std::vector< DArray<2> > &R_l,std::vector< DArray<2> > &R_r){
+   /**
+    * get the X - peps: X^T X ~ N_eff positive approximant of environment
+    * @param N_eff is the effective environmnt: output eigenvectors
+    * @param eig output eigenvalues
+    */
+   void get_X(const DArray<8> &N_eff,const DArray<1> &eig,DArray<5> &X){
 
-}
+      int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
 
-/**
- * diagonalize the effective environment:
- * @param N_eff is the effective environmnt: output eigenvectors
- * @param eig output eigenvalues
- */
-void diagonalize(DArray<8> &N_eff,DArray<1> &eig){
+      X.resize( shape(N_eff.shape(0),N_eff.shape(1),N_eff.shape(2),N_eff.shape(3),n) );
 
-   int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
+      //get the square root of the positive approximant:
+      for(int i = 0;i < n;++i)
+         for(int j = 0;j < n;++j)
+            if(eig(j) > 0.0)
+               X.data()[i*n + j] = sqrt( eig(j) ) * N_eff.data()[i*n + j];
 
-   for(int i = 0;i < n;++i)
-      for(int j = i + 1;j < n;++j){
+   }
 
-         N_eff.data()[i + n*j] = 0.5 * ( N_eff.data()[i + n*j] + N_eff.data()[j + n*i] );
-         N_eff.data()[j + n*i] = N_eff.data()[i + n*j];
+   /** 
+    * wrapper function invert square general matrix DArray<2>.
+    * @param A both input as output matrix: on input A, on output A^{-1}
+    */
+   void invert(DArray<2> &A){
 
-      }
+      int *ipiv = new int [A.shape(0)];
 
-   eig.resize(n);
-   lapack::syev(CblasRowMajor,'V','U',n,N_eff.data(),n,eig.data());
+      lapack::getrf(CblasRowMajor,A.shape(0),A.shape(1), A.data(), A.shape(1), ipiv);
 
-}
+      lapack::getri(CblasRowMajor,A.shape(0), A.data(), A.shape(1), ipiv);
 
+      delete [] ipiv;
 
-/**
- * get the X - peps: X^T X ~ N_eff positive approximant of environment
- * @param N_eff is the effective environmnt: output eigenvectors
- * @param eig output eigenvalues
- */
-void get_X(const DArray<8> &N_eff,const DArray<1> &eig,DArray<5> &X){
+   }
 
-   int n = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
+   /** 
+    * restore the tensors to their original state, i.e. undo canonicalization
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param peps, full PEPS object before update
+    * @param R_l vector of DArray<2> objects containing the inverse R of the QR decompostion (left site)
+    * @param R_r vector of DArray<2> objects containing the inverse R of the QR decompostion (right site)
+    */
+   void restore(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, 
 
-   X.resize( shape(N_eff.shape(0),N_eff.shape(1),N_eff.shape(2),N_eff.shape(3),n) );
+         const std::vector< DArray<2> > &R_l, const std::vector< DArray<2> > &R_r){
 
-   //get the square root of the positive approximant:
-   for(int i = 0;i < n;++i)
-      for(int j = 0;j < n;++j)
-         if(eig(j) > 0.0)
-            X.data()[i*n + j] = sqrt( eig(j) ) * N_eff.data()[i*n + j];
+      //LEFT SITE
+      if(dir == VERTICAL){
 
-}
+         if(peps(row,col).shape(0) > 1){//left
 
-/** 
- * wrapper function invert square general matrix DArray<2>.
- * @param A both input as output matrix: on input A, on output A^{-1}
- */
-void invert(DArray<2> &A){
+         }
 
-   int *ipiv = new int [A.shape(0)];
+         if(peps(row,col).shape(2) > 1){//down
 
-   lapack::getrf(CblasRowMajor,A.shape(0),A.shape(1), A.data(), A.shape(1), ipiv);
+         }
 
-   lapack::getri(CblasRowMajor,A.shape(0), A.data(), A.shape(1), ipiv);
+         if(peps(row,col).shape(4) > 1){//right
 
-   delete [] ipiv;
+            //add to right side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(row,col),shape(4),R_l[3],shape(1),0.0,tmp5);
 
-}
+            peps(row,col) = std::move(tmp5);
 
-/** 
- * restore the tensors to their original state, i.e. undo canonicalization
- * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
- * @param row the row index of the bottom site
- * @param col column index of the vertical column
- * @param peps, full PEPS object before update
- * @param R_l vector of DArray<2> objects containing the inverse R of the QR decompostion (left site)
- * @param R_r vector of DArray<2> objects containing the inverse R of the QR decompostion (right site)
- */
-void restore(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, 
-
-      const std::vector< DArray<2> > &R_l, const std::vector< DArray<2> > &R_r){
-
-   //LEFT SITE
-   if(dir == VERTICAL){
-
-      if(peps(row,col).shape(0) > 1){//left
+         }
 
       }
 
-      if(peps(row,col).shape(2) > 1){//down
+      //RIGHT SITE
+      if(dir == VERTICAL){
 
-      }
+         if(peps(row+1,col).shape(0) > 1){//left
 
-      if(peps(row,col).shape(4) > 1){//right
+         }
 
-         //add to right side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(row,col),shape(4),R_l[3],shape(1),0.0,tmp5);
+         if(peps(row+1,col).shape(1) > 1){//up
 
-         peps(row,col) = std::move(tmp5);
+            //add to up side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(row+1,col),shape(1),R_r[1],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(row+1,col));
+
+         }
+
+         if(peps(row+1,col).shape(4) > 1){//right
+
+            //add to right side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(row+1,col),shape(4),R_r[3],shape(1),0.0,tmp5);
+
+            peps(row+1,col) = std::move(tmp5);
+
+         }
 
       }
 
    }
-
-   //RIGHT SITE
-   if(dir == VERTICAL){
-
-      if(peps(row+1,col).shape(0) > 1){//left
-
-      }
-
-      if(peps(row+1,col).shape(1) > 1){//up
-
-         //add to up side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(row+1,col),shape(1),R_r[1],shape(1),0.0,tmp5);
-
-         Permute(tmp5,shape(0,4,1,2,3),peps(row+1,col));
-
-      }
-
-      if(peps(row+1,col).shape(4) > 1){//right
-
-         //add to right side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(row+1,col),shape(4),R_r[3],shape(1),0.0,tmp5);
-
-         peps(row+1,col) = std::move(tmp5);
-
-      }
-
-   }
-
-}
 
 }

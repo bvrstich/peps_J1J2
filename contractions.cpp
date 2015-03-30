@@ -234,62 +234,30 @@ namespace contractions {
 
       if(option == 'b'){
 
-         DArray<7> tmp7;
-         DArray<7> tmp7bis;
+         R[Lx-1].resize( shape(1,1,1,1,1) );
+         R[Lx - 1] = 1.0;
 
-         //first the rightmost operator
-         int M = peps(1,Lx-1).shape(0) * peps(1,Lx-1).shape(1) * peps(1,Lx-1).shape(2);
-         int N = env.gb(0)[Lx-1].shape(0) * env.gb(0)[Lx-1].shape(1);
-         int K = env.gb(0)[Lx-1].shape(2) * env.gb(0)[Lx-1].shape(3);
+         int M,N,K;
 
-         DArray<6> tmp6(D,D,d,D,D,D);
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,peps(1,Lx-1).data(),K,env.gb(0)[Lx-1].data(),K,0.0,tmp6.data(),N);
+         DArray<7> tmp7,tmp7bis;
+         DArray<8> tmp8,tmp8bis;
 
-         DArray<6> tmp6bis;
-         Permute(tmp6,shape(2,5,0,1,3,4),tmp6bis);
-
-         M = peps(1,Lx-1).shape(0) * peps(1,Lx-1).shape(1);
-         N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
-         K = peps(1,Lx-1).shape(2) * peps(1,Lx-1).shape(3);
-
-         tmp6.resize( shape(D,D,tmp6bis.shape(2),tmp6bis.shape(3),tmp6bis.shape(4),tmp6bis.shape(5)) );
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(1,Lx-1).data(),K,tmp6bis.data(),N,0.0,tmp6.data(),N);
-
-         tmp6bis.clear();
-         Permute(tmp6,shape(1,3,0,2,4,5),tmp6bis);
-
-         M = env.gt(0)[Lx - 1].shape(0);
-         N = tmp6bis.shape(2) * tmp6bis.shape(3) * tmp6bis.shape(4) * tmp6bis.shape(5);
-         K = env.gt(0)[Lx - 1].shape(1) * env.gt(0)[Lx - 1].shape(2);
-
-         R[Lx - 2].resize(shape(M,tmp6bis.shape(2),tmp6bis.shape(3),tmp6bis.shape(4),tmp6bis.shape(5)));
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(0)[Lx-1].data(),K,tmp6bis.data(),N,0.0,R[Lx - 2].data(),N);
-
-         for(int i = Lx - 2;i > 0;--i){
-
-            M = R[i].shape(0) * R[i].shape(1) * R[i].shape(2);
-            N = env.gb(0)[i].shape(0) * env.gb(0)[i].shape(1) * env.gb(0)[i].shape(2);
-            K = env.gb(0)[i].shape(3);
-
-            tmp7.resize(shape( R[i].shape(0),D,D,D,D,D,D) );
-            blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,R[i].data(),K,env.gb(0)[i].data(),K,0.0,tmp7.data(),N);
-
-            tmp7bis.clear();
-            Permute(tmp7,shape(0,1,3,4,5,6,2),tmp7bis);
-
-            DArray<8> tmp8;
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp7bis,peps(1,i),0.0,tmp8);
-
-            DArray<8> tmp8bis;
-            Permute(tmp8,shape(0,5,2,3,6,7,4,1),tmp8bis);
+         for(int i = Lx - 1;i > 0;--i){
 
             tmp7.clear();
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp8bis,peps(1,i),0.0,tmp7);
+            Contract(1.0,env.gt(0)[i],shape(3),R[i],shape(0),0.0,tmp7);
 
-            tmp7bis.clear();
-            Permute(tmp7,shape(6,4,0,5,1,2,3),tmp7bis);
+            tmp8.clear();
+            Contract(1.0,tmp7,shape(1,3),peps(1,i),shape(1,4),0.0,tmp8);
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[i],tmp7bis,0.0,R[i - 1]);
+            tmp7.clear();
+            Contract(1.0,tmp8,shape(1,6,2),peps(1,i),shape(1,2,4),0.0,tmp7);
+
+            tmp8.clear();
+            Contract(1.0,tmp7,shape(4,1),peps(0,i),shape(1,4),0.0,tmp8);
+
+            R[i - 1].clear();
+            Contract(1.0,tmp8,shape(4,6,7,1),peps(0,i),shape(1,2,3,4),0.0,R[i-1]);
 
          }
 
@@ -375,7 +343,7 @@ namespace contractions {
          //paste top environment on
          DArray<5> tmp5;
          Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[0],peps(row+1,0),0.0,tmp5);
-         
+
          DArray<6> tmp6;
          Contract(1.0,tmp5,shape(0,2),peps(row+1,0),shape(1,2),0.0,tmp6);
 
@@ -408,7 +376,7 @@ namespace contractions {
 
          LO.clear();
          Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col],shape(0,1,2),0.0,LO);
- 
+
       }
 
    }

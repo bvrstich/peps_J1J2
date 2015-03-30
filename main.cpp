@@ -45,22 +45,22 @@ int main(int argc,char *argv[]){
    peps.normalize();
 
    global::env.calc('A',peps);
-   /*
+   
    global::env.test();
-   cout << "initial:" << peps.energy() << endl;
-    */
+   cout << "initial:\t" << peps.energy() << endl;
+  
    //for(int i = 0;i < 2000;++i){
 int i = 0;
-      propagate::step(peps,10);
+      propagate::step(peps,20);
 
       peps.rescale_tensors(1.0);
       peps.normalize();
-/*
+
       global::env.calc('A',peps);
       cout << "******************************" << endl;
       cout << i << "\t" << peps.energy() << endl;
       cout << "******************************" << endl;
-  */
+
 //   }
 /*
    tau *= 0.1;

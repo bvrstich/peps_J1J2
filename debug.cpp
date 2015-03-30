@@ -1054,7 +1054,7 @@ namespace debug {
 
                   DArray<1> S;
                   Gesvd ('S','S', tmp8, S,UL,VR,0);
-                  cout << std::scientific << S << endl;
+                  cout <<  S << endl;
 
                   //take the square root of the sv's
                   for(int i = 0;i < S.size();++i)

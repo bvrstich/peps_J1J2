@@ -39,7 +39,9 @@ namespace propagate {
 
    //quasi-canonicalization of the environment
    template<size_t M>
-      void canonicalize(const PROP_DIR &,int,int,PEPS<double> &,DArray<M> &,DArray<M> &,DArray<M+2> &,DArray<M+2> &);
+      void canonicalize(const PROP_DIR &,int,int,PEPS<double> &,DArray<M> &,DArray<M> &,DArray<M+2> &,DArray<M+2> &,
+            
+            std::vector< DArray<2> > &, std::vector< DArray<2> > &);
 
    //sweeping sections
    template<size_t M>
@@ -74,8 +76,11 @@ namespace propagate {
    //initialization by SVD
    void initialize(const PROP_DIR &,int,int,const DArray<6> &,const DArray<6> &,PEPS<double> &);
 
-   //restore after update
+   //set the tensors on equal footing
    void equilibrate(const PROP_DIR &,int,int,PEPS<double> &);
+
+   //undo canonicalization of tensors
+   void restore(const PROP_DIR &,int,int,PEPS<double> &,const std::vector< DArray<2> > &,const std::vector< DArray<2> > &);
 
    void diagonalize(DArray<8> &,DArray<1> &);
 

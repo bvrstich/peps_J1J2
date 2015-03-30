@@ -50,48 +50,81 @@ namespace propagate {
          // --- (a) --- first construct some intermediates for all the environment calculations
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
 
+         DArray<8> N_eff;
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+
+         DArray<1> eig;
+         diagonalize(N_eff,eig);
+
+         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
+
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+
+         eig.clear();
+         diagonalize(N_eff,eig);
+
+         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
+
          //the environment 'R' matrices from the QR decompositions of the environment
          std::vector< DArray<2> > R_l(4);
          std::vector< DArray<2> > R_r(4);
 
          // --- (b) --- canonicalize the environments around the sites to be updated
          canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
-         /*
-            if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
-         //left and right operators:
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+         if(dir == VERTICAL){// (row,col) --> (row+1,col)
+
+            //left and right operators:
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else if(dir == HORIZONTAL){// (row,col) --> (row,col+1)
 
-         //left and right operators:
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+            //left and right operators:
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
 
-         //middle peps is left bottom 
-         mop = peps(row,col);
+            //middle peps is left bottom 
+            mop = peps(row,col);
 
-         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else{//(row,col) --> (row+1,col+1)
 
-         //middle peps is bottom right
-         mop = peps(row,col+1);
+            //middle peps is bottom right
+            mop = peps(row,col+1);
 
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
 
          // --- (c) --- initial guess: use SVD to initialize the tensors
-         //initialize(dir,row,col,lop,rop,peps); 
+         initialize(dir,row,col,lop,rop,peps); 
+
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+
+         eig.clear();
+         diagonalize(N_eff,eig);
+
+         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
+
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+
+         eig.clear();
+         diagonalize(N_eff,eig);
+
+         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
+
 
          // --- (d) --- sweeping update: ALS
          //sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
@@ -101,7 +134,7 @@ namespace propagate {
 
          // --- (f) --- set top and bottom back on equal footing
          //equilibrate(dir,row,col,peps);
-         */
+        
       }
 
    /**
@@ -3551,7 +3584,7 @@ for(int row = 1;row < Ly-2;row+=2){
 
                   //now add right side to it
                   DArray<6> tmp6;
-                  Contract(1.0,tmp7,shape(0,3,5),R,shape(0,1,2),0.0,tmp6);
+                  Contract(1.0,tmp7,shape(0,4,6),R,shape(0,1,2),0.0,tmp6);
 
                   DArray<6> tmp6bis;
                   Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
@@ -3735,7 +3768,7 @@ for(int row = 1;row < Ly-2;row+=2){
          //calculate the environment for the left site
          DArray<8> N_eff;
          calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,true);
-         
+
          //eigenvalues
          DArray<1> eig;
          diagonalize(N_eff,eig);
@@ -3814,8 +3847,6 @@ for(int row = 1;row < Ly-2;row+=2){
          eig.clear();
          diagonalize(N_eff,eig);
 
-         cout << eig(eig.size()-1)/eig(0) << endl;
-
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          X.clear();
          get_X(N_eff,eig,X);
@@ -3873,24 +3904,19 @@ for(int row = 1;row < Ly-2;row+=2){
                invert(R_r[3]);
 
                tmp5.clear();
-               Contract(1.0,R,shape(3),R_r[3],shape(0),0.0,tmp5);
+               Contract(1.0,R,shape(1),R_r[3],shape(0),0.0,tmp5);
 
                //and again
-               Contract(1.0,tmp5,shape(3),R_r[3],shape(0),0.0,R);
+               Contract(1.0,tmp5,shape(1),R_r[3],shape(0),0.0,R);
+ 
+               tmp5.clear();
+               Permute(R,shape(0,3,4,1,2),tmp5);
 
+               R = std::move(tmp5);
+ 
             }
 
          }
-
-         //calculate the environment for the right site
-         N_eff.clear();
-         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,false);
-
-         //eigenvalues
-         eig.clear();
-         diagonalize(N_eff,eig);
-
-         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
 
       }
 

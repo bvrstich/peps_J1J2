@@ -90,9 +90,53 @@ namespace propagate {
 
          }
 
+         //construct effective environment and right hand side for linear system of top site
+         DArray<8> N_eff;
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+
+         DArray<1> eig;
+         diagonalize(N_eff,eig);
+/*
+         cout << endl;
+         cout << "initial" << endl;
+         cout << endl;
+
+         cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+
+         eig.clear();
+         diagonalize(N_eff,eig);
+
+         cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+         cout << endl;
+  */
          // --- (c) --- initial guess: use SVD to initialize the tensors
          initialize(dir,row,col,lop,rop,peps); 
 
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+
+         eig.clear();
+         diagonalize(N_eff,eig);
+  /*
+         cout << endl;
+         cout << "after svd" << endl;
+         cout << endl;
+
+         cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+
+         eig.clear();
+         diagonalize(N_eff,eig);
+
+         cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+         cout << endl;
+
+  */
          // --- (d) --- sweeping update: ALS
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
@@ -101,7 +145,7 @@ namespace propagate {
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
-      
+
       }
 
    /**
@@ -158,7 +202,15 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of top site
             calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+/*
+            //eigenvalues
+            DArray<8> tmp8 = N_eff;
 
+            DArray<1> eig;
+            diagonalize(tmp8,eig);
+
+            cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+  */
             calc_rhs(dir,row,col,peps,lop,rop,rhs,L,R,LI,RI,b_L,b_R,true);
 
             //solve the system
@@ -171,7 +223,15 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of bottom site
             calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+/*
+            //eigenvalues
+            tmp8 = N_eff;
 
+            eig.clear();
+            diagonalize(tmp8,eig);
+
+            cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+  */
             calc_rhs(dir,row,col,peps,lop,rop,rhs,L,R,LI,RI,b_L,b_R,false);
 
             //solve the system
@@ -219,24 +279,23 @@ namespace propagate {
             DArray<5> L(1,1,1,1,1);
             L = 1.0;
 
-            //for(int col = 0;col < Lx - 1;++col){
-            int col = 0;
+            for(int col = 0;col < Lx-1;++col){
 
-            // --- (1) update the vertical pair on column 'col' ---
-            update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+               // --- (1) update the vertical pair on column 'col' ---
+               update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
-            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+               // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+               //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
-            // --- (3) update diagonal LU-RD
-            //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+               // --- (3) update diagonal LU-RD
+               //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-            // --- (4) update diagonal LD-RU
-            //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+               // --- (4) update diagonal LD-RU
+               //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-            //contractions::update_L('b',col,peps,L);
+               contractions::update_L('b',col,peps,L);
 
-            //}
+            }
 
             //one last vertical update
             //            update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
@@ -3819,6 +3878,31 @@ for(int row = 1;row < Ly-2;row+=2){
 
             if(N_eff.shape(0) > 1){//left
 
+               X_copy = X;
+
+               //QR: watch out, LQ decomposition
+               Gelqf(R_r[0],X_copy);
+
+               //add to right side of tensor
+               DArray<5> tmp5;
+               Contract(1.0,R_r[0],shape(0),peps(row+1,col),shape(0),0.0,tmp5);
+
+               peps(row+1,col) = std::move(tmp5);
+
+               //add  inverse to environment, for upper and lower layer
+               invert(R_r[0]);
+
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(3),R_r[0],shape(1),0.0,tmp7);
+
+               //and again
+               Contract(1.0,tmp7,shape(3),R_r[0],shape(1),0.0,LI7);
+
+               tmp7.clear();
+               Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+
+               LI7 = std::move(tmp7);
+
             }
 
             if(N_eff.shape(1) > 1){//up
@@ -3980,6 +4064,12 @@ for(int row = 1;row < Ly-2;row+=2){
 
          if(peps(row,col).shape(0) > 1){//left
 
+            //add to right side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,R_l[0],shape(0),peps(row,col),shape(0),0.0,tmp5);
+
+            peps(row,col) = std::move(tmp5);
+
          }
 
          if(peps(row,col).shape(2) > 1){//down
@@ -4002,6 +4092,12 @@ for(int row = 1;row < Ly-2;row+=2){
       if(dir == VERTICAL){
 
          if(peps(row+1,col).shape(0) > 1){//left
+
+            //add to right side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,R_r[0],shape(0),peps(row+1,col),shape(0),0.0,tmp5);
+
+            peps(row+1,col) = std::move(tmp5);
 
          }
 

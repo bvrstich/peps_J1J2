@@ -88,6 +88,8 @@ namespace propagate {
 
    void invert(DArray<2> &);
 
+   void stabilize(const PROP_DIR &,int,int,PEPS<double> &, DArray<5> &,std::vector< DArray<5> > &R);
+
 }
 
 #endif

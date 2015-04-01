@@ -42,27 +42,25 @@ int main(int argc,char *argv[]){
    peps.load("output/4x4/D=2");
    peps.grow_bond_dimension(D,0.001);
 
-   peps.normalize();
-
    global::env.calc('A',peps);
-   
-   global::env.test();
-   cout << "initial:\t" << peps.energy() << endl;
-  
-   //for(int i = 0;i < 2000;++i){
-int i = 0;
-      propagate::step(peps,20);
 
-      peps.rescale_tensors(1.0);
+   //for(int i = 0;i < 2000;++i){
+   int i = 0;
+
+      propagate::step(peps,100);
+
+      peps.rescale_tensors();
       peps.normalize();
 
       global::env.calc('A',peps);
+
+      global::env.test();
       cout << "******************************" << endl;
       cout << i << "\t" << peps.energy() << endl;
       cout << "******************************" << endl;
-
-//   }
 /*
+//   }
+
    tau *= 0.1;
    global::stau(tau);
 

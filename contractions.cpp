@@ -27,44 +27,21 @@ namespace contractions {
 
       if(option == 'b'){//row == 0
 
-         if(col == 0){
+         DArray<7> tmp7;
+         Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,tmp7);
 
-            //add twice top to upper peps
-            DArray<5> tmp5;
-            Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(0)[0],peps(1,0),0.0,tmp5);
+         DArray<8> tmp8;
+         Contract(1.0,tmp7,shape(0,4),peps(1,col),shape(0,1),0.0,tmp8);
 
-            DArray<6> tmp6;
-            Contract(1.0,tmp5,shape(0,2),peps(1,0),shape(1,2),0.0,tmp6);
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,3,5),peps(1,col),shape(0,1,2),0.0,tmp7);
 
-            //and two times lower peps to it to construct L
-            DArray<7> tmp7;
-            Contract(1.0,tmp6,shape(3,1),peps(0,0),shape(0,1),0.0,tmp7);
+         tmp8.clear();
+         Contract(1.0,tmp7,shape(0,3),peps(0,col),shape(0,1),0.0,tmp8);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(5,2,4),peps(0,0),shape(0,1,2),0.0,tmp6);
-
-            L = tmp6.reshape_clear( shape(env.gt(0)[0].shape(3),D,D,D,D) );
-
-         }
-         else{//if col != 0
-
-            DArray<7> tmp7;
-            Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,tmp7);
-
-            DArray<8> tmp8;
-            Contract(1.0,tmp7,shape(0,4),peps(1,col),shape(0,1),0.0,tmp8);
-
-            tmp7.clear();
-            Contract(1.0,tmp8,shape(0,3,5),peps(1,col),shape(0,1,2),0.0,tmp7);
-
-            tmp8.clear();
-            Contract(1.0,tmp7,shape(0,3),peps(0,col),shape(0,1),0.0,tmp8);
-
-            //and another peps
-            L.clear();
-            Contract(1.0,tmp8,shape(0,3,5,6),peps(0,col),shape(0,1,2,3),0.0,L);
-
-         }
+         //and another peps
+         L.clear();
+         Contract(1.0,tmp8,shape(0,3,5,6),peps(0,col),shape(0,1,2,3),0.0,L);
 
       }
       else{//top: bottom peps row = Ly - 2

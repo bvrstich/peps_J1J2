@@ -53,6 +53,8 @@ class MPO : public vector< TArray<T,4> > {
 
       void scal(T );
 
+      void normalize();
+
    private:
 
       //!dimension of the bonds

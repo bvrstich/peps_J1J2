@@ -954,6 +954,9 @@ namespace debug {
                DArray<8> tmp8;
                Contract(1.0,lop,shape(1,3),rop,shape(4,3),0.0,tmp8);
 
+               cout << lop.shape() << endl;
+               cout << rop.shape() << endl;
+
                //now get the "cost function limit"
                DArray<9> tmp9;
                Contract(1.0,LI7,shape(1,3,5),tmp8,shape(5,4,0),0.0,tmp9);

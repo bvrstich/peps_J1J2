@@ -269,6 +269,20 @@ void MPO<double>::scal(double alpha){
 
 }
 
+/**
+ * @param rc the row/col index of the peps
+ * @param peps the peps 'operator'
+ * @return the expectation value of the double peps row within the boundary MPO
+ */
+template<>
+void MPO<double>::normalize() {
+
+   double nrm = sqrt(this->dot(*this));
+   this->scal(1.0/nrm);
+
+}
+
+ 
 template MPO<double>::MPO();
 template MPO< complex<double> >::MPO();
 

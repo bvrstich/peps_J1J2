@@ -145,11 +145,11 @@ void PEPS<T>::sD(int D_in) {
  * @param D_in value to the D to
  */
 template<>
-void PEPS<double>::rescale_tensors(double max_num){
+void PEPS<double>::rescale_tensors(){
 
    for(int row = 0;row < Ly;++row)
       for(int col = 0;col < Lx;++col)
-         (*this)(row,col).rescale(max_num);
+         (*this)(row,col).rescale();
 
 }
 

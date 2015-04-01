@@ -749,7 +749,7 @@ double PEPS<double>::energy(){
    // -- (1) -- || bottom row: similar to overlap calculation
 
    //first construct the right renormalized operators
-   vector< DArray<5> > R(Lx - 1);
+   vector< DArray<5> > R(Lx);
 
    contractions::init_ro('b',*this,R); 
 

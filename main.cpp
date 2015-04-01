@@ -47,12 +47,12 @@ int main(int argc,char *argv[]){
    global::env.calc('A',peps);
    
    global::env.test();
-   //cout << "initial:\t" << peps.energy() << endl;
+   cout << "initial:\t" << peps.energy() << endl;
   
    //for(int i = 0;i < 2000;++i){
 int i = 0;
       propagate::step(peps,20);
-/*
+
       peps.rescale_tensors(1.0);
       peps.normalize();
 
@@ -62,7 +62,7 @@ int i = 0;
       cout << "******************************" << endl;
 
 //   }
-
+/*
    tau *= 0.1;
    global::stau(tau);
 

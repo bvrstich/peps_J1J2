@@ -50,22 +50,6 @@ namespace propagate {
          // --- (a) --- first construct some intermediates for all the environment calculations
          construct_intermediate(dir,row,col,peps,mop,L,R,LI,RI,b_L,b_R);
 
-         DArray<8> N_eff;
-         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
-
-         DArray<1> eig;
-         diagonalize(N_eff,eig);
-
-         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
-
-         N_eff.clear();
-         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
-
-         eig.clear();
-         diagonalize(N_eff,eig);
-
-         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
-
          //the environment 'R' matrices from the QR decompositions of the environment
          std::vector< DArray<2> > R_l(4);
          std::vector< DArray<2> > R_r(4);
@@ -109,32 +93,15 @@ namespace propagate {
          // --- (c) --- initial guess: use SVD to initialize the tensors
          initialize(dir,row,col,lop,rop,peps); 
 
-         N_eff.clear();
-         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
-
-         eig.clear();
-         diagonalize(N_eff,eig);
-
-         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
-
-         N_eff.clear();
-         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
-
-         eig.clear();
-         diagonalize(N_eff,eig);
-
-         cout << std::scientific << eig(eig.size()-1)/eig(0) << endl;
-
-
          // --- (d) --- sweeping update: ALS
-         //sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
+         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
-         //restore(dir,row,col,peps,R_l,R_r);
+         restore(dir,row,col,peps,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
-         //equilibrate(dir,row,col,peps);
-        
+         equilibrate(dir,row,col,peps);
+      
       }
 
    /**
@@ -185,7 +152,7 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+            //cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
@@ -3665,50 +3632,47 @@ for(int row = 1;row < Ly-2;row+=2){
 
             if(row == 0){
 
-               if(col == 0){
+               if(left){//bottom site
 
-                  if(left){//bottom site of vertical, so site (row,col) environment
+                  //paste top peps to left
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(4,2),peps(row+1,col),shape(0,1),0.0,tmp8);
 
-                     //paste top peps to right intermediate
-                     DArray<6> tmp6;
-                     Contract(1.0,RI7,shape(0,2,4),peps(row+1,col),shape(0,1,4),0.0,tmp6);
+                  //and right operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,tmp8,shape(2,1,5),rop,shape(0,1,2),0.0,tmp8bis);
 
-                     //right hand side
-                     DArray<6> tmp6bis;
-                     Contract(1.0,tmp6,shape(0,4,1),rop,shape(1,2,5),0.0,tmp6bis);
+                  //then left operator
+                  tmp8.clear();
+                  Contract(1.0,tmp8bis,shape(1,6,5),lop,shape(0,1,3),0.0,tmp8);
 
-                     DArray<4> tmp4;
-                     Contract(1.0,tmp6bis,shape(3,5,4,0),lop,shape(0,1,3,5),0.0,tmp4);
+                  //now add left and right together
+                  DArray<5> tmp5;
+                  Contract(1.0,tmp8,shape(0,4,3,7),R,shape(0,1,2,3),0.0,tmp5);
 
-                     DArray<4> tmp4bis;
-                     Permute(tmp4,shape(1,3,0,2),tmp4bis);
+                  rhs.clear();
+                  Permute(tmp5,shape(0,1,3,4,2),rhs);
 
-                     rhs = tmp4bis.reshape_clear( shape(1,D,1,D,d) );
+               }
+               else{//top site
 
-                  }
-                  else{
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col),shape(4),R,shape(4),0.0,tmp8);
 
-                     //paste bottom peps to right intermediate
-                     DArray<10> tmp10;
-                     Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
+                  //add left operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,lop,shape(2,4,5),tmp8,shape(2,3,7),0.0,tmp8bis);
 
-                     //construct right hand side, attach operator to tmp10:
-                     DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
+                  //and right operator
+                  tmp8.clear();
+                  Contract(1.0,rop,shape(3,4,5),tmp8bis,shape(2,1,6),0.0,tmp8);
 
-                     //right hand side: add left operator to tmp7
-                     DArray<9> tmp9;
-                     Contract(1.0,tmp7,shape(6,4),lop,shape(2,5),0.0,tmp9);
+                  //contract left and right
+                  DArray<5> tmp5;
+                  Contract(1.0,LI7,shape(0,1,3,5,6),tmp8,shape(6,1,0,3,4),0.0,tmp5);
 
-                     //remove the dimension-one legs
-                     tmp7 = tmp9.reshape_clear( shape(D,D,D,D,D,D,global::trot.gLO_n().shape(1)) );
-
-                     DArray<5> tmp5;
-                     Contract(1.0,tmp7,shape(0,6,5,2),rop,shape(1,3,4,5),0.0,tmp5);
-
-                     rhs.clear();
-                     Permute(tmp5,shape(3,0,2,1,4),rhs);
-
-                  }
+                  rhs.clear();
+                  Permute(tmp5,shape(1,0,3,4,2),rhs);
 
                }
 
@@ -3908,12 +3872,12 @@ for(int row = 1;row < Ly-2;row+=2){
 
                //and again
                Contract(1.0,tmp5,shape(1),R_r[3],shape(0),0.0,R);
- 
+
                tmp5.clear();
                Permute(R,shape(0,3,4,1,2),tmp5);
 
                R = std::move(tmp5);
- 
+
             }
 
          }

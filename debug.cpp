@@ -42,130 +42,47 @@ namespace debug {
 
             if(row == 0){
 
-               if(col == 0){
+               //first overlap of state
 
-                  // --- (1) calculate overlap of approximated state:
+               //paste top peps to left
+               DArray<8> tmp8;
+               Contract(1.0,LI7,shape(3,1),peps(row+1,col),shape(0,1),0.0,tmp8);
 
-                  //paste bottom peps to right intermediate
-                  DArray<10> tmp10;
-                  Gemm(CblasNoTrans,CblasTrans,1.0,RI7,peps(row,col),0.0,tmp10);
+               //and another: watch out, order is reversed!
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(2,1,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
 
-                  DArray<7> tmp7 = tmp10.reshape_clear( shape(D,D,D,D,D,D,d) );
+               //add lower tensor
+               tmp8.clear();
+               Contract(1.0,tmp7,shape(1,3),peps(row,col),shape(0,1),0.0,tmp8);
 
-                  //another bottom peps to this one
-                  DArray<8> tmp8;
-                  Contract(1.0,tmp7,shape(6,4),peps(row,col),shape(2,4),0.0,tmp8);
+               DArray<5> tmp5;
+               Contract(1.0,tmp8,shape(1,3,5,6),peps(row,col),shape(0,1,2,3),0.0,tmp5);
 
-                  DArray<6> tmp6 = tmp8.reshape_clear( shape(D,D,D,D,D,D) );
+               double val = Dot(tmp5,R);
 
-                  //add upper peps
-                  DArray<5> tmp5;
-                  Contract(1.0,tmp6,shape(0,5,2),peps(row+1,col),shape(1,3,4),0.0,tmp5);
+               //paste top peps to left
+               tmp8.clear();
+               Contract(1.0,LI7,shape(4,2),peps(row+1,col),shape(0,1),0.0,tmp8);
 
-                  DArray<5> tmp5bis;
-                  Permute(tmp5,shape(3,0,4,2,1),tmp5bis);
+               //and right operator
+               DArray<8> tmp8bis;
+               Contract(1.0,tmp8,shape(2,1,5),rop,shape(0,1,2),0.0,tmp8bis);
 
-                  double val = Dot(tmp5bis,peps(row+1,col));
+               //then left operator
+               tmp8.clear();
+               Contract(1.0,tmp8bis,shape(1,6,5),lop,shape(0,1,3),0.0,tmp8);
 
-                  // --- (2) calculate 'b' part of overlap
+               //now add lower tensor
+               tmp5.clear();
+               Contract(1.0,tmp8,shape(1,2,5,6),peps(row,col),shape(0,1,2,3),0.0,tmp5);
 
-                  //right hand side: add left operator to tmp7
-                  DArray<9> tmp9;
-                  Contract(1.0,tmp7,shape(6,4),lop,shape(2,5),0.0,tmp9);
+               DArray<5> tmp5bis;
+               Permute(tmp5,shape(0,2,1,3,4),tmp5bis);
 
-                  //remove the dimension-one legs
-                  tmp7 = tmp9.reshape_clear( shape(D,D,D,D,D,D,global::trot.gLO_n().shape(1)) );
+               val -= 2.0 * Dot(tmp5bis,R);
 
-                  tmp5.clear();
-                  Contract(1.0,tmp7,shape(0,6,5,2),rop,shape(1,3,4,5),0.0,tmp5);
-
-                  tmp5bis.clear();
-                  Permute(tmp5,shape(3,0,4,2,1),tmp5bis);
-
-                  val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
-
-                  return val;
-
-               }
-               else if(col < Lx - 1){//col != 0
-
-                  // --- (1) calculate overlap of approximated state:
-
-                  //add upper peps to LI7
-                  DArray<8> tmp8;
-                  Contract(1.0,LI7,shape(1,5),peps(row+1,col),shape(0,1),0.0,tmp8);
-
-                  //and another
-                  DArray<7> tmp7;
-                  Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
-
-                  DArray<8> tmp8bis;
-                  Contract(1.0,tmp7,shape(0,5),peps(row,col),shape(0,1),0.0,tmp8bis);
-
-                  DArray<5> tmp5;
-                  Contract(1.0,tmp8bis,shape(0,2,5,6),peps(row,col),shape(0,1,2,3),0.0,tmp5);
-
-                  DArray<5> tmp5bis;
-                  Permute(tmp5,shape(0,2,1,3,4),tmp5bis);
-
-                  double val = Dot(tmp5bis,R);
-
-                  // --- (2) calculate 'b' part of overlap
-
-                  //add right operator to tmp8
-                  tmp8bis.clear();
-                  Contract(1.0,tmp8,shape(0,3,5),rop,shape(0,1,2),0.0,tmp8bis);
-
-                  //then add left operator
-                  tmp8.clear();
-                  Contract(1.0,tmp8bis,shape(0,6,5),lop,shape(0,1,3),0.0,tmp8);
-
-                  //finally add lop
-                  tmp5.clear();
-                  Contract(1.0,tmp8,shape(0,2,5,6),peps(row,col),shape(0,1,2,3),0.0,tmp5);
-
-                  tmp5bis.clear();
-                  Permute(tmp5,shape(0,2,1,3,4),tmp5bis);
-
-                  val -= 2.0 * Dot(tmp5bis,R);
-
-                  return val;
-
-               }
-               else{//col == Lx - 1
-
-                  DArray<8> tmp8;
-                  Contract(1.0,LI7,shape(1,5),peps(row+1,col),shape(0,1),0.0,tmp8);
-
-                  //and another
-                  DArray<7> tmp7;
-                  Contract(1.0,tmp8,shape(0,3,5),peps(row+1,col),shape(0,1,2),0.0,tmp7);
-
-                  DArray<8> tmp8bis;
-                  Contract(1.0,tmp7,shape(0,5),peps(row,col),shape(0,1),0.0,tmp8bis);
-
-                  DArray<5> tmp5 = tmp8bis.reshape_clear( shape(D,D,d,1,1) );
-
-                  double val =  Dot(tmp5,peps(row,col));
-
-                  // --- (2) calculate 'b' part of overlap
-
-                  //add right operator to tmp8
-                  tmp8bis.clear();
-                  Contract(1.0,tmp8,shape(0,3,5),rop,shape(0,1,2),0.0,tmp8bis);
-
-                  //then add left operator
-                  tmp8.clear();
-                  Contract(1.0,tmp8bis,shape(0,6,5),lop,shape(0,1,3),0.0,tmp8);
-
-                  //finally add lop
-                  tmp5 = tmp8.reshape_clear( shape(D,D,d,1,1) );
-
-                  val -= 2.0 * Dot(tmp5,peps(row,col));
-
-                  return val;
-
-               }
+               return val;
 
             }
             else{//row == Lx - 2 
@@ -1034,53 +951,63 @@ namespace debug {
 
             if(row == 0){
 
-               if(col == 0){
+               DArray<8> tmp8;
+               Contract(1.0,lop,shape(1,3),rop,shape(4,3),0.0,tmp8);
 
-                  DArray<8> tmp8;
-                  Contract(1.0,lop,shape(1,3),rop,shape(4,3),0.0,tmp8);
+               //now get the "cost function limit"
+               DArray<9> tmp9;
+               Contract(1.0,LI7,shape(1,3,5),tmp8,shape(5,4,0),0.0,tmp9);
 
-                  //now get the "cost function limit"
-                  DArray<6> tmp6;
-                  Contract(1.0,tmp8,shape(0,1,2,4,6),tmp8,shape(0,1,2,4,6),0.0,tmp6);
+               DArray<5> tmp5;
+               Contract(1.0,tmp9,shape(1,2,7,3,4,5),tmp8,shape(5,4,6,0,1,2),0.0,tmp5);
 
-                  DArray<6> tmp6bis;
-                  Permute(tmp6,shape(1,4,2,5,0,3),tmp6bis);
+               DArray<5> tmp5bis;
+               Permute(tmp5,shape(0,2,4,1,3),tmp5bis);
 
-                  cout << -blas::dot(tmp6bis.size(),tmp6bis.data(),1,RI7.data(),1) << endl;
+               cout << -Dot(tmp5bis,R) << endl;
 
-                  //svd the fucker
-                  DArray<5> UL;//left unitary
-                  DArray<5> VR;//right unitary
+               //svd the fucker
+               DArray<5> UL;//left unitary
+               DArray<5> VR;//right unitary
 
-                  DArray<1> S;
-                  Gesvd ('S','S', tmp8, S,UL,VR,0);
-                  cout <<  S << endl;
+               DArray<1> S;
+               Gesvd ('S','S', tmp8, S,UL,VR,Dr);
 
-                  //take the square root of the sv's
-                  for(int i = 0;i < S.size();++i)
-                     S(i) = sqrt(S(i));
+               cout <<  S << endl;
 
-                  //and multiply it left and right to the tensors
-                  Dimm(S,VR);
-                  Dimm(UL,S);
+               //take the square root of the sv's
+               for(int i = 0;i < S.size();++i)
+                  S(i) = sqrt(S(i));
 
-                  DArray<8> tmp8_reduced;
-                  Contract(1.0,UL,shape(4),VR,shape(0),0.0,tmp8_reduced);
+               //and multiply it left and right to the tensors
+               Dimm(S,VR);
+               Dimm(UL,S);
 
-                  //now get the "reduced value for the cost function"
-                  Contract(1.0,tmp8_reduced,shape(0,1,2,4,6),tmp8_reduced,shape(0,1,2,4,6),0.0,tmp6);
+               DArray<8> tmp8_reduced;
+               Contract(1.0,UL,shape(4),VR,shape(0),0.0,tmp8_reduced);
 
-                  Permute(tmp6,shape(1,4,2,5,0,3),tmp6bis);
+               //now get the "reduced value for the cost function"
+               tmp9.clear();
+               Contract(1.0,LI7,shape(1,3,5),tmp8_reduced,shape(5,4,0),0.0,tmp9);
 
-                  double overlap = blas::dot(tmp6bis.size(),tmp6bis.data(),1,RI7.data(),1);
+               //first norm term
+               tmp5.clear();
+               Contract(1.0,tmp9,shape(1,2,7,3,4,5),tmp8_reduced,shape(5,4,6,0,1,2),0.0,tmp5);
 
-                  Contract(1.0,tmp8_reduced,shape(0,1,2,4,6),tmp8,shape(0,1,2,4,6),0.0,tmp6);
+               tmp5bis.clear();
+               Permute(tmp5,shape(0,2,4,1,3),tmp5bis);
 
-                  Permute(tmp6,shape(1,4,2,5,0,3),tmp6bis);
+               double overlap = Dot(tmp5bis,R);
 
-                  cout << overlap - 2.0 * blas::dot(tmp6bis.size(),tmp6bis.data(),1,RI7.data(),1) << endl;
+               //then operator overlap
+               tmp5.clear();
+               Contract(1.0,tmp9,shape(1,2,7,3,4,5),tmp8,shape(5,4,6,0,1,2),0.0,tmp5);
 
-               }
+               tmp5bis.clear();
+               Permute(tmp5,shape(0,2,4,1,3),tmp5bis);
+
+               cout << overlap - 2.0 * Dot(tmp5bis,R) << endl;
+               
             }
          }
       }

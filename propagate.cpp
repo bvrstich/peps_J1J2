@@ -55,7 +55,7 @@ namespace propagate {
          std::vector< DArray<2> > R_r(4);
 
          // --- (b) --- canonicalize the environments around the sites to be updated
-         canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
+         //canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
 
          if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
@@ -140,7 +140,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
-         restore(dir,row,col,peps,R_l,R_r);
+         //restore(dir,row,col,peps,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
@@ -278,13 +278,13 @@ namespace propagate {
             DArray<5> L(1,1,1,1,1);
             L = 1.0;
 
-            for(int col = 0;col < 2;++col){
+            for(int col = 0;col < 1;++col){
 
                // --- (1) update the vertical pair on column 'col' ---
                update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
                // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-               //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+               update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
                // --- (3) update diagonal LU-RD
                //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -292,7 +292,7 @@ namespace propagate {
                // --- (4) update diagonal LD-RU
                //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-               contractions::update_L('b',col,peps,L);
+               //contractions::update_L('b',col,peps,L);
 
             }
 
@@ -4064,13 +4064,13 @@ for(int row = 1;row < Ly-2;row+=2){
       if(dir == VERTICAL){
 
          if(peps(row,col).shape(0) > 1){//left
-/*
+
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,R_l[0],shape(0),peps(row,col),shape(0),0.0,tmp5);
 
             peps(row,col) = std::move(tmp5);
-  */
+
          }
 
          if(peps(row,col).shape(2) > 1){//down
@@ -4078,13 +4078,13 @@ for(int row = 1;row < Ly-2;row+=2){
          }
 
          if(peps(row,col).shape(4) > 1){//right
-/*
+
             //add to right side of tensor
             DArray<5> tmp5;
-            Contract(1.0,R_l[3],shape(0),peps(row,col+1),shape(0),0.0,tmp5);
+            Contract(1.0,peps(row,col),shape(4),R_l[3],shape(1),0.0,tmp5);
 
-            peps(row,col+1) = std::move(tmp5);
-  */
+            peps(row,col) = std::move(tmp5);
+
          }
 
       }
@@ -4093,13 +4093,13 @@ for(int row = 1;row < Ly-2;row+=2){
       if(dir == VERTICAL){
 
          if(peps(row+1,col).shape(0) > 1){//left
-/*
+
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,R_r[0],shape(0),peps(row+1,col),shape(0),0.0,tmp5);
 
             peps(row+1,col) = std::move(tmp5);
-  */
+
          }
 
          if(peps(row+1,col).shape(1) > 1){//up
@@ -4113,13 +4113,13 @@ for(int row = 1;row < Ly-2;row+=2){
          }
 
          if(peps(row+1,col).shape(4) > 1){//right
-/*
+
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,peps(row+1,col),shape(4),R_r[3],shape(1),0.0,tmp5);
 
             peps(row+1,col) = std::move(tmp5);
-*/
+
          }
 
       }

@@ -46,7 +46,8 @@ int main(int argc,char *argv[]){
    peps.normalize();
 
    global::env.calc('A',peps);
-   cout << Dot(global::env.gb(0)[0],global::env.gb(0)[0]) << endl;
+   for(int i = 0;i < 2;++i)
+      cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
    cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
    global::env.test();
 
@@ -63,8 +64,8 @@ int main(int argc,char *argv[]){
  //  peps.normalize();
 
    global::env.calc('A',peps);
-   cout << Dot(global::env.gb(0)[0],global::env.gb(0)[0]) << endl;
-   cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
+   for(int i = 0;i < 2;++i)
+      cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
    global::env.test();
   
 /*

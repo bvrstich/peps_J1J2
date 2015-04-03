@@ -278,7 +278,7 @@ namespace propagate {
             DArray<5> L(1,1,1,1,1);
             L = 1.0;
 
-            for(int col = 0;col < 1;++col){
+            for(int col = 0;col < 2;++col){
 
                // --- (1) update the vertical pair on column 'col' ---
                update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
@@ -3821,6 +3821,8 @@ for(int row = 1;row < Ly-2;row+=2){
                   //add  inverse to environment, for upper and lower layer
                   invert(R_l[0]);
 
+                  cout << R_l[0] << endl;
+
                   DArray<7> tmp7;
                   Contract(1.0,LI7,shape(5),R_l[0],shape(1),0.0,tmp7);
 
@@ -4079,9 +4081,9 @@ for(int row = 1;row < Ly-2;row+=2){
 /*
             //add to right side of tensor
             DArray<5> tmp5;
-            Contract(1.0,peps(row,col),shape(4),R_l[3],shape(1),0.0,tmp5);
+            Contract(1.0,R_l[3],shape(0),peps(row,col+1),shape(0),0.0,tmp5);
 
-            peps(row,col) = std::move(tmp5);
+            peps(row,col+1) = std::move(tmp5);
   */
          }
 

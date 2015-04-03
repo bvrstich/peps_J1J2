@@ -46,9 +46,12 @@ int main(int argc,char *argv[]){
    peps.normalize();
 
    global::env.calc('A',peps);
-   for(int i = 0;i < 1;++i)
-      cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
+   cout << endl;
    cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
+   cout << endl;
+   for(int i = 0;i < 2;++i)
+      cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
+   cout << endl;
    global::env.test();
 
    cout << "******************************" << endl;
@@ -59,13 +62,16 @@ int main(int argc,char *argv[]){
    int i = 1;
 
    propagate::step(peps,100);
-   cout << peps(0,0) << endl;
+   cout << peps(0,1) << endl;
 
 //   peps.rescale_tensors();
  //  peps.normalize();
 
    global::env.calc('A',peps);
-   for(int i = 0;i < 1;++i)
+   cout << endl;
+   cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
+   cout << endl;
+   for(int i = 0;i < 2;++i)
       cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
    global::env.test();
   

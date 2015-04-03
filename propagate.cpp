@@ -96,7 +96,7 @@ namespace propagate {
 
          DArray<1> eig;
          diagonalize(N_eff,eig);
-/*
+
          cout << endl;
          cout << "initial" << endl;
          cout << endl;
@@ -111,7 +111,7 @@ namespace propagate {
 
          cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
          cout << endl;
-  */
+
          // --- (c) --- initial guess: use SVD to initialize the tensors
          initialize(dir,row,col,lop,rop,peps); 
 
@@ -120,7 +120,7 @@ namespace propagate {
 
          eig.clear();
          diagonalize(N_eff,eig);
-  /*
+
          cout << endl;
          cout << "after svd" << endl;
          cout << endl;
@@ -136,7 +136,6 @@ namespace propagate {
          cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
          cout << endl;
 
-  */
          // --- (d) --- sweeping update: ALS
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
@@ -279,7 +278,7 @@ namespace propagate {
             DArray<5> L(1,1,1,1,1);
             L = 1.0;
 
-            for(int col = 0;col < Lx-1;++col){
+            for(int col = 0;col < 1;++col){
 
                // --- (1) update the vertical pair on column 'col' ---
                update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
@@ -298,7 +297,7 @@ namespace propagate {
             }
 
             //one last vertical update
-            //            update(VERTICAL,0,Lx-1,peps,L,R[Lx-2],n_sweeps); 
+            //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
          }
          else if(row < Lx - 2){
@@ -4063,13 +4062,13 @@ for(int row = 1;row < Ly-2;row+=2){
       if(dir == VERTICAL){
 
          if(peps(row,col).shape(0) > 1){//left
-
+/*
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,R_l[0],shape(0),peps(row,col),shape(0),0.0,tmp5);
 
             peps(row,col) = std::move(tmp5);
-
+  */
          }
 
          if(peps(row,col).shape(2) > 1){//down
@@ -4077,13 +4076,13 @@ for(int row = 1;row < Ly-2;row+=2){
          }
 
          if(peps(row,col).shape(4) > 1){//right
-
+/*
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,peps(row,col),shape(4),R_l[3],shape(1),0.0,tmp5);
 
             peps(row,col) = std::move(tmp5);
-
+  */
          }
 
       }
@@ -4092,13 +4091,13 @@ for(int row = 1;row < Ly-2;row+=2){
       if(dir == VERTICAL){
 
          if(peps(row+1,col).shape(0) > 1){//left
-
+/*
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,R_r[0],shape(0),peps(row+1,col),shape(0),0.0,tmp5);
 
             peps(row+1,col) = std::move(tmp5);
-
+  */
          }
 
          if(peps(row+1,col).shape(1) > 1){//up
@@ -4112,13 +4111,13 @@ for(int row = 1;row < Ly-2;row+=2){
          }
 
          if(peps(row+1,col).shape(4) > 1){//right
-
+/*
             //add to right side of tensor
             DArray<5> tmp5;
             Contract(1.0,peps(row+1,col),shape(4),R_r[3],shape(1),0.0,tmp5);
 
             peps(row+1,col) = std::move(tmp5);
-
+*/
          }
 
       }

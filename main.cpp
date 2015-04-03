@@ -42,40 +42,53 @@ int main(int argc,char *argv[]){
    peps.load("output/4x4/D=2");
    peps.grow_bond_dimension(D,0.001);
 
+   peps.rescale_tensors();
+   peps.normalize();
+
    global::env.calc('A',peps);
+   cout << Dot(global::env.gb(0)[0],global::env.gb(0)[0]) << endl;
+   cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
+   global::env.test();
+
+   cout << "******************************" << endl;
+   cout << 0 << "\t" << peps.energy() << endl;
+   cout << "******************************" << endl;
 
    //for(int i = 0;i < 2000;++i){
-   int i = 0;
+   int i = 1;
 
-      propagate::step(peps,100);
+   propagate::step(peps,100);
 
-      peps.rescale_tensors();
-      peps.normalize();
+//   peps.rescale_tensors();
+ //  peps.normalize();
 
-      global::env.calc('A',peps);
-
-      global::env.test();
-      cout << "******************************" << endl;
-      cout << i << "\t" << peps.energy() << endl;
-      cout << "******************************" << endl;
+   global::env.calc('A',peps);
+   cout << Dot(global::env.gb(0)[0],global::env.gb(0)[0]) << endl;
+   cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
+   global::env.test();
+  
 /*
-//   }
+   cout << "******************************" << endl;
+   cout << i << "\t" << peps.energy() << endl;
+   cout << "******************************" << endl;
+ 
+   //   }
 
    tau *= 0.1;
    global::stau(tau);
 
    for(int i = 2000;i < 6000;++i){
 
-      propagate::step(peps,4);
+   propagate::step(peps,4);
 
-      peps.rescale_tensors(1.0);
-      peps.normalize();
+   peps.rescale_tensors(1.0);
+   peps.normalize();
 
-      global::env.calc('A',peps);
-      cout << i << "\t" << peps.energy() << endl;
+   global::env.calc('A',peps);
+   cout << i << "\t" << peps.energy() << endl;
 
    }
-  */
+   */
    return 0;
 
 }

@@ -115,14 +115,9 @@ void Environment::calc(const char option,const PEPS<double> &peps){
          {
 
             b[0].fill('b',peps);
-            b[0].normalize();
 
-            for(int i = 1;i < Ly - 2;++i){
-
+            for(int i = 1;i < Ly - 2;++i)
                this->add_layer('b',i,peps);
-               b[i].normalize();
-
-            }
   
             flag_b = true;
 
@@ -131,14 +126,9 @@ void Environment::calc(const char option,const PEPS<double> &peps){
          {
 
             t[Ly - 3].fill('t',peps);
-            t[Ly - 3].normalize();
 
-            for(int i = Ly - 4;i >= 0;--i){
-
+            for(int i = Ly - 4;i >= 0;--i)
                this->add_layer('t',i,peps);
-               t[Ly - 3].normalize();
-
-            }
 
             flag_t = true;
 

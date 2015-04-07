@@ -53,6 +53,8 @@ class MPO : public vector< TArray<T,4> > {
 
       void scal(T );
 
+      void canonicalize(const BTAS_SIDE &,bool);
+
       void normalize();
 
    private:

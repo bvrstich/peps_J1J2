@@ -104,7 +104,7 @@ Environment::~Environment(){ }
  * @param peps input PEPS<double>
  * @param D_aux dimension to which environment will be compressed
  */
-void Environment::calc(const char option,const PEPS<double> &peps){
+void Environment::calc(const char option,PEPS<double> &peps){
 
    if(option == 'A'){
 
@@ -115,6 +115,7 @@ void Environment::calc(const char option,const PEPS<double> &peps){
          {
 
             b[0].fill('b',peps);
+            b[0].canonicalize(Right,true);
 
             for(int i = 1;i < Ly - 2;++i)
                this->add_layer('b',i,peps);
@@ -140,6 +141,7 @@ void Environment::calc(const char option,const PEPS<double> &peps){
    else if(option == 'B'){
 
       b[0].fill('b',peps);
+      b[0].canonicalize(Right,true);
 
       for(int i = 1;i < Ly - 2;++i)
          this->add_layer('b',i,peps);
@@ -284,7 +286,7 @@ const vector< MPO<double> > &Environment::gt() const {
  * @param rc row or column index
  * @param peps the input PEPS<double> object 
  */
-void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
+void Environment::add_layer(const char option,int rc,PEPS<double> &peps){
 
    if(option == 'b'){
 
@@ -292,6 +294,12 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
 
       if(!flag_b)
          b[rc].fill_Random();
+
+      //make sure new state starts canonicalized
+      b[rc].canonicalize(Right,true);
+
+      //canonicalize the peps row rc as well:
+      peps.canonicalize(rc,Right,true);
 
       //first construct rightmost operator
       DArray<7> tmp7;

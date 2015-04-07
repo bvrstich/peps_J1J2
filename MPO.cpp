@@ -282,6 +282,76 @@ void MPO<double>::normalize() {
 
 }
 
+/**
+ * canonicalize the mps
+ * @param dir Left or Right canonicalization
+ * @param norm if true: normalize, else not
+ */
+template<typename T>
+void MPO<T>::canonicalize(const BTAS_SIDE &dir,bool norm){
+
+   int length = this->size();
+
+   if(dir == Left){//QR
+
+      TArray<T,2> R;
+      TArray<T,4> tmp;
+
+      for(int i = 0;i < length - 1;++i){
+
+         R.clear();
+
+         //do QR
+         Geqrf((*this)[i],R);
+
+         //paste to next matrix
+         tmp.clear();
+
+         Contract((T)1.0,R,shape(1),(*this)[i + 1],shape(0),(T)0.0,tmp);
+
+         (*this)[i + 1] = std::move(tmp);
+
+      }
+
+      if(norm){
+
+         T nrm = sqrt(Dotc((*this)[length-1],(*this)[length-1]));
+         Scal(1.0/nrm,(*this)[length-1]);
+
+      }
+
+   }
+   else{//LQ
+
+      TArray<T,2> L;
+      TArray<T,4> tmp;
+
+      for(int i = length - 1;i > 0;--i){
+
+         L.clear();
+
+         //do QR
+         Gelqf(L,(*this)[i]);
+
+         //paste to previous matrix
+         tmp.clear();
+
+         Contract((T)1.0,(*this)[i - 1],shape(3),L,shape(0),(T)0.0,tmp);
+
+         (*this)[i - 1] = std::move(tmp);
+
+      }
+
+      if(norm){
+
+         T nrm = sqrt(Dotc((*this)[0],(*this)[0]));
+         Scal(1.0/nrm,(*this)[0]);
+
+      }
+
+   }
+
+}
  
 template MPO<double>::MPO();
 template MPO< complex<double> >::MPO();
@@ -308,3 +378,6 @@ template double MPO<double>::expect(const char,int,const PEPS<double> &) const;
 template  complex<double>  MPO< complex<double> >::expect(const char,int,const PEPS<complex< double> > &) const;
 
 template void MPO<double>::fill_Random();
+
+template void MPO<double>::canonicalize(const BTAS_SIDE &dir,bool norm);
+template void MPO< complex<double> >::canonicalize(const BTAS_SIDE &dir,bool norm);

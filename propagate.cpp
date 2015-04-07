@@ -278,7 +278,7 @@ namespace propagate {
             DArray<5> L(1,1,1,1,1);
             L = 1.0;
 
-            for(int col = 0;col < 2;++col){
+            for(int col = 0;col < Lx-1;++col){
 
                // --- (1) update the vertical pair on column 'col' ---
                update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
@@ -297,7 +297,7 @@ namespace propagate {
             }
 
             //one last vertical update
-            //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+            update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
          }
          else if(row < Lx - 2){

@@ -37,9 +37,9 @@ class Environment {
       //destructor
       virtual ~Environment();
 
-      void calc(const char,const PEPS<double> &);
+      void calc(const char,PEPS<double> &);
 
-      void add_layer(const char,int,const PEPS<double> &);
+      void add_layer(const char,int,PEPS<double> &);
 
       void test();
 

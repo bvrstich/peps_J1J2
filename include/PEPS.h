@@ -52,7 +52,7 @@ class PEPS : public vector< TArray<T,5> > {
 
       TArray<T,5> &operator()(int,int);
 
-      T dot(const PEPS &,bool init = false) const;
+      T dot(PEPS &,bool init = false) const;
 
       void normalize(bool = false);
 
@@ -66,6 +66,8 @@ class PEPS : public vector< TArray<T,5> > {
 
       //heisenberg energy expectation value
       double energy();
+
+      void canonicalize(int,const BTAS_SIDE &,bool);
 
    private:
 

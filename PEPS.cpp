@@ -585,7 +585,7 @@ void PEPS<double>::grow_bond_dimension(int D_in,double noise) {
  * @return the inner product of two PEPS <psi1|psi2> 
  */
 template<>
-double PEPS<double>::dot(const PEPS<double> &peps_i,bool init) const {
+double PEPS<double>::dot(PEPS<double> &peps_i,bool init) const {
 
    int half = Ly/2;
 
@@ -2159,6 +2159,75 @@ double PEPS<double>::energy(){
 
 }
 
+/**
+ * 'canonicalize' a single peps row
+ * @param dir Left or Right canonicalization
+ * @param norm if true: normalize, else not
+ */
+template<typename T>
+void PEPS<T>::canonicalize(int row,const BTAS_SIDE &dir,bool norm){
+
+   if(dir == Left){//QR
+
+      TArray<T,2> R;
+      TArray<T,5> tmp;
+
+      for(int i = 0;i < global::Lx - 1;++i){
+
+         R.clear();
+
+         //do QR
+         Geqrf((*this)(row,i),R);
+
+         //paste to next matrix
+         tmp.clear();
+
+         Contract((T)1.0,R,shape(1),(*this)(row,i + 1),shape(0),(T)0.0,tmp);
+
+         (*this)(row,i + 1) = std::move(tmp);
+
+      }
+
+      if(norm){
+
+         T nrm = sqrt( Dotc( (*this)(row,Lx-1),(*this)(row,Lx-1) ) );
+         Scal(1.0/nrm,(*this)(row,Lx-1));
+
+      }
+
+   }
+   else{//LQ
+
+      TArray<T,2> L;
+      TArray<T,5> tmp;
+
+      for(int i = global::Lx - 1;i > 0;--i){
+
+         L.clear();
+
+         //do QR
+         Gelqf(L,(*this)(row,i));
+
+         //paste to previous matrix
+         tmp.clear();
+
+         Contract((T)1.0,(*this)(row,i - 1),shape(4),L,shape(0),(T)0.0,tmp);
+
+         (*this)(row,i - 1) = std::move(tmp);
+
+      }
+
+      if(norm){
+
+         T nrm = sqrt(Dotc((*this)(row,0),(*this)(row,0)));
+         Scal(1.0/nrm,(*this)(row,0));
+
+      }
+
+   }
+   
+}
+ 
 //forward declarations for types to be used!
 template PEPS<double>::PEPS();
 template PEPS< complex<double> >::PEPS();
@@ -2195,3 +2264,6 @@ template void PEPS< complex<double> >::fill_Random();
 
 template void PEPS<double>::save(const char *filename);
 template void PEPS< complex<double> >::save(const char *filename);
+
+template void PEPS<double>::canonicalize(int row,const BTAS_SIDE &dir,bool norm);
+template void PEPS< complex<double> >::canonicalize(int row,const BTAS_SIDE &dir,bool norm);

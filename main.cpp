@@ -42,14 +42,12 @@ int main(int argc,char *argv[]){
    peps.load("output/4x4/D=2");
    peps.grow_bond_dimension(D,0.001);
 
-   peps.rescale_tensors();
-   peps.normalize();
-
    global::env.calc('A',peps);
+   
    cout << endl;
    cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
    cout << endl;
-   for(int i = 0;i < 2;++i)
+   for(int i = 0;i < global::Lx;++i)
       cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
    cout << endl;
    global::env.test();
@@ -62,19 +60,19 @@ int main(int argc,char *argv[]){
    int i = 1;
 
    propagate::step(peps,100);
-   cout << peps(0,1) << endl;
 
 //   peps.rescale_tensors();
  //  peps.normalize();
 
-   global::env.calc('A',peps);
+   global::env.calc('B',peps);
    cout << endl;
    cout << global::env.gb(0).dot(global::env.gb(0)) << endl;
    cout << endl;
-   for(int i = 0;i < 2;++i)
+   for(int i = 0;i < global::Lx;++i)
       cout << i << "\t" << Dot(global::env.gb(0)[i],global::env.gb(0)[i]) << endl;
    global::env.test();
-  
+
+
 /*
    cout << "******************************" << endl;
    cout << i << "\t" << peps.energy() << endl;

@@ -115,7 +115,7 @@ void Environment::calc(const char option,PEPS<double> &peps){
          {
 
             b[0].fill('b',peps);
-            b[0].canonicalize(Right,true);
+            //b[0].canonicalize(Right,true);
 
             for(int i = 1;i < Ly - 2;++i)
                this->add_layer('b',i,peps);
@@ -141,7 +141,7 @@ void Environment::calc(const char option,PEPS<double> &peps){
    else if(option == 'B'){
 
       b[0].fill('b',peps);
-      b[0].canonicalize(Right,true);
+      //b[0].canonicalize(Right,true);
 
       for(int i = 1;i < Ly - 2;++i)
          this->add_layer('b',i,peps);
@@ -296,10 +296,10 @@ void Environment::add_layer(const char option,int rc,PEPS<double> &peps){
          b[rc].fill_Random();
 
       //make sure new state starts canonicalized
-      b[rc].canonicalize(Right,true);
+      //b[rc].canonicalize(Right,true);
 
       //canonicalize the peps row rc as well:
-      peps.canonicalize(rc,Right,true);
+      //peps.canonicalize(rc,Right,true);
 
       //first construct rightmost operator
       DArray<7> tmp7;

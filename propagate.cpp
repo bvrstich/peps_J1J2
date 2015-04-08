@@ -55,7 +55,7 @@ namespace propagate {
          std::vector< DArray<2> > R_r(4);
 
          // --- (b) --- canonicalize the environments around the sites to be updated
-         canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
+         //canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
 
          if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
@@ -140,7 +140,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
-         restore(dir,row,col,peps,R_l,R_r);
+         //restore(dir,row,col,peps,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
@@ -201,15 +201,6 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of top site
             calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
-/*
-            //eigenvalues
-            DArray<8> tmp8 = N_eff;
-
-            DArray<1> eig;
-            diagonalize(tmp8,eig);
-
-            cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
-  */
             calc_rhs(dir,row,col,peps,lop,rop,rhs,L,R,LI,RI,b_L,b_R,true);
 
             //solve the system
@@ -222,15 +213,6 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of bottom site
             calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
-/*
-            //eigenvalues
-            tmp8 = N_eff;
-
-            eig.clear();
-            diagonalize(tmp8,eig);
-
-            cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
-  */
             calc_rhs(dir,row,col,peps,lop,rop,rhs,L,R,LI,RI,b_L,b_R,false);
 
             //solve the system
@@ -278,13 +260,14 @@ namespace propagate {
             DArray<5> L(1,1,1,1,1);
             L = 1.0;
 
-            for(int col = 0;col < Lx-1;++col){
+            //for(int col = 0;col < Lx-1;++col){
+            int col = 0;
 
                // --- (1) update the vertical pair on column 'col' ---
-               update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+               //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
                // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-               //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+               update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
                // --- (3) update diagonal LU-RD
                //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -294,10 +277,10 @@ namespace propagate {
 
                contractions::update_L('b',col,peps,L);
 
-            }
+            //}
 
             //one last vertical update
-            update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+            //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
          }
          else if(row < Lx - 2){
@@ -312,10 +295,10 @@ namespace propagate {
             for(int col = 0;col < Lx - 1;++col){
 
                // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-               update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+               //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
                // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-               update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+               //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
                // --- (3) update diagonal LU-RD
                //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 

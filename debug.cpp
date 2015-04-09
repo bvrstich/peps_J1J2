@@ -237,7 +237,7 @@ namespace debug {
                Contract(1.0,tmp8bis,shape(4,3,5,6),peps(row,col),shape(0,1,2,3),0.0,tmp5bis);
 
                double val = Dot(tmp5bis,tmp5);
-
+/*
                // --- (2) calculate 'b' part of overlap
 
                //add right operator to tmp8
@@ -257,7 +257,7 @@ namespace debug {
                Permute(tmp5,shape(1,0,3,4,2),tmp5bis);
 
                val -= 2.0 * Dot(tmp5bis,peps(row,col));
-
+*/
                return val;
 
             }

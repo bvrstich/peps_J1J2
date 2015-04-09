@@ -195,7 +195,7 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+            //cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
@@ -237,164 +237,53 @@ namespace propagate {
 
       enum {i,j,k,l,m,n,o};
 
-      // ****************************************** //
-      // ****************************************** //
-      //    (A)     FIRST THE EVEN ROWS             //
-      // ****************************************** //
-      // ****************************************** //
-
       //calculate top and bottom environment
-      env.calc('A',peps);
+      env.calc('T',peps);
 
-#pragma omp parallel for schedule(dynamic,1)
-      for(int row = 0;row < Ly;row+=2){
+      //containers for the renormalized operators
+      vector< DArray<5> > R(Lx);
 
-         if(row == 0){
+      //initialize the right operators for the bottom row
+      contractions::init_ro('b',peps,R);
 
-            //containers for the renormalized operators
-            vector< DArray<5> > R(Lx);
-
-            //initialize the right operators for the bottom row
-            contractions::init_ro('b',peps,R);
-
-            DArray<5> L(1,1,1,1,1);
-            L = 1.0;
-
-            //for(int col = 0;col < Lx-1;++col){
-            int col = 0;
-
-            // --- (1) update the vertical pair on column 'col' ---
-            //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
-
-            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
-
-            // --- (3) update diagonal LU-RD
-            //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
-
-            // --- (4) update diagonal LD-RU
-            //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
-
-            contractions::update_L('b',col,peps,L);
-
-            //}
-
-            //one last vertical update
-            //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-
-         }
-         else if(row < Lx - 2){
-
-            //renormalized operators for the middle sites
-            vector< DArray<6> > RO(Lx - 1);
-            DArray<6> LO;
-
-            //first create right renormalized operator
-            contractions::init_ro(row,peps,RO);
-
-            for(int col = 0;col < Lx - 1;++col){
-
-               // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-               //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
-
-               // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-               //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
-
-               // --- (3) update diagonal LU-RD
-               //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
-
-               // --- (4) update diagonal LD-RU
-               //update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
-
-               //first construct a double layer object for the newly updated bottom 
-               contractions::update_L(row,col,peps,LO);
-
-            }
-
-            //finally, last vertical gate
-            update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
-
-         }
-         else{//row == Lx - 2
-
-            //containers for the renormalized operators
-            vector< DArray<5> > R(Lx - 1);
-            DArray<5> L;
-
-            //make the right operators
-            contractions::init_ro('t',peps,R);
-
-            for(int col = 0;col < Lx - 1;++col){
-
-               // --- (1) update vertical pair on column 'col' on upper two rows
-               //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
-
-               // --- (2a) update the horizontal pair on row 'row' and colums 'col'-'col+1' ---
-               //update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
-
-               // --- (2b) update the horizontal pair on row 'row+1' and colums 'col'-'col+1' ---
-               //update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
-
-               // --- (3) update diagonal LU-RD
-               //update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
-
-               // --- (4) update diagonal LD-RU
-               //update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
-
-               contractions::update_L('t',col,peps,L);
-
-            }
-
-            //finally the very last vertical gate
-            //update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-2],n_sweeps); 
-
-         }
-
-      }
-
-      // ****************************************** //
-      // ****************************************** //
-      //    (B)     THEN THE ODD ROWS               //
-      // ****************************************** //
-      // ****************************************** //
-      /*
-      //update top and bottom environment
-      global::env.calc('A',peps);
-
-#pragma omp parallel for schedule(static,1)
-for(int row = 1;row < Ly-2;row+=2){
-
-      //renormalized operators for the middle sites
-      vector< DArray<6> > RO(Lx - 1);
-      DArray<6> LO;
-
-      //first create right renormalized operator
-      contractions::init_ro(row,peps,RO);
+      //row == 0
+      DArray<5> L(1,1,1,1,1);
+      L = 1.0;
 
       for(int col = 0;col < Lx - 1;++col){
 
-      // --- (1) update vertical pair on column 'col', with lowest site on row 'row'
-      update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+         // --- (1) update the vertical pair on column 'col' ---
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-      update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      //update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-      //first construct a double layer object for the newly updated bottom 
-      contractions::update_L(row,col,peps,LO);
+         //do a QR decomposition of the updated peps on 'col'
+         shift_col(0,col,peps);
 
-      }
-
-      //finally, last vertical gate
-      update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-2],n_sweeps); 
+         contractions::update_L('b',col,peps,L);
 
       }
-      */
+
+      //one last vertical update
+      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+
+      //QR the complete row
+      shift_row(0,peps);
+
+      env.gb(0).fill('b',peps);
+
+      for(int i = 0;i < Lx;++i)
+         cout << i << "\t" << Dot(env.gb(0)[i],env.gb(0)[i]) << endl;
+
+      cout << env.gb(0).dot(env.gb(0)) << endl;
+
    }
 
    /** 
@@ -3725,7 +3614,7 @@ for(int row = 1;row < Ly-2;row+=2){
 
             if(row == 0){
 
-                if(left){//left site of horizontal gate, so site (row,col) environment
+               if(left){//left site of horizontal gate, so site (row,col) environment
 
                   //add right peps to intermediate
                   DArray<8> tmp8;
@@ -3986,7 +3875,7 @@ for(int row = 1;row < Ly-2;row+=2){
             DArray<5> tmp5;
             Contract(1.0,R_r[0],shape(0),peps(rrow,rcol),shape(0),0.0,tmp5);
 
-            peps(rrow,col) = std::move(tmp5);
+            peps(rrow,rcol) = std::move(tmp5);
 
             //add  inverse to environment, for upper and lower layer
             invert(R_r[0]);
@@ -4054,7 +3943,7 @@ for(int row = 1;row < Ly-2;row+=2){
                RI7 = std::move(tmp7);
 
             }
-            
+
          }
 
          if(N_eff.shape(3) > 1){//right
@@ -4090,16 +3979,16 @@ for(int row = 1;row < Ly-2;row+=2){
             else if(dir == HORIZONTAL){
 
                DArray<7> tmp7;
-               Contract(1.0,RI7,shape(5),R_r[1],shape(0),0.0,tmp7);
+               Contract(1.0,RI7,shape(5),R_r[3],shape(0),0.0,tmp7);
 
                //and again
                RI7.clear();
-               Contract(1.0,tmp7,shape(5),R_r[1],shape(0),0.0,RI7);
+               Contract(1.0,tmp7,shape(5),R_r[3],shape(0),0.0,RI7);
 
             }
 
          }
-         
+
       }
 
    /**
@@ -4286,6 +4175,50 @@ for(int row = 1;row < Ly-2;row+=2){
          Contract(1.0,peps(rrow,rcol),shape(4),R_r[3],shape(1),0.0,tmp5);
 
          peps(rrow,rcol) = std::move(tmp5);
+
+      }
+
+   }
+
+   /**
+    * shift the singular values to the next site in the sweep, i.e. do QR and past R to the right
+    */
+   void shift_col(int row,int col,PEPS<double> &peps){
+
+      //QR
+      DArray<2> tmp2;
+      Geqrf(peps(row,col),tmp2);
+
+      //add to left side of next tensor
+      DArray<5> tmp5;
+      Contract(1.0,tmp2,shape(1),peps(row,col+1),shape(0),0.0,tmp5);
+
+      peps(row,col+1) = std::move(tmp5);
+
+   }
+
+   /**
+    * shift the singular values to the next row in the sweep, i.e. do QR and past R to the upper row
+    */
+   void shift_row(int row,PEPS<double> &peps){
+
+      //QR
+      DArray<2> tmp2;
+
+      for(int col = 0;col < Ly;++col){
+
+         DArray<5> tmp5;
+         Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
+
+         Geqrf(tmp5,tmp2);
+
+         Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
+
+         //add to down side of upper tensor
+         tmp5.clear();
+         Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
+
+         Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
 
       }
 

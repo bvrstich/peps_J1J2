@@ -42,7 +42,10 @@ int main(int argc,char *argv[]){
    peps.load("output/4x4/D=2");
    peps.grow_bond_dimension(D,0.001);
 
+   peps.normalize();
+
    global::env.calc('A',peps);
+   global::env.test();
    
    cout << "******************************" << endl;
    cout << 0 << "\t" << peps.energy() << endl;
@@ -53,12 +56,14 @@ int main(int argc,char *argv[]){
 
    propagate::step(peps,100);
 
+/*
    global::env.calc('A',peps);
+   global::env.test();
 
    cout << "******************************" << endl;
    cout << i << "\t" << peps.energy() << endl;
    cout << "******************************" << endl;
-/*
+
    //   }
 
    tau *= 0.1;

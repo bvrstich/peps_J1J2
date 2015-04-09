@@ -102,62 +102,17 @@ namespace contractions {
     */
    void init_ro(int row,const PEPS<double> &peps,vector< DArray<6> > &RO){
 
-      DArray<5> tmp5;
-      DArray<5> tmp5bis;
-
-      DArray<7> tmp7;
-      DArray<7> tmp7bis;
-
       DArray<8> tmp8;
       DArray<8> tmp8bis;
 
       DArray<9> tmp9;
       DArray<9> tmp9bis;
 
-      //first rightmost site: attach peps Lx - 1 to bottom
-      Gemm(CblasNoTrans,CblasTrans,1.0,peps(row,Lx-1),env.gb(row-1)[Lx-1],0.0,tmp5);
-
-      Permute(tmp5,shape(2,4,0,3,1),tmp5bis);
-
-      //add second lowest peps
-      int M = peps(row,Lx-1).shape(0) * peps(row,Lx-1).shape(1);
-      int N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
-      int K =  peps(row,Lx-1).shape(2) * peps(row,Lx-1).shape(3);
-
-      tmp5.resize(shape(D,D,D,env.gb(row-1)[Lx-1].shape(0),D));
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(row,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp5.data(),N);
-
-      //add one row up peps
-      M = peps(row+1,Lx-1).shape(0) * peps(row+1,Lx-1).shape(1) * peps(row+1,Lx-1).shape(2);
-      N = env.gb(row-1)[Lx-1].shape(0) * D * D * D;
-      K = peps(row+1,Lx-1).shape(3);
-
-      tmp7.resize( shape(D,D,d,D,D,D,env.gb(row-1)[Lx-1].shape(0)) );
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,peps(row+1,Lx-1).data(),K,tmp5.data(),K,0.0,tmp7.data(),N);
-
-      Permute(tmp7,shape(2,4,0,1,3,5,6),tmp7bis);
-
-      //and another
-      M = peps(row+1,Lx-1).shape(0) * peps(row+1,Lx-1).shape(1);
-      N = env.gb(row-1)[Lx-1].shape(0) * D * D * D * D;
-      K = peps(row+1,Lx-1).shape(2) * peps(row+1,Lx-1).shape(3);
-
-      tmp7.resize( shape(D,D,D,D,D,D,env.gb(row-1)[Lx-1].shape(0)) );
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(row+1,Lx-1).data(),K,tmp7bis.data(),N,0.0,tmp7.data(),N);
-
-      tmp7bis.clear();
-      Permute(tmp7,shape(1,3,0,2,4,5,6),tmp7bis);
-
-      //finally top environment
-      M = env.gt(row)[Lx-1].shape(0);
-      N = env.gb(row-1)[Lx-1].shape(0) * D * D * D * D;
-      K = env.gt(row)[Lx-1].shape(1) * env.gt(row)[Lx-1].shape(2);
-
-      RO[Lx - 2].resize(env.gt(row)[Lx-1].shape(0),D,D,D,D,env.gb(row-1)[Lx-1].shape(0));
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(row)[Lx-1].data(),K,tmp7bis.data(),N,0.0,RO[Lx - 2].data(),N);
+      RO[Lx-1].resize( shape(1,1,1,1,1,1) );
+      RO[Lx-1] = 1.0;
 
       //now move from right to left, constructing the rest
-      for(int col = Lx - 2;col > 0;--col){
+      for(int col = Lx - 1;col > 0;--col){
 
          //first add bottom to right unity
          tmp8.clear();

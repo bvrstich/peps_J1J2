@@ -1228,7 +1228,7 @@ double PEPS<double>::energy(){
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators
-   vector< DArray<6> > RO(Lx - 1);
+   vector< DArray<6> > RO(Lx);
 
    //array of delta left upper and lower renormalized operators needed
    std::vector< DArray<6> > LOi_u(delta);

@@ -195,7 +195,7 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
-            //cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+            cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
             // --(1)-- 'left' site
 
@@ -273,7 +273,7 @@ namespace propagate {
 
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-
+  
       //QR the complete row
       shift_row(0,peps);
 
@@ -3981,7 +3981,7 @@ namespace propagate {
          //calculate the environment for the left site
          DArray<8> N_eff;
          calc_N_eff(dir,row,col,peps,N_eff,LO,RO,LI8,RI8,true);
-       
+
          //eigenvalues
          DArray<1> eig;
          diagonalize(N_eff,eig);
@@ -4006,19 +4006,19 @@ namespace propagate {
          int rcol = col;
 
          if(dir == VERTICAL)
-         rrow++;
+            rrow++;
          else if(dir == HORIZONTAL)
-         rcol++;
+            rcol++;
          else if(dir == DIAGONAL_LURD){
 
-         lrow++;
-         lcol++;
+            lrow++;
+            lcol++;
 
          }
          else{//DIAGONAL_LDRU
 
-         rrow++;
-         rcol++;
+            rrow++;
+            rcol++;
 
          }
 
@@ -4057,7 +4057,7 @@ namespace propagate {
             }
 
          }
-/*
+
          if(N_eff.shape(1) > 1 && dir != VERTICAL){//up
 
             Permute(X,shape(0,2,3,4,1),X_copy);
@@ -4074,19 +4074,53 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_l[1]);
 
-            if(dir != DIAGONAL_LURD){//so HORIZONTAL and DIAGONAL_LDRU
+            if(dir == HORIZONTAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(3),R_l[1],shape(0),0.0,tmp7);
+               DArray<8> tmp8;
+               Contract(1.0,LI8,shape(3),R_l[1],shape(0),0.0,tmp8);
 
                //and again
-               LI7.clear();
-               Contract(1.0,tmp7,shape(3),R_l[1],shape(0),0.0,LI7);
+               LI8.clear();
+               Contract(1.0,tmp8,shape(3),R_l[1],shape(0),0.0,LI8);
 
-               tmp7.clear();
-               Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+               tmp8.clear();
+               Permute(LI8,shape(0,1,2,6,7,3,4,5),tmp8);
 
-               LI7 = std::move(tmp7);
+               LI8 = std::move(tmp8);
+
+            }
+
+         }
+
+         if(N_eff.shape(2) > 1){//down
+
+            Permute(X,shape(0,1,3,4,2),X_copy);
+
+            //QR
+            Geqrf(X_copy,R_l[2]);
+
+            //add to down side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(lrow,lcol),shape(3),R_l[2],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(lrow,lcol));
+
+            //add  inverse to environment, for upper and lower layer
+            invert(R_l[2]);
+
+            if(dir == HORIZONTAL){
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gb(row-1)[col],shape(1),R_l[2],shape(0),0.0,tmp4);
+
+               //and again
+               env.gb(row-1)[col].clear();
+               Contract(1.0,tmp4,shape(1),R_l[2],shape(0),0.0,env.gb(row-1)[col]);
+
+               tmp4.clear();
+               Permute(env.gb(row-1)[col],shape(0,2,3,1),tmp4);
+
+               env.gb(row-1)[col] = std::move(tmp4);
 
             }
 
@@ -4108,16 +4142,6 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_l[3]);
 
-            if(dir == VERTICAL){
-
-               tmp5.clear();
-               Contract(1.0,R,shape(3),R_l[3],shape(0),0.0,tmp5);
-
-               //and again
-               Contract(1.0,tmp5,shape(3),R_l[3],shape(0),0.0,R);
-
-            }
-
          }
 
          // -----------------------------//
@@ -4126,7 +4150,7 @@ namespace propagate {
 
          //calculate the environment for the right site
          N_eff.clear();
-         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,false);
+         calc_N_eff(dir,row,col,peps,N_eff,LO,RO,LI8,RI8,false);
 
          //eigenvalues
          eig.clear();
@@ -4154,21 +4178,6 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_r[0]);
 
-            if(dir == VERTICAL){
-
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(3),R_r[0],shape(1),0.0,tmp7);
-
-               //and again
-               Contract(1.0,tmp7,shape(3),R_r[0],shape(1),0.0,LI7);
-
-               tmp7.clear();
-               Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
-
-               LI7 = std::move(tmp7);
-
-            }
-
          }
 
          if(N_eff.shape(1) > 1){//up
@@ -4187,34 +4196,53 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_r[1]);
 
-            if(dir == VERTICAL){
+            if(dir == HORIZONTAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(1),R_r[1],shape(0),0.0,tmp7);
+               DArray<8> tmp8;
+               Contract(1.0,RI8,shape(3),R_r[1],shape(0),0.0,tmp8);
 
                //and again
-               LI7.clear();
-               Contract(1.0,tmp7,shape(1),R_r[1],shape(0),0.0,LI7);
+               RI8.clear();
+               Contract(1.0,tmp8,shape(3),R_r[1],shape(0),0.0,RI8);
 
-               tmp7.clear();
-               Permute(LI7,shape(0,5,6,1,2,3,4),tmp7);
+               tmp8.clear();
+               Permute(RI8,shape(0,1,2,6,7,3,4,5),tmp8);
 
-               LI7 = std::move(tmp7);
+               RI8 = std::move(tmp8);
 
             }
-            else if(dir == HORIZONTAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,RI7,shape(3),R_r[1],shape(0),0.0,tmp7);
+         }
+
+         if(N_eff.shape(2) > 1 && dir != VERTICAL){//down
+
+            Permute(X,shape(0,1,3,4,2),X_copy);
+
+            //QR
+            Geqrf(X_copy,R_r[2]);
+
+            //add to down side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow,rcol),shape(3),R_r[2],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(rrow,rcol));
+
+            //add  inverse to environment, for upper and lower layer
+            invert(R_r[2]);
+
+            if(dir == HORIZONTAL){
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gb(row-1)[col+1],shape(1),R_r[2],shape(0),0.0,tmp4);
 
                //and again
-               RI7.clear();
-               Contract(1.0,tmp7,shape(3),R_r[1],shape(0),0.0,RI7);
+               env.gb(row-1)[col+1].clear();
+               Contract(1.0,tmp4,shape(1),R_r[2],shape(0),0.0,env.gb(row-1)[col+1]);
 
-               tmp7.clear();
-               Permute(RI7,shape(0,1,2,5,6,3,4),tmp7);
+               tmp4.clear();
+               Permute(env.gb(row-1)[col+1],shape(0,2,3,1),tmp4);
 
-               RI7 = std::move(tmp7);
+               env.gb(row-1)[col+1] = std::move(tmp4);
 
             }
 
@@ -4236,33 +4264,23 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_r[3]);
 
-            if(dir == VERTICAL){
+            if(dir == HORIZONTAL){
 
-               tmp5.clear();
-               Contract(1.0,R,shape(1),R_r[3],shape(0),0.0,tmp5);
-
-               //and again
-               Contract(1.0,tmp5,shape(1),R_r[3],shape(0),0.0,R);
-
-               tmp5.clear();
-               Permute(R,shape(0,3,4,1,2),tmp5);
-
-               R = std::move(tmp5);
-
-            }
-            else if(dir == HORIZONTAL){
-
-               DArray<7> tmp7;
-               Contract(1.0,RI7,shape(5),R_r[3],shape(0),0.0,tmp7);
+               DArray<8> tmp8;
+               Contract(1.0,RI8,shape(5),R_r[3],shape(0),0.0,tmp8);
 
                //and again
-               RI7.clear();
-               Contract(1.0,tmp7,shape(5),R_r[3],shape(0),0.0,RI7);
+               RI8.clear();
+               Contract(1.0,tmp8,shape(5),R_r[3],shape(0),0.0,RI8);
+
+               Permute(RI8,shape(0,1,2,3,4,6,7,5),tmp8);
+
+               RI8 = std::move(tmp8);
 
             }
 
          }
-         */
+
       }
 
    /**

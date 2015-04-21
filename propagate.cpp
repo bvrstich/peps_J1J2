@@ -113,6 +113,8 @@ namespace propagate {
          cout << endl;
 
          // --- (c) --- initial guess: use SVD to initialize the tensors
+         cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+
          initialize(dir,row,col,lop,rop,peps); 
 
          N_eff.clear();
@@ -295,12 +297,13 @@ namespace propagate {
 
          //for(int col = 0;col < Lx - 1;++col){
          int col = 0;
+         
             // --- (1) update the vertical pair on column 'col' ---
             //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
             update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
-            /*
+       /*
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -309,20 +312,17 @@ namespace propagate {
             //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
-            //shift_col(0,col,peps);
+            //shift_col(row,col,peps);
 
             //contractions::update_L('b',col,peps,L);
 
          //}
 
          //one last vertical update
-         update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+         //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
          //QR the complete row
-         shift_row(0,peps);
-
-         //and make the new bottom environment
-         env.gb(0).fill('b',peps);
+         //shift_row(0,peps);
 
 
       }
@@ -3974,6 +3974,7 @@ namespace propagate {
       void canonicalize(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<6> &LO, DArray<6> &RO,
 
             DArray<8> &LI8,DArray<8> &RI8,std::vector< DArray<2> > &R_l,std::vector< DArray<2> > &R_r){
+
          // ----------------------------//
          // --- (A) ---- LEFT SITE ---- //
          // ----------------------------//

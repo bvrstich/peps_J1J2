@@ -295,15 +295,13 @@ namespace propagate {
          DArray<6> LO(1,1,1,1,1,1);
          LO = 1.0;
 
-         //for(int col = 0;col < Lx - 1;++col){
-         int col = 0;
+         for(int col = 0;col < 2;++col){
          
             // --- (1) update the vertical pair on column 'col' ---
             //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
             update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
-       /*
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -312,12 +310,12 @@ namespace propagate {
             //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
-            //shift_col(row,col,peps);
+            shift_col(row,col,peps);
 
-            //contractions::update_L('b',col,peps,L);
+            contractions::update_L(row,col,peps,LO);
 
-         //}
-
+         }
+/*
          //one last vertical update
          //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
@@ -3629,8 +3627,7 @@ namespace propagate {
       }
 
    /**
-    * construct the single-site effective environment and right hand side needed for 
-    * the linear system of any gate direction specified by 'dir'
+    * construct the right hand side needed for the linear system of any gate direction specified by 'dir'
     * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
     * @param row the row index of the bottom site
     * @param col column index of the vertical column
@@ -3650,6 +3647,74 @@ namespace propagate {
             DArray<5> &rhs, const DArray<6> &L, const DArray<6> &R, const DArray<8> &LI8,const DArray<8> &RI8,
 
             const DArray<8> &b_L,const DArray<8> &b_R,bool left){
+
+         if(dir ==  VERTICAL){
+
+         }
+         else if(dir == HORIZONTAL){
+
+            if(left){//left site of horizontal gate, so site (row,col) environment
+
+               //add right peps to intermediate
+               DArray<9> tmp9;
+               Contract(1.0,RI8,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp9);
+
+               //add right operator
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(3,7,4),rop,shape(1,2,5),0.0,tmp9bis);
+
+               //add bottom environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(8,5,3),env.gb(row-1)[col+1],shape(1,2,3),0.0,tmp7);
+
+               //and next bottom environment
+               tmp9.clear();
+               Gemm(CblasNoTrans,CblasTrans,1.0,tmp7,env.gb(row-1)[col],0.0,tmp9);
+
+               //now add left operator
+               tmp9bis.clear();
+               Contract(1.0,lop,shape(3,4,5),tmp9,shape(5,7,4),0.0,tmp9bis);
+
+               //attach LI8 to right side
+               DArray<5> tmp5;
+               Contract(1.0,LI8,shape(0,1,2,3,5,7),tmp9bis,shape(3,4,5,1,0,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(1,0,4,3,2),rhs);
+
+            }
+            else{//right site of horizontal gate, so site (row+1,col) environment
+
+               //add left peps to LI8
+               DArray<9> tmp9;
+               Contract(1.0,LI8,shape(6,4),peps(row,col),shape(0,1),0.0,tmp9);
+
+               //add left operator
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(4,3,6),lop,shape(0,1,2),0.0,tmp9bis);
+
+               //now contract with bottom environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(3,7,4),env.gb(row-1)[col],shape(0,1,2),0.0,tmp7);
+
+               //and next bottom environment
+               tmp9.clear();
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp7,env.gb(row-1)[col+1],0.0,tmp9);
+
+               //add right operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(5,4,6),rop,shape(0,3,4),0.0,tmp9bis);
+
+               //finally contract with RI8
+               DArray<5> tmp5;
+               Contract(1.0,tmp9bis,shape(0,1,2,6,8,5),RI8,shape(0,1,2,3,5,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+            }
+
+         }
 
       }
 
@@ -4034,7 +4099,7 @@ namespace propagate {
             //QR: watch out, LQ decomposition
             Gelqf(R_l[0],X_copy);
 
-            //add to right side of tensor
+            //add to tensor
             DArray<5> tmp5;
             Contract(1.0,R_l[0],shape(0),peps(lrow,lcol),shape(0),0.0,tmp5);
 
@@ -4049,6 +4114,7 @@ namespace propagate {
                Contract(1.0,LI8,shape(5),R_l[0],shape(1),0.0,tmp8);
 
                //and again
+               LI8.clear();
                Contract(1.0,tmp8,shape(5),R_l[0],shape(1),0.0,LI8);
 
                Permute(LI8,shape(0,1,2,3,4,6,7,5),tmp8);

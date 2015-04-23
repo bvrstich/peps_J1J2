@@ -270,46 +270,23 @@ namespace contractions {
     */
    void update_L(int row,int col,const PEPS<double> &peps,DArray<6> &LO){
 
-      if(col == 0){
+      DArray<8> tmp8;
+      Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,tmp8);
 
-         //paste top environment on
-         DArray<5> tmp5;
-         Gemm(CblasTrans,CblasNoTrans,1.0,env.gt(row)[0],peps(row+1,0),0.0,tmp5);
+      DArray<9> tmp9;
+      Contract(1.0,tmp8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
 
-         DArray<6> tmp6;
-         Contract(1.0,tmp5,shape(0,2),peps(row+1,0),shape(1,2),0.0,tmp6);
+      tmp8.clear();
+      Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
 
-         DArray<7> tmp7;
-         Contract(1.0,tmp6,shape(3,1),peps(row,0),shape(0,1),0.0,tmp7);
+      tmp9.clear();
+      Contract(1.0,tmp8,shape(0,4),peps(row,col),shape(0,1),0.0,tmp9);
 
-         DArray<8> tmp8;
-         Contract(1.0,tmp7,shape(2,4),peps(row,0),shape(1,2),0.0,tmp8);
+      tmp8.clear();
+      Contract(1.0,tmp9,shape(0,4,6),peps(row,col),shape(0,1,2),0.0,tmp8);
 
-         LO.clear();
-         Contract(1.0,tmp8,shape(5,3,6),env.gb(row-1)[0],shape(0,1,2),0.0,LO);
-
-      }
-      else{//col != 0
-
-         DArray<8> tmp8;
-         Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,tmp8);
-
-         DArray<9> tmp9;
-         Contract(1.0,tmp8,shape(0,5),peps(row+1,col),shape(0,1),0.0,tmp9);
-
-         tmp8.clear();
-         Contract(1.0,tmp9,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
-
-         tmp9.clear();
-         Contract(1.0,tmp8,shape(0,4),peps(row,col),shape(0,1),0.0,tmp9);
-
-         tmp8.clear();
-         Contract(1.0,tmp9,shape(0,4,6),peps(row,col),shape(0,1,2),0.0,tmp8);
-
-         LO.clear();
-         Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col],shape(0,1,2),0.0,LO);
-
-      }
+      LO.clear();
+      Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col],shape(0,1,2),0.0,LO);
 
    }
 

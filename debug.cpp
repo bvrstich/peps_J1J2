@@ -617,123 +617,50 @@ namespace debug {
 
          if(dir == VERTICAL){
 
-            if(col == 0){
+            //add bottom peps  to intermediate right
+            DArray<9> tmp9;
+            Contract(1.0,peps(row,col),shape(3,4),RI8,shape(6,4),0.0,tmp9);
 
-               //add bottom peps  to intermediate
-               DArray<9> tmp9;
-               Contract(1.0,peps(row,col),shape(3,4),RI8,shape(7,5),0.0,tmp9);
+            //and another
+            DArray<8> tmp8;
+            Contract(1.0,peps(row,col),shape(2,3,4),tmp9,shape(2,7,6),0.0,tmp8);
 
-               //and another
-               DArray<8> tmp8;
-               Contract(1.0,peps(row,col),shape(2,3,4),tmp9,shape(2,8,7),0.0,tmp8);
+            DArray<8> rn;
+            Permute(tmp8,shape(4,5,6,1,3,0,2,7),rn);
 
-               //and top one
-               DArray<5> tmp5;
-               Contract(1.0,peps(row+1,col),shape(0,1,3,4),tmp8,shape(0,4,1,6),0.0,tmp5);
+            //add upper peps to LI8
+            DArray<9> tmp9tris;
+            Contract(1.0,LI8,shape(4,2),peps(row+1,col),shape(0,1),0.0,tmp9tris);
 
-               DArray<5> tmp5bis;
-               Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
+            //and another
+            tmp8.clear();
+            Contract(1.0,tmp9tris,shape(2,1,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
 
-               double val = Dot(tmp5bis,peps(row+1,col));
+            DArray<8> ln;
+            Permute(tmp8,shape(0,7,5,6,4,1,2,3),ln);
 
-               // (2) right hand side
+            double val = Dot(ln,rn);
 
-               //add left operator to intermediate
-               DArray<9> tmp9bis;
-               Contract(1.0,lop,shape(2,4,5),tmp9,shape(2,8,7),0.0,tmp9bis);
+            // (2) right hand side
 
-               //and right operator
-               tmp5.clear();
-               Contract(1.0,rop,shape(0,1,3,4,5),tmp9bis,shape(0,5,2,1,7),0.0,tmp5);
+            //add left operator to intermediate right
+            DArray<9> tmp9bis;
+            Contract(1.0,lop,shape(2,4,5),tmp9,shape(2,7,6),0.0,tmp9bis);
 
-               tmp5bis.clear(); 
-               Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
+            //and right operator
+            tmp9.clear();
+            Contract(1.0,rop,shape(3,4,5),tmp9bis,shape(2,1,6),0.0,tmp9);
 
-               val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
+            //contract with left hand side
+            DArray<5> tmp5;
+            Contract(1.0,LI8,shape(0,1,3,5,6,7),tmp9,shape(6,1,0,3,4,8),0.0,tmp5);
 
-               return val;
+            DArray<5> tmp5bis;
+            Permute(tmp5,shape(1,0,2,3,4),tmp5bis);
 
-            }
-            else if(col < Lx -  1){//col != 0
+            val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
 
-               //add bottom peps  to intermediate right
-               DArray<9> tmp9;
-               Contract(1.0,peps(row,col),shape(3,4),RI8,shape(2,7),0.0,tmp9);
-
-               //and another
-               DArray<8> tmp8;
-               Contract(1.0,peps(row,col),shape(2,3,4),tmp9,shape(2,4,8),0.0,tmp8);
-
-               DArray<8> rn;
-               Permute(tmp8,shape(5,6,7,1,3,0,2,4),rn);
-
-               //add upper peps to LI8
-               DArray<9> tmp9tris;
-               Contract(1.0,LI8,shape(1,6),peps(row+1,col),shape(0,1),0.0,tmp9tris);
-
-               //and another
-               tmp8.clear();
-               Contract(1.0,tmp9tris,shape(0,4,6),peps(row+1,col),shape(0,1,2),0.0,tmp8);
-
-               DArray<8> ln;
-               Permute(tmp8,shape(3,7,5,6,4,0,1,2),ln);
-
-               double val = Dot(ln,rn);
-
-               // (2) right hand side
-
-               //add left operator to intermediate right
-               DArray<9> tmp9bis;
-               Contract(1.0,lop,shape(2,4,5),tmp9,shape(2,4,8),0.0,tmp9bis);
-
-               //and right operator
-               tmp9.clear();
-               Contract(1.0,rop,shape(3,4,5),tmp9bis,shape(2,1,7),0.0,tmp9);
-
-               //contract with left hand side
-               DArray<5> tmp5;
-               Contract(1.0,LI8,shape(7,5,0,2,3,4),tmp9,shape(7,1,0,3,4,6),0.0,tmp5);
-
-               val -= 2.0 * Dot(tmp5,peps(row+1,col));
-
-               return val;
-
-            }
-            else{//col = Lx - 1
-
-               //add bottom peps  to intermediate
-               DArray<9> tmp9;
-               Contract(1.0,LI8,shape(3,5),peps(row,col),shape(0,3),0.0,tmp9);
-
-               //and another
-               DArray<8> tmp8;
-               Contract(1.0,tmp9,shape(2,7,3),peps(row,col),shape(0,2,3),0.0,tmp8);
-
-               //upper peps
-               DArray<5> tmp5;
-               Contract(1.0,tmp8,shape(0,2,6,7),peps(row+1,col),shape(0,1,3,4),0.0,tmp5);
-
-               DArray<5> tmp5bis;
-               Permute(tmp5,shape(0,1,4,2,3),tmp5bis);
-
-               double val = Dot(tmp5bis,peps(row+1,col));
-
-               //add left operator to intermediate
-               DArray<9> tmp9bis;
-               Contract(1.0,tmp9,shape(2,7,3),lop,shape(0,2,4),0.0,tmp9bis);
-
-               //and right operator
-               tmp5.clear();
-               Contract(1.0,tmp9bis,shape(0,2,7,6,8),rop,shape(0,1,3,4,5),0.0,tmp5);
-
-               tmp5bis.clear();;
-               Permute(tmp5,shape(0,1,4,2,3),tmp5bis);
-
-               val -= 2.0 * Dot(tmp5bis,peps(row+1,col));
-
-               return val;
-
-            }
+            return val;
 
          }//end vertical
          else if(dir == HORIZONTAL){
@@ -1010,7 +937,7 @@ namespace debug {
                Permute(tmp5,shape(0,2,4,1,3),tmp5bis);
 
                cout << overlap - 2.0 * Dot(tmp5bis,R) << endl;
-               
+
             }
          }
       }

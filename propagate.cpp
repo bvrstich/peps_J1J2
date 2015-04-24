@@ -3900,7 +3900,7 @@ namespace propagate {
             //QR: watch out, LQ decomposition
             Gelqf(R_r[0],X_copy);
 
-            //add to right side of tensor
+            //add to left side of tensor
             DArray<5> tmp5;
             Contract(1.0,R_r[0],shape(0),peps(rrow,rcol),shape(0),0.0,tmp5);
 
@@ -3908,6 +3908,22 @@ namespace propagate {
 
             //add  inverse to environment, for upper and lower layer
             invert(R_r[0]);
+
+            if(dir == VERTICAL){
+
+               DArray<8> tmp8;
+               Contract(1.0,LI8,shape(3),R_r[0],shape(0),0.0,tmp8);
+
+               //and again
+               LI8.clear();
+               Contract(1.0,tmp8,shape(3),R_r[0],shape(0),0.0,LI8);
+
+               tmp8.clear();
+               Permute(LI8,shape(0,1,2,6,7,3,4,5),tmp8);
+
+               LI8 = std::move(tmp8);
+
+            }
 
          }
 
@@ -3940,6 +3956,21 @@ namespace propagate {
                Permute(RI8,shape(0,1,2,6,7,3,4,5),tmp8);
 
                RI8 = std::move(tmp8);
+
+            }
+            else if(dir == VERTICAL){
+
+               DArray<8> tmp8;
+               Contract(1.0,LI8,shape(1),R_r[1],shape(0),0.0,tmp8);
+
+               //and again
+               LI8.clear();
+               Contract(1.0,tmp8,shape(1),R_r[1],shape(0),0.0,LI8);
+
+               tmp8.clear();
+               Permute(LI8,shape(0,6,7,1,2,3,4,5),tmp8);
+
+               LI8 = std::move(tmp8);
 
             }
 
@@ -4005,6 +4036,20 @@ namespace propagate {
                Contract(1.0,tmp8,shape(5),R_r[3],shape(0),0.0,RI8);
 
                Permute(RI8,shape(0,1,2,3,4,6,7,5),tmp8);
+
+               RI8 = std::move(tmp8);
+
+            }
+            else if(dir == VERTICAL){
+
+               DArray<8> tmp8;
+               Contract(1.0,RI8,shape(1),R_r[3],shape(0),0.0,tmp8);
+
+               //and again
+               RI8.clear();
+               Contract(1.0,tmp8,shape(1),R_r[3],shape(0),0.0,RI8);
+
+               Permute(RI8,shape(0,6,7,1,2,3,4,5),tmp8);
 
                RI8 = std::move(tmp8);
 

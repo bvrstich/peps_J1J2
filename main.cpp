@@ -33,7 +33,7 @@ int main(int argc,char *argv[]){
    int D_aux = atoi(argv[4]);//virtual dimension
    int J2 = atoi(argv[5]);
 
-   double tau = 0.01;
+   double tau = 0.0;
 
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);

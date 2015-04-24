@@ -80,7 +80,7 @@ namespace propagate {
    void equilibrate(const PROP_DIR &,int,int,PEPS<double> &);
 
    //undo canonicalization of tensors
-   void restore(const PROP_DIR &,int,int,PEPS<double> &,const std::vector< DArray<2> > &,const std::vector< DArray<2> > &);
+   void restore(const PROP_DIR &,int,int,PEPS<double> &,std::vector< DArray<2> > &,std::vector< DArray<2> > &);
 
    void diagonalize(DArray<8> &,DArray<1> &);
 

@@ -33,7 +33,7 @@ int main(int argc,char *argv[]){
    int D_aux = atoi(argv[4]);//virtual dimension
    int J2 = atoi(argv[5]);
 
-   double tau = 0.0;
+   double tau = 0.01;
 
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
@@ -41,16 +41,7 @@ int main(int argc,char *argv[]){
    PEPS<double> peps;
    peps.load("output/4x4/D=2");
    peps.grow_bond_dimension(D,0.001);
-
-   peps.normalize();
-
-   global::env.calc('A',peps);
-   global::env.test();
    
-   cout << "******************************" << endl;
-   cout << 0 << "\t" << peps.energy() << endl;
-   cout << "******************************" << endl;
-
    //for(int i = 0;i < 2000;++i){
    int i = 1;
 

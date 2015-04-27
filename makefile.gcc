@@ -35,7 +35,7 @@ BTASLIB= /home/bright/btas/lib
 INCLUDE = ./include
 
 #LIBS= -lpthread -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core
-LIBS=  -lpthread -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core
+LIBS=  -lpthread -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
 
 CC	= gcc
 CXX	= g++

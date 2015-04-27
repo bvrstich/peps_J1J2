@@ -41,6 +41,8 @@ class Environment {
 
       void add_layer(const char,int,PEPS<double> &);
 
+      double cost_function(const char,int,int,const PEPS<double> &,const std::vector< DArray<4> > &);
+
       void test();
 
       const MPO<double> &gt(int) const;

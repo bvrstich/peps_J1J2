@@ -276,13 +276,15 @@ namespace propagate {
       }
 
       //one last vertical update
-      //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
   
       //QR the complete row
       shift_row(0,peps);
 
       //and make the new bottom environment
       env.gb(0).fill('b',peps);
+
+      env.gb(0).canonicalize(Right,false);
 
       //all middle rows:
       //for(int row = 1;row < Lx - 1;++row){
@@ -322,8 +324,11 @@ namespace propagate {
          update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
-         //shift_row(0,peps);
+         shift_row(row,peps);
 
+         //update the environment
+         env.add_layer('b',row,peps);
+  
 //      }
 
    }

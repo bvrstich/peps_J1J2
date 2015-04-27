@@ -208,7 +208,10 @@ void MPO<double>::fill(const char option,const PEPS<double> &peps){
          tmp.share_mem( (*this)[col] );
 
          Contract(1.0,peps(0,col),shape(i,j,k,l,m),peps(0,col),shape(n,o,k,p,q),0.0,tmp,shape(i,n,j,o,l,p,m,q));
+
       }
+
+      //canonicalize
 
    }
    else{

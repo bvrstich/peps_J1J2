@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
-#include "tbb/scalable_allocator.h"
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
 

@@ -62,6 +62,8 @@ class Environment {
       void sD(int);
       void sD_aux(int);
 
+      void init_svd(char,int,const PEPS<double> &);
+
    private:
 
       //!stores an array environment MPO's for t(op) and b(ottom)
@@ -73,10 +75,6 @@ class Environment {
 
       //!Auxiliary dimension, for the contraction
       int D_aux;
-
-      //!flags that tell if previous guess for environment is present
-      bool flag_t;
-      bool flag_b;
 
       //!nr of sweeps in compression
       int comp_sweeps;

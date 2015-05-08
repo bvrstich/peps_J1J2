@@ -280,7 +280,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
    init_svd(option,row,peps);
 
    if(option == 'b'){
-/*
+
       std::vector< DArray<4> > R(Lx+1);
 
       //first construct rightmost operator
@@ -307,7 +307,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
       R[0] = 1.0;
 
       cout << cost_function('b',row,0,peps,R) << endl;
-
+/*
       int iter = 0;
 
 //      while(iter < comp_sweeps){

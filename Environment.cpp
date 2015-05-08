@@ -276,11 +276,11 @@ const vector< MPO<double> > &Environment::gt() const {
  */
 void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
-   if(option == 'b'){
+   //initialize using svd
+   init_svd(option,row,peps);
 
-      //initialize using svd
-      init_svd(option,row,peps);
-      
+   if(option == 'b'){
+/*
       std::vector< DArray<4> > R(Lx+1);
 
       //first construct rightmost operator
@@ -307,7 +307,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
       R[0] = 1.0;
 
       cout << cost_function('b',row,0,peps,R) << endl;
-/*
+
       int iter = 0;
 
 //      while(iter < comp_sweeps){
@@ -441,7 +441,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 */
    }
    else {
-
+/*
       vector< DArray<4> > R(Lx - 1);
 
       //first construct rightmost operator
@@ -602,7 +602,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
       //then multiply the norm over the whole chain
       t[row].scal(nrm);
-
+*/
    }
 
 }
@@ -657,93 +657,212 @@ void Environment::init_svd(char option,int row,const PEPS<double> &peps){
 
    if(option == 'b'){
 
-      //add rightmost peps to right bottom environment
+      //first (leftmost) site
       DArray<5> tmp5;
-      Contract(1.0,peps(row,Lx-1),shape(3,4),b[row-1][Lx-1],shape(2,3),0.0,tmp5);
+      Contract(1.0,peps(row,0),shape(0,3),b[row-1][0],shape(0,2),0.0,tmp5);
 
       DArray<6> tmp6;
-      Contract(1.0,peps(row,Lx-1),shape(2,3),tmp5,shape(2,4),0.0,tmp6);
+      Contract(1.0,peps(row,0),shape(2,3),tmp5,shape(1,3),0.0,tmp6);
 
       DArray<6> tmp6bis;
-      Permute(tmp6,shape(0,3,5,1,4,2),tmp6bis);
+      Permute(tmp6,shape(0,1,3,2,4,5),tmp6bis);
 
       //now svd the large object
       DArray<1> S;
-      DArray<4> U;
+      DArray<4> VT;
 
-      Gesvd('S','S',tmp6bis,S,U,b[row][Lx-1],D_aux);
+      Gesvd('S','S',tmp6bis,S,b[row][0],VT,D_aux);
 
-      //paste S to left 
-      Dimm(U,S);
+      //paste S to VT for next iteration
+      Dimm(S,VT);
 
-      //the rest of the columns
-      //for(int col = Lx - 2;col > 0;--col){
-     int col = Lx - 2; 
-         //add next bottom to 'U' from previous column
+      for(int col = 1;col < Lx - 1;++col){
+
+         //add next bottom to 'VT' from previous column
          tmp6.clear();
-         Contract(1.0,b[row-1][col],shape(3),U,shape(2),0.0,tmp6);
+         Contract(1.0,VT,shape(3),b[row-1][col],shape(0),0.0,tmp6);
 
          //add next peps(row,col) to intermediate
          DArray<7> tmp7;
-         Contract(1.0,peps(row,col),shape(3,4),tmp6,shape(2,4),0.0,tmp7);
+         Contract(1.0,tmp6,shape(1,3),peps(row,col),shape(0,3),0.0,tmp7);
 
          //and again
          tmp6.clear();
-         Contract(1.0,peps(row,col),shape(2,3,4),tmp7,shape(2,4,5),0.0,tmp6);
+         Contract(1.0,tmp7,shape(1,5,2),peps(row,col),shape(0,2,3),0.0,tmp6);
 
          //permute!
          tmp6bis.clear();
-         Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+         Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
 
          //and svd!
          S.clear();
-         U.clear();
+         VT.clear();
 
-         Gesvd('S','S',tmp6bis,S,U,b[row][col],D_aux);
+         Gesvd('S','S',tmp6bis,S,b[row][col],VT,D_aux);
 
-         //paste S to left for next iteration
-         Dimm(U,S);
+         //paste S to VT for next iteration
+         Dimm(S,VT);
 
-      //}
-     col = 1; 
-      //add next bottom to 'U' from previous column
-         tmp6.clear();
-         Contract(1.0,b[row-1][col],shape(3),U,shape(2),0.0,tmp6);
+      }
 
-         //add next peps(row,col) to intermediate
-         tmp7.clear();
-         Contract(1.0,peps(row,col),shape(3,4),tmp6,shape(2,4),0.0,tmp7);
-
-         //and again
-         tmp6.clear();
-         Contract(1.0,peps(row,col),shape(2,3,4),tmp7,shape(2,4,5),0.0,tmp6);
-
-         //permute!
-         tmp6bis.clear();
-         Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
-
-         //and svd!
-         S.clear();
-         U.clear();
-
-         Gesvd('S','S',tmp6bis,S,U,b[row][col],D_aux);
-         cout << b[row][col].shape() << endl;
-
-         //paste S to left for next iteration
-         Dimm(U,S);
-/*
-      //finally first (leftmost) site
+      //last site: Lx - 1
+      
+      //add next bottom to 'VT' from previous column
       tmp6.clear();
-      Contract(1.0,b[row-1][0],shape(3),U,shape(2),0.0,tmp6);
+      Contract(1.0,VT,shape(3),b[row-1][Lx-1],shape(0),0.0,tmp6);
 
       //add next peps(row,col) to intermediate
       DArray<7> tmp7;
-      Contract(1.0,peps(row,0),shape(3,4),tmp6,shape(2,4),0.0,tmp7);
+      Contract(1.0,tmp6,shape(1,3),peps(row,Lx-1),shape(0,3),0.0,tmp7);
 
       //and again
       tmp6.clear();
-      Contract(1.0,peps(row,0),shape(2,3,4),tmp7,shape(2,4,5),0.0,tmp6);
-  */
+      Contract(1.0,tmp7,shape(1,5,2),peps(row,Lx-1),shape(0,2,3),0.0,tmp6);
+
+      //permute!
+      tmp6bis.clear();
+      Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
+
+      //move to darray<4>
+      DArray<4> tmp4 = tmp6bis.reshape_clear( shape(tmp6bis.shape(0),tmp6bis.shape(1),tmp6bis.shape(2),1) );
+
+      //and svd!
+      S.clear();
+      DArray<2> R;
+
+      //different svd!
+      Gesvd('S','S',tmp4,S,R,b[row][Lx-1],D_aux);
+
+      //paste S to VT for next iteration
+      Dimm(R,S);
+
+      //the rest of the columns
+      for(int col = Lx - 2;col > 0;--col){
+
+         //first paste R onto the next b
+         DArray<4> tmp4bis;
+         Contract(1.0,b[row][col],shape(3),R,shape(0),0.0,tmp4bis);
+
+         //QR (well, really LQ)
+         R.clear();
+         Gelqf(R,tmp4bis);
+
+         //move Q to environment
+         b[row][col] = std::move(tmp4bis);
+
+      }
+
+      //finally paste R to the first b
+      DArray<4> tmp4bis;
+      Contract(1.0,b[row][0],shape(3),R,shape(0),0.0,tmp4bis);
+
+      b[row][0] = std::move(tmp4bis);
+
+   }
+   else{
+
+      //peps index is row+2!
+      int prow = row+2;
+
+      //first (leftmost) site
+      DArray<5> tmp5;
+      Contract(1.0,t[row+1][0],shape(0,1),peps(prow,0),shape(0,1),0.0,tmp5);
+
+      DArray<6> tmp6;
+      Contract(1.0,tmp5,shape(0,2),peps(prow,0),shape(1,2),0.0,tmp6);
+
+      DArray<6> tmp6bis;
+      Permute(tmp6,shape(3,1,4,0,2,5),tmp6bis);
+
+      //now svd the large object
+      DArray<1> S;
+      DArray<4> VT;
+
+      Gesvd('S','S',tmp6bis,S,t[row][0],VT,D_aux);
+
+      //paste S to VT for next iteration
+      Dimm(S,VT);
+
+      for(int col = 1;col < Lx - 1;++col){
+
+         //add next top to 'VT' from previous column
+         tmp6.clear();
+         Contract(1.0,VT,shape(1),t[row+1][col],shape(0),0.0,tmp6);
+
+         //add next peps(row,col) to intermediate
+         DArray<7> tmp7;
+         Contract(1.0,tmp6,shape(1,3),peps(prow,col),shape(0,1),0.0,tmp7);
+
+         //and again
+         tmp6.clear();
+         Contract(1.0,tmp7,shape(1,2,4),peps(prow,col),shape(0,1,2),0.0,tmp6);
+
+         //permute!
+         tmp6bis.clear();
+         Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+
+         //and svd!
+         S.clear();
+         VT.clear();
+
+         Gesvd('S','S',tmp6bis,S,t[row][col],VT,D_aux);
+
+         //paste S to VT for next iteration
+         Dimm(S,VT);
+
+      }
+
+      //last site: Lx - 1
+      tmp6.clear();
+      Contract(1.0,VT,shape(1),t[row+1][Lx-1],shape(0),0.0,tmp6);
+
+      //add next peps(row,col) to intermediate
+      DArray<7> tmp7;
+      Contract(1.0,tmp6,shape(1,3),peps(prow,Lx-1),shape(0,1),0.0,tmp7);
+
+      //and again
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(1,2,4),peps(prow,Lx-1),shape(0,1,2),0.0,tmp6);
+
+      //permute!
+      tmp6bis.clear();
+      Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+
+      //move to darray<4>
+      DArray<4> tmp4 = tmp6bis.reshape_clear( shape(tmp6bis.shape(0),tmp6bis.shape(1),tmp6bis.shape(2),1) );
+
+      //and svd!
+      S.clear();
+      DArray<2> R;
+
+      //different svd!
+      Gesvd('S','S',tmp4,S,R,t[row][Lx-1],D_aux);
+
+      //paste S to VT for next iteration
+      Dimm(R,S);
+
+      //the rest of the columns
+      for(int col = Lx - 2;col > 0;--col){
+
+         //first paste R onto the next b
+         DArray<4> tmp4bis;
+         Contract(1.0,t[row][col],shape(3),R,shape(0),0.0,tmp4bis);
+
+         //QR (well, really LQ)
+         R.clear();
+         Gelqf(R,tmp4bis);
+
+         //move Q to environment
+         t[row][col] = std::move(tmp4bis);
+
+      }
+
+      //finally paste R to the first b
+      DArray<4> tmp4bis;
+      Contract(1.0,t[row][0],shape(3),R,shape(0),0.0,tmp4bis);
+
+      t[row][0] = std::move(tmp4bis);
+      
    }
 
 }

@@ -64,6 +64,8 @@ class PEPS : public vector< TArray<T,5> > {
 
       void rescale_tensors();
 
+      void rescale_tensors(int);
+
       //heisenberg energy expectation value
       double energy();
 

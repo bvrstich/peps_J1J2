@@ -812,7 +812,7 @@ public:
 
    }
 
-   //rescale the largest number of the tensor to 
+   //rescale the largest number of the tensor to one
    T rescale(){
 
       T max = 0;

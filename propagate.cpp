@@ -280,15 +280,13 @@ namespace propagate {
   
       //QR the complete row
       shift_row(0,peps);
+      peps.rescale_tensors(0);
 
       //and make the new bottom environment
       env.gb(0).fill('b',peps);
 
-      env.gb(0).canonicalize(Right,false);
-
       //all middle rows:
-      //for(int row = 1;row < Lx - 1;++row){
-      int row = 1;
+      for(int row = 1;row < Lx - 2;++row){
 
          //containers for the renormalized operators
          vector< DArray<6> > RO(Lx);
@@ -326,10 +324,13 @@ namespace propagate {
          //QR the complete row
          shift_row(row,peps);
 
+         peps.rescale_tensors(row);
+
          //update the environment
+         cout << endl;
          env.add_layer('b',row,peps);
-  
-//      }
+
+      }
 
    }
 

@@ -46,49 +46,25 @@ namespace contractions {
       }
       else{//top: bottom peps row = Ly - 2
 
-         if(col == 0){
+         //attach top-row peps to left
+         DArray<8> tmp8;
+         Contract(1.0,L,shape(0),peps(Ly-1,col),shape(0),0.0,tmp8);
 
-            //first bottom peps to bottom environemnt
-            DArray<5> tmp5;
-            Contract(1.0,peps(Ly-2,col),shape(0,3),env.gb(Ly - 3)[col],shape(0,2),0.0,tmp5);
+         //and again
+         DArray<7> tmp7;
+         Contract(1.0,tmp8,shape(0,4,5),peps(Ly-1,col),shape(0,1,2),0.0,tmp7);
 
-            //add another peps to it
-            DArray<6> tmp6;
-            Contract(1.0,peps(Ly-2,col),shape(2,3),tmp5,shape(1,3),0.0,tmp6);
+         //add second-row PEPS
+         tmp8.clear();
+         Contract(1.0,tmp7,shape(0,3),peps(Ly-2,col),shape(0,1),0.0,tmp8);
 
-            //add top peps to it
-            DArray<7> tmp7;
-            Contract(1.0,peps(Ly-1,col),shape(0,3),tmp6,shape(0,3),0.0,tmp7);
+         //and again
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,3,5),peps(Ly-2,col),shape(0,1,2),0.0,tmp7);
 
-            //one last top peps
-            tmp6.clear();
-            Contract(1.0,peps(Ly-1,col),shape(1,2,3),tmp7,shape(0,1,3),0.0,tmp6);
-
-            L = tmp6.reshape_clear( shape(D,D,D,D,env.gb(Ly-3)[col].shape(3)) );
-
-         }
-         else{//if col != 0
-
-            //add top peps to L
-            DArray<8> tmp8;
-            Contract(1.0,L,shape(0),peps(Ly-1,col),shape(0),0.0,tmp8);
-
-            //and another top peps
-            DArray<7> tmp7;
-            Contract(1.0,tmp8,shape(0,4,5),peps(Ly-1,col),shape(0,1,2),0.0,tmp7);
-
-            //now a bottom peps
-            tmp8.clear();
-            Contract(1.0,tmp7,shape(0,3),peps(Ly-2,col),shape(0,1),0.0,tmp8);
-
-            tmp7.clear();
-            Contract(1.0,tmp8,shape(0,3,5),peps(Ly-2,col),shape(0,1,2),0.0,tmp7);
-
-            //finally environment:
-            L.clear();
-            Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly - 3)[col],shape(0,1,2),0.0,L);
-
-         }
+         //finally
+         L.clear();
+         Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col],shape(0,1,2),0.0,L);
 
       }
 
@@ -167,12 +143,10 @@ namespace contractions {
       if(option == 'b'){
 
          R[Lx-1].resize( shape(1,1,1,1,1) );
-         R[Lx - 1] = 1.0;
+         R[Lx-1] = 1.0;
 
-         int M,N,K;
-
-         DArray<7> tmp7,tmp7bis;
-         DArray<8> tmp8,tmp8bis;
+         DArray<7> tmp7;
+         DArray<8> tmp8;
 
          for(int i = Lx - 1;i > 0;--i){
 
@@ -196,64 +170,28 @@ namespace contractions {
       }
       else{ //top 2 rows
 
-         //attach bottom environment to lower peps
-         DArray<5> tmp5;
-         Gemm(CblasNoTrans,CblasTrans,1.0,peps(Ly-2,Lx-1),env.gb(Ly-3)[Lx-1],0.0,tmp5);
-
-         DArray<5> tmp5bis;
-         Permute(tmp5,shape(2,4,0,1,3),tmp5bis);
-
-         //another lower regular peps on top
-         int M = peps(Ly-2,Lx-1).shape(0) * peps(Ly-2,Lx-1).shape(1);
-         int N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
-         int K = peps(Ly-2,Lx-1).shape(2) * peps(Ly-2,Lx-1).shape(3);
-
-         tmp5.resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,peps(Ly-2,Lx-1).data(),K,tmp5bis.data(),N,0.0,tmp5.data(),N);
-
-         tmp5bis.clear();
-         Permute(tmp5,shape(1,3,0,2,4),tmp5bis);
-
-         //finally add top!
-         M = env.gt(Ly-3)[Lx-1].shape(0);
-         N = tmp5bis.shape(2) * tmp5bis.shape(3) * tmp5bis.shape(4);
-         K = env.gt(Ly-3)[Lx-1].shape(1) * env.gt(Ly-3)[Lx-1].shape(2) * env.gt(Ly-3)[Lx-1].shape(3);
-
-         R[Lx-2].resize(shape( D,D,D,D,env.gb(Ly-3)[Lx-1].shape(0) ) );
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(Ly-3)[Lx-1].data(),K,tmp5bis.data(),N,0.0,R[Lx-2].data(),N);
+         R[Lx-1].resize( shape(1,1,1,1,1) );
+         R[Lx-1] = 1.0;
 
          DArray<7> tmp7;
-         DArray<7> tmp7bis;
-
          DArray<8> tmp8;
-         DArray<8> tmp8bis;
 
-         for(int col = Lx - 2;col > 0;--col){
+         for(int i = Lx - 1;i > 0;--i){
 
             tmp7.clear();
-            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(Ly-3)[col],R[col],0.0,tmp7);
-
-            tmp7bis.clear();
-            Permute(tmp7,shape(2,6,0,1,3,4,5),tmp7bis);
+            Contract(1.0,env.gb(Ly-3)[i],shape(3),R[i],shape(4),0.0,tmp7);
 
             tmp8.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(Ly-2,col),tmp7bis,0.0,tmp8);
-
-            tmp8bis.clear();
-            Permute(tmp8,shape(2,4,7,0,1,3,5,6),tmp8bis);
+            Contract(1.0,peps(Ly-2,i),shape(3,4),tmp7,shape(2,6),0.0,tmp8);
 
             tmp7.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(Ly-2,col),tmp8bis,0.0,tmp7);
+            Contract(1.0,peps(Ly-2,i),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
 
-            tmp7bis.clear();
-            Permute(tmp7,shape(1,3,5,6,0,2,4),tmp7bis);
+            tmp8.clear();
+            Contract(1.0,peps(Ly-1,i),shape(3,4),tmp7,shape(3,6),0.0,tmp8);
 
-            M = env.gt(Ly-3)[col].shape(0);
-            N = tmp7bis.shape(4) * tmp7bis.shape(5) * tmp7bis.shape(6);
-            K = env.gt(Ly-3)[col].shape(1) * env.gt(Ly-3)[col].shape(2) * env.gt(Ly-3)[col].shape(3);
-
-            R[col - 1].resize(shape( D,D,D,D,env.gb(Ly-3)[col].shape(0) ) );
-            blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env.gt(Ly-3)[col].data(),K,tmp7bis.data(),N,0.0,R[col - 1].data(),N);
+            R[i-1].clear();
+            Contract(1.0,peps(Ly-1,i),shape(1,2,3,4),tmp8,shape(1,2,4,7),0.0,R[i-1]);
 
          }
 

@@ -327,8 +327,41 @@ namespace propagate {
          peps.rescale_tensors(row);
 
          //update the environment
-         cout << endl;
          env.add_layer('b',row,peps);
+
+         // finally row == Lx-2
+         
+         //initialize the right operators for the top two rows
+         contractions::init_ro('t',peps,R);
+
+         L(1,1,1,1,1);
+         L = 1.0;
+/*
+         //for(int col = 0;col < Lx - 1;++col){
+         int col = 0;
+
+            // --- (1) update the vertical pair on column 'col' ---
+            update(VERTICAL,,col,peps,L,R[col],n_sweeps); 
+
+            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+
+            // --- (3) update diagonal LU-RD
+            //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+
+            // --- (4) update diagonal LD-RU
+            //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+
+            //do a QR decomposition of the updated peps on 'col'
+            shift_col(0,col,peps);
+
+            contractions::update_L('b',col,peps,L);
+
+         //}
+
+         //one last vertical update
+         update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+  */
 
       }
 

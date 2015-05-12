@@ -48,9 +48,6 @@ int main(int argc,char *argv[]){
    int i = 1;
 
    propagate::step(peps,10);
-   cout << "WHAT THE FUCK!" << endl;
-
-   cout << peps << endl;
 
 /*
    cout << "******************************" << endl;

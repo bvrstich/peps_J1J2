@@ -42,7 +42,7 @@ int main(int argc,char *argv[]){
    peps.load("output/4x4/D=2");
    peps.grow_bond_dimension(D,0.001);
 
-   peps.normalize();
+   //peps.normalize();
 
    //for(int i = 0;i < 2000;++i){
    int i = 1;

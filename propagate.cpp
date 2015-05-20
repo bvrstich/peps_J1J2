@@ -56,7 +56,7 @@ namespace propagate {
 
          // --- (b) --- canonicalize the environments around the sites to be updated
          canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
-         /*
+         
             if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
          //left and right operators:
@@ -113,7 +113,7 @@ namespace propagate {
          cout << endl;
 
          // --- (c) --- initial guess: use SVD to initialize the tensors
-         cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+         //cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
          initialize(dir,row,col,lop,rop,peps); 
 
@@ -146,7 +146,7 @@ namespace propagate {
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
-         */
+
       }
 
    /**
@@ -256,11 +256,17 @@ namespace propagate {
 
       for(int col = 0;col < Lx - 1;++col){
 
+         cout << endl;
+         cout << "***************************************" << endl;
+         cout << " Update site:\t(0," << col << ")" << endl;
+         cout << "***************************************" << endl;
+         cout << endl;
+
          // --- (1) update the vertical pair on column 'col' ---
-         //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -276,7 +282,7 @@ namespace propagate {
       }
 
       //one last vertical update
-      //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
       //QR the complete row
       shift_row(0,peps);
@@ -299,11 +305,17 @@ namespace propagate {
 
          for(int col = 0;col < Lx - 1;++col){
 
+            cout << endl;
+            cout << "***************************************" << endl;
+            cout << " Update site:\t(" << row << "," << col << ")" << endl;
+            cout << "***************************************" << endl;
+            cout << endl;
+
             // --- (1) update the vertical pair on column 'col' ---
-            //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -319,7 +331,7 @@ namespace propagate {
          }
 
          //one last vertical update
-         //update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
+         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
          shift_row(row,peps);
@@ -339,6 +351,12 @@ namespace propagate {
 
          //for(int col = 0;col < Lx - 1;++col){
          int col = 0;
+
+         cout << endl;
+         cout << "***************************************" << endl;
+         cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
+         cout << "***************************************" << endl;
+         cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
          update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
@@ -2726,7 +2744,7 @@ namespace propagate {
 
                   //attach left to right
                   DArray<6> tmp6;
-                  Contract(1.0,tmp7,shape(7,5,3),R,shape(2,3,4),0.0,tmp6);
+                  Contract(1.0,tmp7,shape(5,3,2),R,shape(2,3,4),0.0,tmp6);
 
                   DArray<6> tmp6bis;
                   Permute(tmp6,shape(0,3,4,1,2,5),tmp6bis);
@@ -2987,6 +3005,53 @@ namespace propagate {
 
                   rhs.clear();
                   Permute(tmp5,shape(1,0,3,4,2),rhs);
+
+               }
+
+            }
+            else{ //row == Lx-2
+
+               if(left){//bottom site
+
+                  //paste right operator to right
+                  DArray<9> tmp9;
+                  Contract(1.0,rop,shape(5),R,shape(0),0.0,tmp9);
+
+                  //and again
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row+1,col),shape(1,2,4),tmp9,shape(1,2,5),0.0,tmp8);
+
+                  //attach left operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,lop,shape(1,3,5),tmp8,shape(4,3,5),0.0,tmp8bis);
+
+                  //contract left and right
+                  DArray<5> tmp5;
+                  Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,3,0,2,7),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+               }
+               else{//top site
+
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(3,5),peps(row,col),shape(0,3),0.0,tmp8);
+
+                  //add left operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,tmp8,shape(2,6,3),lop,shape(0,2,4),0.0,tmp8bis);
+
+                  //add right operator
+                  tmp8.clear();
+                  Contract(1.0,tmp8bis,shape(0,6,5),rop,shape(0,3,4),0.0,tmp8);
+
+                  //now contract left and right
+                  DArray<5> tmp5;
+                  Contract(1.0,tmp8,shape(7,4,3,1),R,shape(0,2,3,4),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,2,1,4,3),rhs);
 
                }
 
@@ -3271,11 +3336,30 @@ namespace propagate {
 
             if(dir != DIAGONAL_LURD){
 
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(5),R_l[0],shape(1),0.0,tmp7);
+               if(row == 0){
 
-               //and again
-               Contract(1.0,tmp7,shape(5),R_l[0],shape(1),0.0,LI7);
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(5),R_l[0],shape(1),0.0,tmp7);
+
+                  //and again
+                  Contract(1.0,tmp7,shape(5),R_l[0],shape(1),0.0,LI7);
+
+               }
+               else{//row == Lx-2
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(2),R_l[0],shape(1),0.0,tmp7);
+
+                  //and again
+                  LI7.clear();
+                  Contract(1.0,tmp7,shape(2),R_l[0],shape(1),0.0,LI7);
+
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,5,6,2,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
 
             }
 
@@ -3331,24 +3415,24 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_l[2]);
 
-            if(dir == VERTICAL){
+            if(dir != DIAGONAL_LURD){//only when row == Lx-2 of course
 
-               DArray<5> tmp5;
-               Contract(1.0,R,shape(2),R_l[2],shape(0),0.0,tmp5);
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(4),R_l[2],shape(0),0.0,tmp7);
 
                //and again
-               R.clear();
-               Contract(1.0,tmp5,shape(2),R_l[2],shape(0),0.0,R);
+               LI7.clear();
+               Contract(1.0,tmp7,shape(4),R_l[2],shape(0),0.0,LI7);
 
-               tmp5.clear();
-               Permute(R,shape(0,1,3,4,2),tmp5);
+               tmp7.clear();
+               Permute(LI7,shape(0,1,2,3,5,6,4),tmp7);
 
-               R = std::move(tmp5);
+               LI7 = std::move(tmp7);
 
             }
 
          }
-
+  
          if(N_eff.shape(3) > 1 && dir != HORIZONTAL){//right
 
             Permute(X,shape(0,1,2,4,3),X_copy);
@@ -3399,7 +3483,7 @@ namespace propagate {
          // -----------------------------//
          // --- (B) ---- RIGHT SITE ---- //
          // -----------------------------//
-/*
+
          //calculate the environment for the right site
          N_eff.clear();
          calc_N_eff(dir,row,col,peps,N_eff,L,R,LI7,RI7,false);
@@ -3413,6 +3497,7 @@ namespace propagate {
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          X.clear();
          get_X(N_eff,eig,X);
+
 
          if(N_eff.shape(0) > 1 && dir != HORIZONTAL){//left
 
@@ -3432,16 +3517,34 @@ namespace propagate {
 
             if(dir == VERTICAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(3),R_r[0],shape(1),0.0,tmp7);
+               if(row == 0){
 
-               //and again
-               Contract(1.0,tmp7,shape(3),R_r[0],shape(1),0.0,LI7);
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(3),R_r[0],shape(1),0.0,tmp7);
 
-               tmp7.clear();
-               Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+                  //and again
+                  Contract(1.0,tmp7,shape(3),R_r[0],shape(1),0.0,LI7);
 
-               LI7 = std::move(tmp7);
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
+               else{
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(3),R_r[0],shape(1),0.0,tmp7);
+
+                  //and again
+                  Contract(1.0,tmp7,shape(3),R_r[0],shape(1),0.0,LI7);
+
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
 
             }
 
@@ -3463,7 +3566,7 @@ namespace propagate {
             //add  inverse to environment, for upper and lower layer
             invert(R_r[1]);
 
-            if(dir == VERTICAL){
+            if(dir == VERTICAL){//only row = 0
 
                DArray<7> tmp7;
                Contract(1.0,LI7,shape(1),R_r[1],shape(0),0.0,tmp7);
@@ -3496,6 +3599,28 @@ namespace propagate {
 
          }
 
+         if(N_eff.shape(2) > 1 & dir != VERTICAL){//down
+
+            Permute(X,shape(0,1,3,4,2),X_copy);
+
+            //QR
+            Geqrf(X_copy,R_r[2]);
+
+            //add to down side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow,rcol),shape(3),R_r[2],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(rrow,rcol));
+
+            //add  inverse to environment, for upper and lower layer
+            invert(R_r[2]);
+
+            if(dir == HORIZONTAL){
+
+            }
+
+         }
+
          if(N_eff.shape(3) > 1){//right
 
             Permute(X,shape(0,1,2,4,3),X_copy);
@@ -3514,16 +3639,36 @@ namespace propagate {
 
             if(dir == VERTICAL){
 
-               tmp5.clear();
-               Contract(1.0,R,shape(1),R_r[3],shape(0),0.0,tmp5);
+               if(row == 0){
 
-               //and again
-               Contract(1.0,tmp5,shape(1),R_r[3],shape(0),0.0,R);
+                  tmp5.clear();
+                  Contract(1.0,R,shape(1),R_r[3],shape(0),0.0,tmp5);
 
-               tmp5.clear();
-               Permute(R,shape(0,3,4,1,2),tmp5);
+                  //and again
+                  R.clear();
+                  Contract(1.0,tmp5,shape(1),R_r[3],shape(0),0.0,R);
 
-               R = std::move(tmp5);
+                  tmp5.clear();
+                  Permute(R,shape(0,3,4,1,2),tmp5);
+
+                  R = std::move(tmp5);
+
+               }
+               else{
+
+                  tmp5.clear();
+                  Contract(1.0,R,shape(0),R_r[3],shape(0),0.0,tmp5);
+
+                  //and again
+                  R.clear();
+                  Contract(1.0,tmp5,shape(0),R_r[3],shape(0),0.0,R);
+
+                  tmp5.clear();
+                  Permute(R,shape(3,4,0,1,2),tmp5);
+
+                  R = std::move(tmp5);
+
+               }
 
             }
             else if(dir == HORIZONTAL){
@@ -3538,7 +3683,7 @@ namespace propagate {
             }
 
          }
-         */
+         
       }
 
    /**

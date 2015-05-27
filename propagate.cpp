@@ -348,8 +348,7 @@ namespace propagate {
          L.resize(shape(1,1,1,1,1));
          L = 1.0;
 
-         //for(int col = 0;col < Lx - 1;++col){
-         int col = 0;
+         for(int col = 0;col < Lx - 1;++col){
 
          cout << endl;
          cout << "***************************************" << endl;
@@ -359,9 +358,9 @@ namespace propagate {
 
          // --- (1) update the vertical pair on column 'col' ---
          update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
-         /*
+         
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -370,15 +369,15 @@ namespace propagate {
          //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         shift_col(0,col,peps);
+         shift_col(Lx-2,col,peps);
 
-         contractions::update_L('b',col,peps,L);
+         contractions::update_L('t',col,peps,L);
 
-         //}
+         }
 
          //one last vertical update
-         update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-         */
+       //  update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+        
 
       }
 

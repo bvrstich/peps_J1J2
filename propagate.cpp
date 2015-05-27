@@ -56,37 +56,37 @@ namespace propagate {
 
          // --- (b) --- canonicalize the environments around the sites to be updated
          canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
-         
-            if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
-         //left and right operators:
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+         if(dir == VERTICAL){// (row,col) --> (row+1,col)
+
+            //left and right operators:
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else if(dir == HORIZONTAL){// (row,col) --> (row,col+1)
 
-         //left and right operators:
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+            //left and right operators:
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_n(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_n(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else if(dir == DIAGONAL_LURD){//(row+1,col) --> (row,col+1)
 
-         //middle peps is left bottom 
-         mop = peps(row,col);
+            //middle peps is left bottom 
+            mop = peps(row,col);
 
-         Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
          else{//(row,col) --> (row+1,col+1)
 
-         //middle peps is bottom right
-         mop = peps(row,col+1);
+            //middle peps is bottom right
+            mop = peps(row,col+1);
 
-         Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
-         Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row,col),shape(i,j,k,l,m),global::trot.gLO_nn(),shape(k,o,n),0.0,lop,shape(i,j,n,o,l,m));
+            Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
 
@@ -113,7 +113,7 @@ namespace propagate {
          cout << endl;
 
          // --- (c) --- initial guess: use SVD to initialize the tensors
-         //cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+         cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 
          initialize(dir,row,col,lop,rop,peps); 
 
@@ -335,7 +335,6 @@ namespace propagate {
 
          //QR the complete row
          shift_row(row,peps);
-
          peps.rescale_tensors(row);
 
          //update the environment
@@ -2744,7 +2743,7 @@ namespace propagate {
 
                   //attach left to right
                   DArray<6> tmp6;
-                  Contract(1.0,tmp7,shape(5,3,2),R,shape(2,3,4),0.0,tmp6);
+                  Contract(1.0,tmp7,shape(6,4,2),R,shape(2,3,4),0.0,tmp6);
 
                   DArray<6> tmp6bis;
                   Permute(tmp6,shape(0,3,4,1,2,5),tmp6bis);
@@ -3432,7 +3431,7 @@ namespace propagate {
             }
 
          }
-  
+
          if(N_eff.shape(3) > 1 && dir != HORIZONTAL){//right
 
             Permute(X,shape(0,1,2,4,3),X_copy);
@@ -3479,7 +3478,7 @@ namespace propagate {
             }
 
          }
-         
+
          // -----------------------------//
          // --- (B) ---- RIGHT SITE ---- //
          // -----------------------------//
@@ -3683,7 +3682,7 @@ namespace propagate {
             }
 
          }
-         
+
       }
 
    /**

@@ -371,7 +371,7 @@ int col = 0;
          //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         shift_col(Lx-2,col,peps);
+         shift_col(Ly-2,col,peps);
 
          contractions::update_L('t',col,peps,L);
 
@@ -2755,7 +2755,7 @@ int col = 0;
 
                   //fill up the right side
                   DArray<8> tmp8;
-                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(3,5),0.0,tmp8);
+                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(5,3),0.0,tmp8);
 
                   DArray<7> tmp7;
                   Contract(1.0,peps(row,col+1),shape(2,3,4),tmp8,shape(2,6,5),0.0,tmp7);
@@ -3335,32 +3335,28 @@ int col = 0;
             //add  inverse to environment, for upper and lower layer
             invert(R_l[0]);
 
-            if(dir != DIAGONAL_LURD){
+            if(row == 0){
 
-               if(row == 0){
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(5),R_l[0],shape(1),0.0,tmp7);
 
-                  DArray<7> tmp7;
-                  Contract(1.0,LI7,shape(5),R_l[0],shape(1),0.0,tmp7);
+               //and again
+               Contract(1.0,tmp7,shape(5),R_l[0],shape(1),0.0,LI7);
 
-                  //and again
-                  Contract(1.0,tmp7,shape(5),R_l[0],shape(1),0.0,LI7);
+            }
+            else{//row == Lx-2
 
-               }
-               else{//row == Lx-2
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(2),R_l[0],shape(1),0.0,tmp7);
 
-                  DArray<7> tmp7;
-                  Contract(1.0,LI7,shape(2),R_l[0],shape(1),0.0,tmp7);
+               //and again
+               LI7.clear();
+               Contract(1.0,tmp7,shape(2),R_l[0],shape(1),0.0,LI7);
 
-                  //and again
-                  LI7.clear();
-                  Contract(1.0,tmp7,shape(2),R_l[0],shape(1),0.0,LI7);
+               tmp7.clear();
+               Permute(LI7,shape(0,1,5,6,2,3,4),tmp7);
 
-                  tmp7.clear();
-                  Permute(LI7,shape(0,1,5,6,2,3,4),tmp7);
-
-                  LI7 = std::move(tmp7);
-
-               }
+               LI7 = std::move(tmp7);
 
             }
 
@@ -3382,19 +3378,31 @@ int col = 0;
             //add  inverse to environment, for upper and lower layer
             invert(R_l[1]);
 
-            if(dir != DIAGONAL_LURD){//so HORIZONTAL and DIAGONAL_LDRU
+            if(dir == HORIZONTAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(3),R_l[1],shape(0),0.0,tmp7);
+               if(row == 0){
 
-               //and again
-               LI7.clear();
-               Contract(1.0,tmp7,shape(3),R_l[1],shape(0),0.0,LI7);
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(3),R_l[1],shape(0),0.0,tmp7);
 
-               tmp7.clear();
-               Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+                  //and again
+                  LI7.clear();
+                  Contract(1.0,tmp7,shape(3),R_l[1],shape(0),0.0,LI7);
 
-               LI7 = std::move(tmp7);
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
+               else if(row == Ly - 2){
+
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
+
+                  Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
+
+               }
 
             }
 
@@ -3416,21 +3424,17 @@ int col = 0;
             //add  inverse to environment, for upper and lower layer
             invert(R_l[2]);
 
-            if(dir != DIAGONAL_LURD){//only when row == Lx-2 of course
+            DArray<7> tmp7;
+            Contract(1.0,LI7,shape(4),R_l[2],shape(0),0.0,tmp7);
 
-               DArray<7> tmp7;
-               Contract(1.0,LI7,shape(4),R_l[2],shape(0),0.0,tmp7);
+            //and again
+            LI7.clear();
+            Contract(1.0,tmp7,shape(4),R_l[2],shape(0),0.0,LI7);
 
-               //and again
-               LI7.clear();
-               Contract(1.0,tmp7,shape(4),R_l[2],shape(0),0.0,LI7);
+            tmp7.clear();
+            Permute(LI7,shape(0,1,2,3,5,6,4),tmp7);
 
-               tmp7.clear();
-               Permute(LI7,shape(0,1,2,3,5,6,4),tmp7);
-
-               LI7 = std::move(tmp7);
-
-            }
+            LI7 = std::move(tmp7);
 
          }
 
@@ -3585,17 +3589,32 @@ int col = 0;
             }
             else if(dir == HORIZONTAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,RI7,shape(3),R_r[1],shape(0),0.0,tmp7);
+               if(row == 0){
 
-               //and again
-               RI7.clear();
-               Contract(1.0,tmp7,shape(3),R_r[1],shape(0),0.0,RI7);
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(3),R_r[1],shape(0),0.0,tmp7);
 
-               tmp7.clear();
-               Permute(RI7,shape(0,1,2,5,6,3,4),tmp7);
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(3),R_r[1],shape(0),0.0,RI7);
 
-               RI7 = std::move(tmp7);
+                  tmp7.clear();
+                  Permute(RI7,shape(0,1,2,5,6,3,4),tmp7);
+
+                  RI7 = std::move(tmp7);
+
+               }
+               else if(row == Ly - 2){
+
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row+1,col+1),shape(3),R_r[1],shape(0),0.0,tmp5);
+
+                  Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col+1));
+
+               }
+               else{//row == Ly - 1
+
+               }
 
             }
 
@@ -3618,6 +3637,22 @@ int col = 0;
             invert(R_r[2]);
 
             if(dir == HORIZONTAL){
+
+               if(row == Ly - 2){
+
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(4),R_r[2],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(4),R_r[2],shape(0),0.0,RI7);
+
+                  tmp7.clear();
+                  Permute(RI7,shape(0,1,2,3,5,6,4),tmp7);
+
+                  RI7 = std::move(tmp7);
+
+               }
 
             }
 
@@ -3675,12 +3710,31 @@ int col = 0;
             }
             else if(dir == HORIZONTAL){
 
-               DArray<7> tmp7;
-               Contract(1.0,RI7,shape(5),R_r[3],shape(0),0.0,tmp7);
+               if(row == 0){
 
-               //and again
-               RI7.clear();
-               Contract(1.0,tmp7,shape(5),R_r[3],shape(0),0.0,RI7);
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(5),R_r[3],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(5),R_r[3],shape(0),0.0,RI7);
+
+               }
+               else if(row == Ly - 2){
+
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(2),R_r[3],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(2),R_r[3],shape(0),0.0,RI7);
+
+                  tmp7.clear();
+                  Permute(RI7,shape(0,1,5,6,2,3,4),tmp7);
+
+                  RI7 = std::move(tmp7);
+
+               }
 
             }
 

@@ -340,15 +340,17 @@ namespace propagate {
          //update the environment
          env.add_layer('b',row,peps);
 
-         // finally row == Lx-2
+      }
 
-         //initialize the right operators for the top two rows
-         contractions::init_ro('t',peps,R);
+      // finally row == Lx-2
 
-         L.resize(shape(1,1,1,1,1));
-         L = 1.0;
+      //initialize the right operators for the top two rows
+      contractions::init_ro('t',peps,R);
 
-         for(int col = 0;col < Lx - 1;++col){
+      L.resize(shape(1,1,1,1,1));
+      L = 1.0;
+
+      for(int col = 0;col < Lx - 1;++col){
 
          cout << endl;
          cout << "***************************************" << endl;
@@ -358,7 +360,7 @@ namespace propagate {
 
          // --- (1) update the vertical pair on column 'col' ---
          update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
-         
+
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
          //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
@@ -373,13 +375,10 @@ namespace propagate {
 
          contractions::update_L('t',col,peps,L);
 
-         }
-
-         //one last vertical update
-       //  update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-        
-
       }
+
+      //one last vertical update
+      update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
    }
 
@@ -3532,13 +3531,14 @@ namespace propagate {
                else{
 
                   DArray<7> tmp7;
-                  Contract(1.0,LI7,shape(3),R_r[0],shape(1),0.0,tmp7);
+                  Contract(1.0,LI7,shape(0),R_r[0],shape(1),0.0,tmp7);
 
                   //and again
-                  Contract(1.0,tmp7,shape(3),R_r[0],shape(1),0.0,LI7);
+                  LI7.clear();
+                  Contract(1.0,tmp7,shape(0),R_r[0],shape(1),0.0,LI7);
 
                   tmp7.clear();
-                  Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+                  Permute(LI7,shape(5,6,0,1,2,3,4),tmp7);
 
                   LI7 = std::move(tmp7);
 

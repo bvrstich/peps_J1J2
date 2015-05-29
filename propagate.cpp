@@ -446,201 +446,88 @@ int col = 0;
          }//close VERTICAL
          else if(dir == HORIZONTAL){
 
-            if(row == 0){
+            //row == Ly - 1
+
+            if(left){//left site of horizontal gate, so site (row,col) environment
+
+               //(1) construct N_eff
+
+               //add right peps to intermediate
+               DArray<8> tmp8;
+               Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(3,1),0.0,tmp8);
+
+               //add second peps
+               DArray<5> tmp5;
+               Contract(1.0,peps(row,col+1),shape(1,2,3,4),tmp8,shape(1,2,4,3),0.0,tmp5);
+
+               //contract with left hand side
+               DArray<6> tmp6;
+               Gemm(CblasNoTrans,CblasTrans,1.0,LI7,tmp5,0.0,tmp6);
+
+               DArray<6> tmp6bis;
+               Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+
+               int DL = peps(row,col).shape(0);
+
+               N_eff = tmp6bis.reshape_clear( shape(DL,1,D,D,DL,1,D,D) );
+
+               // (2) construct right hand side
+
+               //add right operator to tmp8
+               tmp6.clear();
+               Contract(1.0,rop,shape(1,2,4,5),tmp8,shape(1,2,4,3),0.0,tmp6);
+
+               //now paste left operator in
+               tmp8.clear();
+               Contract(1.0,lop,shape(5,3),tmp6,shape(0,1),0.0,tmp8);
+
+               //contract with left hand side
+               tmp5.clear();
+               Contract(1.0,LI7,shape(0,2,4,5,6),tmp8,shape(0,3,5,6,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,2,1,4,3),rhs);
 
             }
-            else if(row == Ly - 2){//bottom horizontal peps of topmost update
+            else{//right site of horizontal gate, so site (row+1,col) environment
 
-               if(left){//left site of horizontal gate, so site (row,col) environment
+               //(1) construct N_eff
 
-                  //(1) construct N_eff
+               //add left to intermediate
+               DArray<8> tmp8;
+               Contract(1.0,LI7,shape(1,3),peps(row,col),shape(0,3),0.0,tmp8);
 
-                  //add right peps to intermediate
-                  DArray<8> tmp8;
-                  Contract(1.0,RI7,shape(3,5),peps(row,col+1),shape(1,4),0.0,tmp8);
+               //and another
+               DArray<5> tmp5;
+               Contract(1.0,tmp8,shape(0,5,6,1),peps(row,col),shape(0,1,2,3),0.0,tmp5);
 
-                  //add second peps
-                  DArray<7> tmp7;
-                  Contract(1.0,tmp8,shape(2,6,3),peps(row,col+1),shape(1,2,4),0.0,tmp7);
+               //contract with right side
+               DArray<6> tmp6;
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,RI7,tmp5,0.0,tmp6);
 
-                  //add bottom environment
-                  DArray<5> tmp5;
-                  Contract(1.0,env.gb(Ly-3)[col+1],shape(1,2,3),tmp7,shape(6,4,2),0.0,tmp5);
+               DArray<6> tmp6bis;
+               Permute(tmp6,shape(5,2,0,4,3,1),tmp6bis);
 
-                  //add next bottom
-                  tmp7.clear();
-                  Contract(1.0,env.gb(Ly-3)[col],shape(3),tmp5,shape(0),0.0,tmp7);
+               int DR = peps(row,col+1).shape(4);
 
-                  //contract with left hand side
-                  DArray<8> tmp8bis;
-                  Contract(1.0,LI7,shape(0,1,6),tmp7,shape(3,4,0),0.0,tmp8bis);
+               N_eff = tmp6bis.reshape_clear( shape(D,1,D,DR,D,1,D,DR) );
 
-                  N_eff.clear();
-                  Permute(tmp8bis,shape(2,0,4,7,3,1,5,6),N_eff);
+               // (2) construct right hand side
 
-                  // (2) construct right hand side
+               //add left operator
+               tmp6.clear();
+               Contract(1.0,tmp8,shape(0,5,6,1),lop,shape(0,1,2,4),0.0,tmp6);
 
-                  //add right operator to tmp8
-                  tmp8bis.clear();
-                  Contract(1.0,tmp8,shape(2,6,3),rop,shape(1,2,5),0.0,tmp8bis);
+               //and right
+               tmp8.clear();
+               Contract(1.0,tmp6,shape(5,4),rop,shape(0,3),0.0,tmp8);
 
-                  //add bottom environment
-                  DArray<6> tmp6;
-                  Contract(1.0,env.gb(Ly-3)[col+1],shape(1,2,3),tmp8bis,shape(7,4,2),0.0,tmp6);
+               //contract with RI7 hand side
+               tmp5.clear();
+               Contract(1.0,tmp8,shape(7,6,0,1,2),RI7,shape(0,2,4,5,6),0.0,tmp5);
 
-                  //add next bottom
-                  tmp8.clear();
-                  Contract(1.0,env.gb(Ly-3)[col],shape(3),tmp6,shape(0),0.0,tmp8);
-
-                  //now paste left operator in
-                  tmp8bis.clear();
-                  Contract(1.0,lop,shape(3,4,5),tmp8,shape(7,1,6),0.0,tmp8bis);
-
-                  //contract with left hand side
-                  tmp5.clear();
-                  Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,6,1,0,3),0.0,tmp5);
-
-                  Permute(tmp5,shape(1,0,3,4,2),rhs);
-
-               }
-               else{//right site of horizontal gate, so site (row+1,col) environment
-
-                  //(1) constsruct N_eff
-
-                  //add left peps to LI7
-                  DArray<8> tmp8;
-                  Contract(1.0,LI7,shape(5,3),peps(row,col),shape(0,1),0.0,tmp8);
-
-                  //and another peps
-                  DArray<7> tmp7;
-                  Contract(1.0,tmp8,shape(3,2,5),peps(row,col),shape(0,1,2),0.0,tmp7);
-
-                  //add bottom environment
-                  DArray<5> tmp5;
-                  Contract(1.0,tmp7,shape(2,5,3),env.gb(Ly-3)[col],shape(0,1,2),0.0,tmp5);
-
-                  //add next bottom environment
-                  tmp7.clear();
-                  Contract(1.0,tmp5,shape(4),env.gb(Ly-3)[col+1],shape(0),0.0,tmp7);
-
-                  //now contract with right
-                  DArray<8> tmp8bis;
-                  Contract(1.0,tmp7,shape(0,1,6),RI7,shape(0,1,6),0.0,tmp8bis);
-
-                  N_eff.clear();
-                  Permute(tmp8bis,shape(1,4,2,6,0,5,3,7),N_eff);
-
-                  // (2) construct right hand side
-
-                  //add left operator
-                  tmp8bis.clear();
-                  Contract(1.0,tmp8,shape(3,2,5),lop,shape(0,1,2),0.0,tmp8bis);
-
-                  //add bottom environment
-                  DArray<6> tmp6;
-                  Contract(1.0,tmp8bis,shape(2,6,3),env.gb(Ly-3)[col],shape(0,1,2),0.0,tmp6);
-
-                  //add next bottom environment
-                  tmp8.clear();
-                  Contract(1.0,tmp6,shape(5),env.gb(Ly-3)[col+1],shape(0),0.0,tmp8);
-
-                  //now contract with right operator
-                  tmp8bis.clear();
-                  Contract(1.0,tmp8,shape(4,3,5),rop,shape(0,3,4),0.0,tmp8bis);
-
-                  tmp5.clear();
-                  Contract(1.0,tmp8bis,shape(0,1,5,7,4),RI7,shape(0,1,2,4,6),0.0,tmp5);
-
-                  rhs.clear();
-                  Permute(tmp5,shape(0,3,1,4,2),rhs);
-
-               }
-
-            }
-            else{//row == Ly - 1
-
-               if(left){//left site of horizontal gate, so site (row,col) environment
-
-                  //(1) construct N_eff
-
-                  //add right peps to intermediate
-                  DArray<8> tmp8;
-                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(3,1),0.0,tmp8);
-
-                  //add second peps
-                  DArray<5> tmp5;
-                  Contract(1.0,peps(row,col+1),shape(1,2,3,4),tmp8,shape(1,2,4,3),0.0,tmp5);
-
-                  //contract with left hand side
-                  DArray<6> tmp6;
-                  Gemm(CblasNoTrans,CblasTrans,1.0,LI7,tmp5,0.0,tmp6);
-
-                  DArray<6> tmp6bis;
-                  Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
-
-                  int DL = peps(row,col).shape(0);
-
-                  N_eff = tmp6bis.reshape_clear( shape(DL,1,D,D,DL,1,D,D) );
-
-                  // (2) construct right hand side
-
-                  //add right operator to tmp8
-                  tmp6.clear();
-                  Contract(1.0,rop,shape(1,2,4,5),tmp8,shape(1,2,4,3),0.0,tmp6);
-
-                  //now paste left operator in
-                  tmp8.clear();
-                  Contract(1.0,lop,shape(5,3),tmp6,shape(0,1),0.0,tmp8);
-
-                  //contract with left hand side
-                  tmp5.clear();
-                  Contract(1.0,LI7,shape(0,2,4,5,6),tmp8,shape(0,3,5,6,7),0.0,tmp5);
-
-                  rhs.clear();
-                  Permute(tmp5,shape(0,2,1,4,3),rhs);
-
-               }
-               else{//right site of horizontal gate, so site (row+1,col) environment
-
-                  //(1) construct N_eff
-
-                  //add left to intermediate
-                  DArray<8> tmp8;
-                  Contract(1.0,LI7,shape(1,3),peps(row,col),shape(0,3),0.0,tmp8);
-
-                  //and another
-                  DArray<5> tmp5;
-                  Contract(1.0,tmp8,shape(0,5,6,1),peps(row,col),shape(0,1,2,3),0.0,tmp5);
-
-                  //contract with right side
-                  DArray<6> tmp6;
-                  Gemm(CblasNoTrans,CblasNoTrans,1.0,RI7,tmp5,0.0,tmp6);
-
-                  DArray<6> tmp6bis;
-                  Permute(tmp6,shape(5,2,0,4,3,1),tmp6bis);
-
-                  int DR = peps(row,col+1).shape(4);
-
-                  N_eff = tmp6bis.reshape_clear( shape(D,1,D,DR,D,1,D,DR) );
-
-                  // (2) construct right hand side
-
-                  //add left operator
-                  tmp6.clear();
-                  Contract(1.0,tmp8,shape(0,5,6,1),lop,shape(0,1,2,4),0.0,tmp6);
-
-                  //and right
-                  tmp8.clear();
-                  Contract(1.0,tmp6,shape(5,4),rop,shape(0,3),0.0,tmp8);
-
-                  //contract with RI7 hand side
-                  tmp5.clear();
-                  Contract(1.0,tmp8,shape(7,6,0,1,2),RI7,shape(0,2,4,5,6),0.0,tmp5);
-
-                  rhs.clear();
-                  Permute(tmp5,shape(0,1,4,3,2),rhs);
-
-               }
+               rhs.clear();
+               Permute(tmp5,shape(0,1,4,3,2),rhs);
 
             }
 
@@ -3109,6 +2996,83 @@ int col = 0;
                }
 
             }
+            else if(row == Ly - 2){
+
+               if(left){//left site of horizontal gate, so site (row,col) environment
+
+                  //fill up the right side
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(5,3),0.0,tmp8);
+
+                  //right operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,rop,shape(2,4,5),tmp8,shape(2,6,5),0.0,tmp8bis);
+
+                  DArray<9> tmp9;
+                  Contract(1.0,peps(row+1,col+1),shape(3,4),tmp8bis,shape(4,6),0.0,tmp9);
+
+                  DArray<6> tmp6;
+                  Contract(1.0,peps(row+1,col+1),shape(1,2,3,4),tmp9,shape(1,2,4,7),0.0,tmp6);
+
+                  //add top
+                  tmp9.clear();
+                  Contract(1.0,peps(row+1,col),shape(4),tmp6,shape(0),0.0,tmp9);
+
+                  tmp8.clear();
+                  Contract(1.0,peps(row+1,col),shape(1,2,4),tmp9,shape(1,2,4),0.0,tmp8);
+
+                  //finally left operator
+                  tmp8bis.clear();
+                  Contract(1.0,lop,shape(1,3,5),tmp8,shape(3,5,4),0.0,tmp8bis);
+
+                  //contract with LI7
+                  DArray<5> tmp5;
+                  Contract(1.0,LI7,shape(0,1,2,4,6),tmp8bis,shape(5,3,0,2,7),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+               }
+               else{//right site of horizontal gate, so site (row+1,col) environment
+
+                  //fill up the left side
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(3,5),peps(row,col),shape(0,3),0.0,tmp8);
+
+                  //add left operator
+                  DArray<8> tmp8bis;
+                  Contract(1.0,tmp8,shape(2,6,3),lop,shape(0,2,4),0.0,tmp8bis);
+
+                  DArray<9> tmp9;
+                  Contract(1.0,tmp8bis,shape(1,3),peps(row+1,col),shape(0,3),0.0,tmp9);
+
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp9,shape(0,6,7,3),peps(row+1,col),shape(0,1,2,3),0.0,tmp6);
+
+                  //add top of right side
+                  tmp9.clear();
+                  Contract(1.0,tmp6,shape(5),peps(row+1,col+1),shape(0),0.0,tmp9);
+
+                  tmp8.clear();
+                  Contract(1.0,tmp9,shape(4,5,6),peps(row+1,col+1),shape(0,1,2),0.0,tmp8);
+
+                  //add right operator
+                  tmp8bis.clear();
+                  Contract(1.0,tmp8,shape(3,4,2),rop,shape(0,1,3),0.0,tmp8bis);
+
+                  //contract with RI7
+                  DArray<5> tmp5;
+                  Contract(1.0,tmp8bis,shape(2,4,7,6,0),RI7,shape(0,1,2,4,6),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,1,4,3,2),rhs);
+
+               }
+
+            }
+            else{//row == Ly - 1
+
+            }
 
          }
 
@@ -3402,7 +3366,7 @@ int col = 0;
                   Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
 
                   Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
-  
+
                }
 
             }
@@ -3743,7 +3707,7 @@ int col = 0;
       }
 
    /**
-    * quasi canonicalize the environment of the sites to be updated, for stability reaons in the program.
+    * quasi canonicalize the environment of the sites to be updated, for stability reasons in the program.
     * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
     * @param row the row index of the bottom site
     * @param col column index of the vertical column

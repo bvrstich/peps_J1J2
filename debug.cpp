@@ -179,54 +179,68 @@ namespace debug {
             }
             else if(row == Ly - 2){
 
-               //add left peps to LI7
-               DArray<8> tmp8_left;
-               Contract(1.0,LI7,shape(5,3),peps(row,col),shape(0,1),0.0,tmp8_left);
+               //fill up the right side
+               DArray<8> tmp8;
+               Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(5,3),0.0,tmp8);
 
-               //and another peps
                DArray<7> tmp7;
-               Contract(1.0,tmp8_left,shape(3,2,5),peps(row,col),shape(0,1,2),0.0,tmp7);
+               Contract(1.0,peps(row,col+1),shape(2,3,4),tmp8,shape(2,6,5),0.0,tmp7);
 
-               //add bottom environment
-               DArray<5> tmp5_left;
-               Contract(1.0,tmp7,shape(2,5,3),env.gb(Ly-3)[col],shape(0,1,2),0.0,tmp5_left);
+               tmp8.clear();
+               Contract(1.0,peps(row+1,col+1),shape(3,4),tmp7,shape(3,5),0.0,tmp8);
 
-               //add right peps to intermediate
-               DArray<8> tmp8_right;
-               Contract(1.0,RI7,shape(3,5),peps(row,col+1),shape(1,4),0.0,tmp8_right);
+               DArray<5> tmp5_right;
+               Contract(1.0,peps(row+1,col+1),shape(1,2,3,4),tmp8,shape(1,2,4,6),0.0,tmp5_right);
 
-               //add second peps
+               //fill up the left side
+               tmp8.clear();
+               Contract(1.0,LI7,shape(3,5),peps(row,col),shape(0,3),0.0,tmp8);
+
                tmp7.clear();
-               Contract(1.0,tmp8_right,shape(2,6,3),peps(row,col+1),shape(1,2,4),0.0,tmp7);
+               Contract(1.0,tmp8,shape(2,6,3),peps(row,col),shape(0,2,3),0.0,tmp7);
 
-               //add bottom environment
+               tmp8.clear();
+               Contract(1.0,tmp7,shape(1,3),peps(row+1,col),shape(0,3),0.0,tmp8);
+
                DArray<5> tmp5;
-               Contract(1.0,tmp7,shape(6,4,2),env.gb(Ly-3)[col+1],shape(1,2,3),0.0,tmp5);
+               Contract(1.0,tmp8,shape(0,5,6,3),peps(row+1,col),shape(0,1,2,3),0.0,tmp5);
 
-               double val = Dot(tmp5,tmp5_left);
+               DArray<5> tmp5_left;
+               Permute(tmp5,shape(4,3,2,1,0),tmp5_left);
 
-               //right hand side
+               double val = Dot(tmp5_left,tmp5_right);
+
+               tmp8.clear();
+               Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(5,3),0.0,tmp8);
+
+               //right operator
+               DArray<8> tmp8bis;
+               Contract(1.0,rop,shape(2,4,5),tmp8,shape(2,6,5),0.0,tmp8bis);
+
+               DArray<9> tmp9;
+               Contract(1.0,peps(row+1,col+1),shape(3,4),tmp8bis,shape(4,6),0.0,tmp9);
+
+               DArray<6> tmp6_right;
+               Contract(1.0,peps(row+1,col+1),shape(1,2,3,4),tmp9,shape(1,2,4,7),0.0,tmp6_right);
+
+               //fill up the left side
+               tmp8.clear();
+               Contract(1.0,LI7,shape(3,5),peps(row,col),shape(0,3),0.0,tmp8);
 
                //add left operator
-               DArray<8> tmp8bis;
-               Contract(1.0,tmp8_left,shape(3,2,5),lop,shape(0,1,2),0.0,tmp8bis);
-
-               //add bottom environment
-               DArray<6> tmp6_left;
-               Contract(1.0,tmp8bis,shape(2,6,3),env.gb(Ly-3)[col],shape(0,1,2),0.0,tmp6_left);
-
-               //add right operator to tmp8
                tmp8bis.clear();
-               Contract(1.0,tmp8_right,shape(2,6,3),rop,shape(1,2,5),0.0,tmp8bis);
+               Contract(1.0,tmp8,shape(2,6,3),lop,shape(0,2,4),0.0,tmp8bis);
 
-               //add bottom environment
-               DArray<6> tmp6_right;
-               Contract(1.0,env.gb(Ly-3)[col+1],shape(1,2,3),tmp8bis,shape(7,4,2),0.0,tmp6_right);
+               tmp9.clear();
+               Contract(1.0,tmp8bis,shape(1,3),peps(row+1,col),shape(0,3),0.0,tmp9);
 
-               DArray<6> tmp6bis;
-               Permute(tmp6_right,shape(1,2,3,5,4,0),tmp6bis);
+               DArray<6> tmp6;
+               Contract(1.0,tmp9,shape(0,6,7,3),peps(row+1,col),shape(0,1,2,3),0.0,tmp6);
 
-               val -= 2.0 * Dot(tmp6_left,tmp6bis);
+               DArray<6> tmp6_left;
+               Permute(tmp6,shape(5,4,3,2,1,0),tmp6_left);
+
+               val -= 2.0*Dot(tmp6_left,tmp6_right);
 
                return val;
 

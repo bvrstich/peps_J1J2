@@ -263,10 +263,10 @@ namespace propagate {
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -275,18 +275,19 @@ namespace propagate {
          //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         //shift_col(0,col,peps);
+         shift_col(0,col,peps);
+         shift_col(1,col,peps);
 
          contractions::update_L('b',col,peps,L);
 
       }
 
       //one last vertical update
-      //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
       //QR the complete row
-      //shift_row(0,peps);
-      //peps.rescale_tensors(0);
+      shift_row(0,peps);
+      peps.rescale_tensors(0);
 
       //and make the new bottom environment
       env.gb(0).fill('b',peps);
@@ -312,10 +313,10 @@ namespace propagate {
             cout << endl;
 
             // --- (1) update the vertical pair on column 'col' ---
-            //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -324,18 +325,19 @@ namespace propagate {
             //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
-            //shift_col(row,col,peps);
+            shift_col(row,col,peps);
+            shift_col(row+1,col,peps);
 
             contractions::update_L(row,col,peps,LO);
 
          }
 
          //one last vertical update
-         //update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
+         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
-         //shift_row(row,peps);
-         //peps.rescale_tensors(row);
+         shift_row(row,peps);
+         peps.rescale_tensors(row);
 
          //update the environment
          env.add_layer('b',row,peps);
@@ -350,8 +352,8 @@ namespace propagate {
       L.resize(shape(1,1,1,1,1));
       L = 1.0;
 
-      //for(int col = 0;col < Lx - 1;++col){
-int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
+
          cout << endl;
          cout << "***************************************" << endl;
          cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
@@ -359,7 +361,7 @@ int col = 0;
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
          update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
@@ -372,13 +374,14 @@ int col = 0;
 
          //do a QR decomposition of the updated peps on 'col'
          shift_col(Ly-2,col,peps);
+         shift_col(Ly-1,col,peps);
 
          contractions::update_L('t',col,peps,L);
 
-      //}
+      }
 
       //one last vertical update
-      //update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
    }
 
@@ -4223,6 +4226,23 @@ int col = 0;
          Contract(1.0,peps(lrow,lcol),shape(1),R_l[1],shape(1),0.0,tmp5);
 
          Permute(tmp5,shape(0,4,1,2,3),peps(lrow,lcol));
+         
+
+         if(dir == HORIZONTAL){
+
+            if(row == Ly - 2){
+
+               //restore the upper tensor
+               invert(R_l[1]);
+
+               DArray<5> tmp5;
+               Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
+
+               Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
+
+            }
+            
+         }
 
       }
 
@@ -4236,7 +4256,7 @@ int col = 0;
 
          if(dir == HORIZONTAL){//possibly extra term
 
-            if(row != 0 && row != Lx - 2){//for middle rows
+            if(row != 0 && row != Ly - 2){//for middle rows
 
                invert(R_l[2]);
 
@@ -4287,6 +4307,22 @@ int col = 0;
          Contract(1.0,peps(rrow,rcol),shape(1),R_r[1],shape(1),0.0,tmp5);
 
          Permute(tmp5,shape(0,4,1,2,3),peps(rrow,rcol));
+
+         if(dir == HORIZONTAL){
+
+            if(row == Ly - 2){
+
+               //restore the upper tensor
+               invert(R_r[1]);
+
+               DArray<5> tmp5;
+               Contract(1.0,peps(row+1,col+1),shape(3),R_r[1],shape(0),0.0,tmp5);
+
+               Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col+1));
+
+            }
+            
+         }
 
       }
 

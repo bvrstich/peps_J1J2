@@ -263,10 +263,10 @@ namespace propagate {
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -275,18 +275,18 @@ namespace propagate {
          //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         shift_col(0,col,peps);
+         //shift_col(0,col,peps);
 
          contractions::update_L('b',col,peps,L);
 
       }
 
       //one last vertical update
-      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
       //QR the complete row
-      shift_row(0,peps);
-      peps.rescale_tensors(0);
+      //shift_row(0,peps);
+      //peps.rescale_tensors(0);
 
       //and make the new bottom environment
       env.gb(0).fill('b',peps);
@@ -312,10 +312,10 @@ namespace propagate {
             cout << endl;
 
             // --- (1) update the vertical pair on column 'col' ---
-            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -324,18 +324,18 @@ namespace propagate {
             //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
-            shift_col(row,col,peps);
+            //shift_col(row,col,peps);
 
             contractions::update_L(row,col,peps,LO);
 
          }
 
          //one last vertical update
-         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
+         //update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
-         shift_row(row,peps);
-         peps.rescale_tensors(row);
+         //shift_row(row,peps);
+         //peps.rescale_tensors(row);
 
          //update the environment
          env.add_layer('b',row,peps);
@@ -359,7 +359,7 @@ int col = 0;
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
          update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
@@ -2768,10 +2768,10 @@ int col = 0;
 
                   //add top
                   tmp8.clear();
-                  Contract(1.0,peps(row,col),shape(4),tmp5,shape(0),0.0,tmp8);
+                  Contract(1.0,peps(row+1,col),shape(4),tmp5,shape(0),0.0,tmp8);
 
                   tmp7.clear();
-                  Contract(1.0,peps(row,col),shape(1,2,4),tmp8,shape(1,2,4),0.0,tmp7);
+                  Contract(1.0,peps(row+1,col),shape(1,2,4),tmp8,shape(1,2,4),0.0,tmp7);
 
                   //add left side
                   tmp8.clear();
@@ -3315,6 +3315,7 @@ int col = 0;
 
          }
 
+
          // ----------------------------------------- //
          // --- canoncalize left-site environment --- //
          // ----------------------------------------- //
@@ -3344,7 +3345,7 @@ int col = 0;
                Contract(1.0,tmp7,shape(5),R_l[0],shape(1),0.0,LI7);
 
             }
-            else{//row == Lx-2
+            else if(row == Ly-2){
 
                DArray<7> tmp7;
                Contract(1.0,LI7,shape(2),R_l[0],shape(1),0.0,tmp7);
@@ -3401,7 +3402,7 @@ int col = 0;
                   Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
 
                   Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
-
+  
                }
 
             }
@@ -3502,7 +3503,6 @@ int col = 0;
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          X.clear();
          get_X(N_eff,eig,X);
-
 
          if(N_eff.shape(0) > 1 && dir != HORIZONTAL){//left
 

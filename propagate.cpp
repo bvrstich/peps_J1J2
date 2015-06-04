@@ -2966,6 +2966,51 @@ int col = 0;
             }
             else{//row == Ly - 1
 
+               if(left){//left site of horizontal gate, so site (row,col) environment
+
+                  //add right peps to intermediate
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(3,1),0.0,tmp8);
+
+                  //add right operator to tmp8
+                  DArray<6> tmp6;
+                  Contract(1.0,rop,shape(1,2,4,5),tmp8,shape(1,2,4,3),0.0,tmp6);
+
+                  //now paste left operator in
+                  tmp8.clear();
+                  Contract(1.0,lop,shape(5,3),tmp6,shape(0,1),0.0,tmp8);
+
+                  //contract with left hand side
+                  DArray<5> tmp5;
+                  Contract(1.0,LI7,shape(0,2,4,5,6),tmp8,shape(0,3,5,6,7),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,2,1,4,3),rhs);
+
+               }
+               else{//right site of horizontal gate, so site (row+1,col) environment
+
+                  //add left to intermediate
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(1,3),peps(row,col),shape(0,3),0.0,tmp8);
+
+                  //add left operator
+                  DArray<6> tmp6;
+                  Contract(1.0,tmp8,shape(0,5,6,1),lop,shape(0,1,2,4),0.0,tmp6);
+
+                  //and right
+                  tmp8.clear();
+                  Contract(1.0,tmp6,shape(5,4),rop,shape(0,3),0.0,tmp8);
+
+                  //contract with RI7 hand side
+                  DArray<5> tmp5;
+                  Contract(1.0,tmp8,shape(7,6,0,1,2),RI7,shape(0,2,4,5,6),0.0,tmp5);
+
+                  rhs.clear();
+                  Permute(tmp5,shape(0,1,4,3,2),rhs);
+
+               }
+
             }
 
          }

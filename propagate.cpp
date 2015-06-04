@@ -263,10 +263,10 @@ namespace propagate {
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -283,7 +283,7 @@ namespace propagate {
       }
 
       //one last vertical update
-      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
       //QR the complete row
       shift_row(0,peps);
@@ -313,10 +313,10 @@ namespace propagate {
             cout << endl;
 
             // --- (1) update the vertical pair on column 'col' ---
-            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -333,7 +333,7 @@ namespace propagate {
          }
 
          //one last vertical update
-         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
+         //update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
          shift_row(row,peps);
@@ -361,10 +361,10 @@ int col = 0;
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
          // --- (2a) update the horizontal pair on row Ly-2 column 'col'-'col+1' ---
-         update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         //update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (2b) update the horizontal pair on row Ly-1 column 'col'-'col+1' ---
          update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
@@ -2551,10 +2551,48 @@ int col = 0;
             }
             else{//row = Ly - 1
 
-               if(left){//left site env
+               if(left){//left site of horizontal gate, so site (row,col) environment
+
+                  //add right peps to intermediate
+                  DArray<8> tmp8;
+                  Contract(1.0,peps(row,col+1),shape(3,4),RI7,shape(3,1),0.0,tmp8);
+
+                  //add second peps
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row,col+1),shape(1,2,3,4),tmp8,shape(1,2,4,3),0.0,tmp5);
+
+                  //contract with left hand side
+                  DArray<6> tmp6;
+                  Gemm(CblasNoTrans,CblasTrans,1.0,LI7,tmp5,0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+
+                  int DL = peps(row,col).shape(0);
+
+                  N_eff = tmp6bis.reshape_clear( shape(DL,1,D,D,DL,1,D,D) );
 
                }
-               else{//right site env
+               else{//right site of horizontal gate, so site (row+1,col) environment
+
+                  //add left to intermediate
+                  DArray<8> tmp8;
+                  Contract(1.0,LI7,shape(1,3),peps(row,col),shape(0,3),0.0,tmp8);
+
+                  //and another
+                  DArray<5> tmp5;
+                  Contract(1.0,tmp8,shape(0,5,6,1),peps(row,col),shape(0,1,2,3),0.0,tmp5);
+
+                  //contract with right side
+                  DArray<6> tmp6;
+                  Gemm(CblasNoTrans,CblasNoTrans,1.0,RI7,tmp5,0.0,tmp6);
+
+                  DArray<6> tmp6bis;
+                  Permute(tmp6,shape(5,2,0,4,3,1),tmp6bis);
+
+                  int DR = peps(row,col+1).shape(4);
+
+                  N_eff = tmp6bis.reshape_clear( shape(D,1,D,DR,D,1,D,DR) );
 
                }
 
@@ -3180,6 +3218,21 @@ int col = 0;
                LI7 = std::move(tmp7);
 
             }
+            else{//row == Ly - 1
+
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(0),R_l[0],shape(1),0.0,tmp7);
+
+               //and again
+               LI7.clear();
+               Contract(1.0,tmp7,shape(0),R_l[0],shape(1),0.0,LI7);
+
+               tmp7.clear();
+               Permute(LI7,shape(5,6,0,1,2,3,4),tmp7);
+
+               LI7 = std::move(tmp7);
+
+            }
 
          }
 
@@ -3245,17 +3298,55 @@ int col = 0;
             //add  inverse to environment, for upper and lower layer
             invert(R_l[2]);
 
-            DArray<7> tmp7;
-            Contract(1.0,LI7,shape(4),R_l[2],shape(0),0.0,tmp7);
+            if(dir == VERTICAL){
 
-            //and again
-            LI7.clear();
-            Contract(1.0,tmp7,shape(4),R_l[2],shape(0),0.0,LI7);
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(4),R_l[2],shape(0),0.0,tmp7);
 
-            tmp7.clear();
-            Permute(LI7,shape(0,1,2,3,5,6,4),tmp7);
+               //and again
+               LI7.clear();
+               Contract(1.0,tmp7,shape(4),R_l[2],shape(0),0.0,LI7);
 
-            LI7 = std::move(tmp7);
+               tmp7.clear();
+               Permute(LI7,shape(0,1,2,3,5,6,4),tmp7);
+
+               LI7 = std::move(tmp7);
+
+            }
+            else if(dir == HORIZONTAL){
+
+               if(row == Ly - 2){
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(4),R_l[2],shape(0),0.0,tmp7);
+
+                  //and again
+                  LI7.clear();
+                  Contract(1.0,tmp7,shape(4),R_l[2],shape(0),0.0,LI7);
+
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,2,3,5,6,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
+               else{//row == Ly - 1
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(2),R_l[2],shape(0),0.0,tmp7);
+
+                  //and again
+                  LI7.clear();
+                  Contract(1.0,tmp7,shape(2),R_l[2],shape(0),0.0,LI7);
+
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,5,6,2,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
+
+            }
 
          }
 
@@ -3432,9 +3523,6 @@ int col = 0;
                   Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col+1));
 
                }
-               else{//row == Ly - 1
-
-               }
 
             }
 
@@ -3469,6 +3557,21 @@ int col = 0;
 
                   tmp7.clear();
                   Permute(RI7,shape(0,1,2,3,5,6,4),tmp7);
+
+                  RI7 = std::move(tmp7);
+
+               }
+               else{//row == Ly - 1
+
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(2),R_r[2],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(2),R_r[2],shape(0),0.0,RI7);
+
+                  tmp7.clear();
+                  Permute(RI7,shape(0,1,5,6,2,3,4),tmp7);
 
                   RI7 = std::move(tmp7);
 
@@ -3551,6 +3654,21 @@ int col = 0;
 
                   tmp7.clear();
                   Permute(RI7,shape(0,1,5,6,2,3,4),tmp7);
+
+                  RI7 = std::move(tmp7);
+
+               }
+               else{//row == Ly - 1
+
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(0),R_r[3],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(0),R_r[3],shape(0),0.0,RI7);
+
+                  tmp7.clear();
+                  Permute(RI7,shape(5,6,0,1,2,3,4),tmp7);
 
                   RI7 = std::move(tmp7);
 
@@ -4079,7 +4197,7 @@ int col = 0;
          Contract(1.0,peps(lrow,lcol),shape(1),R_l[1],shape(1),0.0,tmp5);
 
          Permute(tmp5,shape(0,4,1,2,3),peps(lrow,lcol));
-         
+
 
          if(dir == HORIZONTAL){
 
@@ -4094,7 +4212,7 @@ int col = 0;
                Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
 
             }
-            
+
          }
 
       }
@@ -4174,7 +4292,7 @@ int col = 0;
                Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col+1));
 
             }
-            
+
          }
 
       }

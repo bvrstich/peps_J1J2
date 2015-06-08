@@ -55,7 +55,7 @@ namespace propagate {
          std::vector< DArray<2> > R_r(4);
 
          // --- (b) --- canonicalize the environments around the sites to be updated
-         canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
+         //canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
 
          if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
@@ -142,7 +142,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
-         restore(dir,row,col,peps,R_l,R_r);
+         //restore(dir,row,col,peps,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
@@ -263,10 +263,10 @@ namespace propagate {
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         //update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
          // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         //update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
          //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -283,7 +283,7 @@ namespace propagate {
       }
 
       //one last vertical update
-      //update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
       //QR the complete row
       shift_row(0,peps);
@@ -313,10 +313,10 @@ namespace propagate {
             cout << endl;
 
             // --- (1) update the vertical pair on column 'col' ---
-            //update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
             // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-            //update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
             //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
@@ -333,7 +333,7 @@ namespace propagate {
          }
 
          //one last vertical update
-         //update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
+         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
          shift_row(row,peps);
@@ -352,8 +352,8 @@ namespace propagate {
       L.resize(shape(1,1,1,1,1));
       L = 1.0;
 
-      //for(int col = 0;col < Lx - 1;++col){
-int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
+
          cout << endl;
          cout << "***************************************" << endl;
          cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
@@ -361,10 +361,10 @@ int col = 0;
          cout << endl;
 
          // --- (1) update the vertical pair on column 'col' ---
-         //update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
          // --- (2a) update the horizontal pair on row Ly-2 column 'col'-'col+1' ---
-         //update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (2b) update the horizontal pair on row Ly-1 column 'col'-'col+1' ---
          update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
@@ -381,10 +381,16 @@ int col = 0;
 
          contractions::update_L('t',col,peps,L);
 
-      //}
+      }
 
       //one last vertical update
       update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      
+      shift_row(Ly-2,peps);
+      peps.rescale_tensors(Ly-2);
+
+      //for top row just rescale the tensors
+      peps.rescale_tensors(Ly-1);
 
    }
 
@@ -4272,7 +4278,7 @@ int col = 0;
 
          if(dir == HORIZONTAL){//possibly extra term
 
-            if(row != 0 && row != Ly - 2){//for middle rows
+            if(row > 0 && row < Ly - 2){//for middle rows
 
                invert(R_l[2]);
 
@@ -4352,7 +4358,7 @@ int col = 0;
 
          if(dir == HORIZONTAL){//possibly extra term
 
-            if(row != 0 && row != Lx - 2){//for middle rows
+            if(row > 0 && row < Lx - 2){//for middle rows
 
                invert(R_r[2]);
 
@@ -4409,22 +4415,42 @@ int col = 0;
    void shift_row(int row,PEPS<double> &peps){
 
       //QR
-      DArray<2> tmp2;
+      if(row < Ly - 1){
 
-      for(int col = 0;col < Ly;++col){
+         DArray<2> tmp2;
 
-         DArray<5> tmp5;
-         Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
+         for(int col = 0;col < Ly;++col){
 
-         Geqrf(tmp5,tmp2);
+            DArray<5> tmp5;
+            Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
 
-         Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
+            Geqrf(tmp5,tmp2);
 
-         //add to down side of upper tensor
-         tmp5.clear();
-         Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
+            Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
 
-         Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
+            //add to down side of upper tensor
+            tmp5.clear();
+            Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
+
+            Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
+
+         }
+
+      }
+      else{
+
+         DArray<2> tmp2;
+
+         for(int col = 0;col < Ly;++col){
+
+            DArray<5> tmp5;
+            Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
+
+            Geqrf(tmp5,tmp2);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
+
+         }
 
       }
 

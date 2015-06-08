@@ -38,39 +38,38 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
-   PEPS<double> peps;
-   peps.load("output/4x4/D=2");
-   peps.grow_bond_dimension(D,0.001);
-
-   //peps.normalize();
-
-   //for(int i = 0;i < 2000;++i){
-   int i = 1;
-
-   propagate::step(peps,10);
-
-/*
-   cout << "******************************" << endl;
-   cout << i << "\t" << peps.energy() << endl;
-   cout << "******************************" << endl;
-
-   //   }
-
-   tau *= 0.1;
-   global::stau(tau);
-
-   for(int i = 2000;i < 6000;++i){
-
-   propagate::step(peps,4);
-
-   peps.rescale_tensors(1.0);
+   PEPS<double> peps(D);
+   peps.initialize_jastrow(0.74);
    peps.normalize();
+   //peps.load("output/4x4/D=2");
+   //peps.grow_bond_dimension(D,0.001);
 
-   global::env.calc('A',peps);
-   cout << i << "\t" << peps.energy() << endl;
+   for(int i = 0;i < 2000;++i){
+
+      propagate::step(peps,10);
+      peps.normalize();
+
+      cout << "******************************" << endl;
+      cout << "ENERGY at step \t" << i << "\t" << peps.energy() << endl;
+      cout << "******************************" << endl;
 
    }
-   */
+   /*
+      tau *= 0.1;
+      global::stau(tau);
+
+      for(int i = 2000;i < 6000;++i){
+
+      propagate::step(peps,4);
+
+      peps.rescale_tensors(1.0);
+      peps.normalize();
+
+      global::env.calc('A',peps);
+      cout << i << "\t" << peps.energy() << endl;
+
+      }
+      */
    return 0;
 
 }

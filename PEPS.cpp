@@ -863,7 +863,7 @@ double PEPS<double>::energy(){
       val += ham.gcoef_n(i) * Dot(Li_d[i],R[0]);
 
    }
-
+/*
    //Now do the bottom left operators: paste on the second 'regular' peps
    M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2);
    N = (*this)(1,0).shape(3) * (*this)(1,0).shape(4);
@@ -2166,7 +2166,7 @@ double PEPS<double>::energy(){
       val += ham.gcoef_nn(i) * Dot(tmp5,Li_d[i]);
 
    }
-
+*/
    return val;
 
 }

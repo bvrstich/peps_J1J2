@@ -105,35 +105,23 @@ void Environment::calc(const char option,PEPS<double> &peps){
 
    if(option == 'A'){
 
-#pragma omp parallel sections
-      {
+      b[0].fill('b',peps);
+      b[0].canonicalize(Right,false);
 
-#pragma omp section
-         {
+      for(int i = 1;i < Ly - 2;++i)
+         this->add_layer('b',i,peps);
 
-            b[0].fill('b',peps);
-            b[0].canonicalize(Right,false);
+      t[Ly - 3].fill('t',peps);
+      t[Ly - 3].canonicalize(Right,false);
 
-            for(int i = 1;i < Ly - 2;++i)
-               this->add_layer('b',i,peps);
-  
-         }
-#pragma omp section
-         {
-
-            t[Ly - 3].fill('t',peps);
-
-            for(int i = Ly - 4;i >= 0;--i)
-               this->add_layer('t',i,peps);
-
-         }
-
-      } 
+      for(int i = Ly - 4;i >= 0;--i)
+         this->add_layer('t',i,peps);
 
    }
    else if(option == 'B'){
 
       b[0].fill('b',peps);
+      b[0].canonicalize(Right,false);
 
       for(int i = 1;i < Ly - 2;++i)
          this->add_layer('b',i,peps);
@@ -142,6 +130,7 @@ void Environment::calc(const char option,PEPS<double> &peps){
    else if(option == 'T'){
 
       t[Ly - 3].fill('t',peps);
+      t[Ly - 3].canonicalize(Right,false);
 
       for(int i = Ly - 4;i >= 0;--i)
          this->add_layer('t',i,peps);
@@ -497,7 +486,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
       //then multiply the norm over the whole chain
       t[row].scal(nrm);
-      
+
    }
 
 }

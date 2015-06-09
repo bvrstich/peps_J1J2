@@ -316,10 +316,15 @@ void MPO<T>::canonicalize(const BTAS_SIDE &dir,bool norm){
 
       }
 
-      if(norm){
+      T nrm = sqrt(Dotc((*this)[length-1],(*this)[length-1]));
+      Scal(1.0/nrm,(*this)[length-1]);
 
-         T nrm = sqrt(Dotc((*this)[length-1],(*this)[length-1]));
-         Scal(1.0/nrm,(*this)[length-1]);
+      if(!norm){//redistribute over chain
+
+         nrm = pow(nrm,1.0/(double)length);
+
+         for(int i = 0;i < length;++i)
+            Scal(nrm,(*this)[i]);
 
       }
 
@@ -345,17 +350,22 @@ void MPO<T>::canonicalize(const BTAS_SIDE &dir,bool norm){
 
       }
 
-      if(norm){
+      T nrm = sqrt(Dotc((*this)[0],(*this)[0]));
+      Scal(1.0/nrm,(*this)[0]);
 
-         T nrm = sqrt(Dotc((*this)[0],(*this)[0]));
-         Scal(1.0/nrm,(*this)[0]);
+      if(!norm){//redistribute over chain
+
+         nrm = pow(nrm,1.0/(double)length);
+
+         for(int i = 0;i < length;++i)
+            Scal(nrm,(*this)[i]);
 
       }
 
    }
 
 }
- 
+
 template MPO<double>::MPO();
 template MPO< complex<double> >::MPO();
 

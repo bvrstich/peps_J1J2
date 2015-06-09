@@ -863,7 +863,7 @@ double PEPS<double>::energy(){
       val += ham.gcoef_n(i) * Dot(Li_d[i],R[0]);
 
    }
-/*
+
    //Now do the bottom left operators: paste on the second 'regular' peps
    M = tmp5bis.shape(0) * tmp5bis.shape(1) * tmp5bis.shape(2);
    N = (*this)(1,0).shape(3) * (*this)(1,0).shape(4);
@@ -1018,6 +1018,7 @@ double PEPS<double>::energy(){
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_d[i]);
 
          val += ham.gcoef_n(i) * Dot(Li_d[i],R[col]);
+         cout << col << "\t" << i << "\t" << val << endl;
 
       }
 
@@ -1064,6 +1065,7 @@ double PEPS<double>::energy(){
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,peps_op,0.0,Li_u[i]);
 
          val += ham.gcoef_n(i) * Dot(Li_u[i],R[col]);
+         cout << col << "\t" << i << "\t" << val << endl;
 
          //2) the construct the 'real' Lu_i
          Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp8bis,(*this)(0,col),0.0,Li_u[i]);
@@ -1236,7 +1238,7 @@ double PEPS<double>::energy(){
       val += ham.gcoef_n(i) * blas::dot(tmp8bis.size(),tmp8bis.data(),1,peps_op.data(),1);
 
    }
-
+/*
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators

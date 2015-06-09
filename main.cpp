@@ -46,7 +46,7 @@ int main(int argc,char *argv[]){
    global::env.calc('A',peps); 
    global::env.test();
 
-   cout << 0 << "\t" << peps.energy() << endl;
+   cout << peps.energy() << endl;
 
    //peps.load("output/4x4/D=2");
    //peps.grow_bond_dimension(D,0.001);

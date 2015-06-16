@@ -1105,7 +1105,7 @@ double PEPS<double>::energy(){
 
             //and another
             tmp8.clear();
-            Contract(1.0,tmp9,shape(0,4,6),(*this)(row+1,col+1),0.0,tmp8);
+            Contract(1.0,tmp9,shape(0,4,6),(*this)(row+1,col+1),shape(0,1,2),0.0,tmp8);
 
             //add lower regular peps on
             tmp9.clear();
@@ -1144,7 +1144,7 @@ double PEPS<double>::energy(){
             Contract(1.0,ham.gR(i),shape(j,k),(*this)(row+1,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
             tmp8.clear();
-            Contract(1.0,tmp9,shape(0,4,6),peps_op,0.0,tmp8);
+            Contract(1.0,tmp9,shape(0,4,6),peps_op,shape(0,1,2),0.0,tmp8);
 
             //add lower regular peps on
             tmp9bis.clear();
@@ -1165,7 +1165,7 @@ double PEPS<double>::energy(){
 
             //add regular top peps to intermediate tmp9
             tmp8.clear();
-            Contract(1.0,tmp9,shape(0,4,6),(*this)(row+1,col+1),0.0,tmp8);
+            Contract(1.0,tmp9,shape(0,4,6),(*this)(row+1,col+1),shape(0,1,2),0.0,tmp8);
 
             //add lower regular peps on
             tmp9bis.clear();

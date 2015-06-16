@@ -1091,10 +1091,148 @@ double PEPS<double>::energy(){
          Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col],shape(0,1,2),0.0,LO);
 
          // (B) close down the left up and down operators with two diagonal and one horizontal contribution
+         
+         //start with Left Up
+         for(int i = 0;i < delta;++i){
+
+            //first add top to left-renormalized operator
+            tmp8.clear();
+            Contract(1.0,LOi_u[i],shape(0),env.gt(row)[col+1],shape(0),0.0,tmp8);
+
+            //add regular upper peps to left
+            tmp9.clear();
+            Contract(1.0,tmp8,shape(0,5),(*this)(row+1,col+1),shape(0,1),0.0,tmp9);
+
+            //and another
+            tmp8.clear();
+            Contract(1.0,tmp9,shape(0,4,6),(*this)(row+1,col+1),0.0,tmp8);
+
+            //add lower regular peps on
+            tmp9.clear();
+            Contract(1.0,tmp8,shape(0,4),(*this)(row,col+1),shape(0,1),0.0,tmp9);
+
+            //add operator to lower peps for vertical gate
+            peps_op.clear();
+            Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+            //and add on tmp9
+            tmp8.clear();
+            Contract(1.0,tmp9,shape(0,4,6),peps_op,shape(0,1,2),0.0,tmp8);
+
+            //add bottom environment
+            tmp6.clear();
+            Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col+1],shape(0,1,2),0.0,tmp6);
+
+            //diagonal-lurd energy contribution
+            val += ham.gcoef_nn(i) * Dot(tmp6,RO[col+1]);
+
+         }
+
+         //Left down - close down with a diagonal and horizontal term!
+         for(int i = 0;i < delta;++i){
+
+            //first add top to left-renormalized operator
+            tmp8.clear();
+            Contract(1.0,LOi_d[i],shape(0),env.gt(row)[col+1],shape(0),0.0,tmp8);
+
+            //add regular upper peps to left
+            tmp9.clear();
+            Contract(1.0,tmp8,shape(0,5),(*this)(row+1,col+1),shape(0,1),0.0,tmp9);
+
+            //1) do the diagonal link first
+            peps_op.clear();
+            Contract(1.0,ham.gR(i),shape(j,k),(*this)(row+1,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+            tmp8.clear();
+            Contract(1.0,tmp9,shape(0,4,6),peps_op,0.0,tmp8);
+
+            //add lower regular peps on
+            tmp9bis.clear();
+            Contract(1.0,tmp8,shape(0,4),(*this)(row,col+1),shape(0,1),0.0,tmp9bis);
+
+            //and another
+            tmp8.clear();
+            Contract(1.0,tmp9bis,shape(0,4,6),(*this)(row,col+1),shape(0,1,2),0.0,tmp8);
+
+            //and add bottom environment
+            tmp6.clear();
+            Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col+1],shape(0,1,2),0.0,tmp6);
+
+            //diagnoal-ldru energy:
+            val += ham.gcoef_nn(i) * Dot(tmp6,RO[col+1]);
+
+            //2) then do the horizontal gate:
+
+            //add regular top peps to intermediate tmp9
+            tmp8.clear();
+            Contract(1.0,tmp9,shape(0,4,6),(*this)(row+1,col+1),0.0,tmp8);
+
+            //add lower regular peps on
+            tmp9bis.clear();
+            Contract(1.0,tmp8,shape(0,4),(*this)(row,col+1),shape(0,1),0.0,tmp9bis);
+
+            //construct the left down-down operator (horizontal gate)
+            peps_op.clear();
+            Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+            //add interaction term
+            tmp8.clear();
+            Contract(1.0,tmp9bis,shape(0,4,6),peps_op,shape(0,1,2),0.0,tmp8);
+
+            //and add bottom environment
+            tmp6.clear();
+            Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[col+1],shape(0,1,2),0.0,tmp6);
+
+            //horizontal energy contribution
+            val += ham.gcoef_n(i) * Dot(tmp6,RO[col+1]);
+
+            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
+
+         }
 
       }
 
       //last vertical gate
+
+      //first add top to left unit
+      tmp8.clear();
+      Contract(1.0,LO,shape(0),env.gt(row)[Lx-1],shape(0),0.0,tmp8);
+
+      //add regular upper peps to left
+      tmp9.clear();
+      Contract(1.0,tmp8,shape(0,5),(*this)(row+1,Lx-1),shape(0,1),0.0,tmp9);
+
+      //construct Left Up operator first
+      for(int i = 0;i < delta;++i){
+
+         //add operator to upper peps
+         peps_op.clear();
+         Contract(1.0,ham.gL(i),shape(j,k),(*this)(row+1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         tmp8.clear();
+         Contract(1.0,tmp9,shape(0,4,6),peps_op,shape(0,1,2),0.0,tmp8);
+
+         //add lower regular peps on
+         tmp9bis.clear();
+         Contract(1.0,tmp8,shape(0,4),(*this)(row,Lx-1),shape(0,1),0.0,tmp9bis);
+
+         //add operator to lower peps for vertical gate
+         peps_op.clear();
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(row,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         //and add on tmp9bis
+         tmp8.clear();
+         Contract(1.0,tmp9bis,shape(0,4,6),peps_op,shape(0,1,2),0.0,tmp8);
+
+         LOi_u[i].clear();
+         Contract(1.0,tmp8,shape(0,4,6),env.gb(row-1)[Lx-1],shape(0,1,2),0.0,LOi_u[i]);
+
+         //add vertical energy contribution
+         val += ham.gcoef_n(i) * Dot(LOi_u[i],RO[Lx-1]);
+
+         cout << row << "\t" << Lx-1 << "\t" << i << "\t" << val << endl;
+
+      }
 
    }
 

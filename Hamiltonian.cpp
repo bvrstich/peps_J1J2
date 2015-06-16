@@ -174,8 +174,8 @@ void Hamiltonian::set_J1J2(bool ladder) {
       coef_n[2] = 1.0;
       
       //next-nearest neigbour coefficients:
-      coef_nn[0] = 0.5 * global::J2;
-      coef_nn[1] = 0.5 * global::J2;
+      coef_nn[0] = 1.0 * global::J2;
+      coef_nn[1] = 1.0 * global::J2;
       coef_nn[2] = 1.0 * global::J2;
 
 /*

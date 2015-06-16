@@ -842,7 +842,7 @@ double PEPS<double>::energy(){
          cout << col << "\t" << i << "\t" << val << endl;
 
          //2) the construct the 'real' Lu_i
-         Contract(1.0,tmp8,shape(0,3,5,6),(*this)(0,col),shape(0,1,2,3),0.0,Li_u[i]);
+         Contract(1.0,tmp8bis,shape(0,3,5,6),(*this)(0,col),shape(0,1,2,3),0.0,Li_u[i]);
 
       }
 
@@ -861,6 +861,7 @@ double PEPS<double>::energy(){
          peps_op.clear();
          Contract(1.0,ham.gL(i),shape(j,k),(*this)(0,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
+         Li_d[i].clear();
          Contract(1.0,tmp8,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,Li_d[i]);
 
       }
@@ -913,7 +914,7 @@ double PEPS<double>::energy(){
 
          //1) do the diagonal link first
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(1,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(1,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          tmp7.clear();
          Contract(1.0,tmp8,shape(0,3,5),peps_op,shape(0,1,2),0.0,tmp7);
@@ -927,7 +928,7 @@ double PEPS<double>::energy(){
          Contract(1.0,tmp8bis,shape(0,3,5,6),(*this)(0,col+1),shape(0,1,2,3),0.0,tmp5);
 
          //energy:
-         val += ham.gcoef_nn(i) * Dot(Li_d[i],R[col+1]);
+         val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
 
          //2) then do the horizontal gate:
 
@@ -986,8 +987,7 @@ double PEPS<double>::energy(){
       cout << Lx-1 << "\t" << i << "\t" << val << endl;
 
    }
-
-   /*
+/*
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators

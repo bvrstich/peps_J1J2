@@ -762,8 +762,11 @@ double PEPS<double>::energy(){
 
    //first construct the right renormalized operators
    vector< DArray<5> > R(Lx);
-
    contractions::init_ro('b',*this,R); 
+
+   //left going unity
+   DArray<5> L(1,1,1,1,1);
+   L = 1.0;
 
    //left going operators: Li
    std::vector< DArray<5> > Li_u( delta ); //upper site with extra operator
@@ -861,6 +864,7 @@ double PEPS<double>::energy(){
 
       //and contract with R[0]
       val += ham.gcoef_n(i) * Dot(Li_d[i],R[0]);
+      cout << 0 << "\t" << i << "\t" << val << endl;
 
    }
 
@@ -909,7 +913,7 @@ double PEPS<double>::energy(){
    N = env.gb(0)[0].shape(3);
    K = env.gb(0)[0].shape(0) * env.gb(0)[0].shape(1) * env.gb(0)[0].shape(2);
 
-   blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,env.gb(0)[0].data(),N,0.0,R[0].data(),N);
+   blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp5bis.data(),K,env.gb(0)[0].data(),N,0.0,tmp5.data(),N);
 
    //now for the middle terms
    for(int col = 1;col < Lx - 1;++col){
@@ -1011,7 +1015,7 @@ double PEPS<double>::energy(){
          tmp8bis.clear();
          Permute(tmp8,shape(0,1,2,7,3,4,5,6),tmp8bis);
 
-         //construct the left down-down operator (horizonatal gate)
+         //construct the left down-down operator (horizontal gate)
          peps_op.clear();
          Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 

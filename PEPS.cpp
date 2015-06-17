@@ -1298,6 +1298,41 @@ double PEPS<double>::energy(){
 
       }
 
+      //add regular upper peps to tmp8
+      tmp7.clear();
+      Contract(1.0,tmp8,shape(0,4,5),(*this)(Ly-1,col),shape(0,1,2),0.0,tmp7);
+
+      //and add regular lower peps
+      tmp8.clear();
+      Contract(1.0,tmp7,shape(0,3),(*this)(Ly-2,col),shape(0,1),0.0,tmp8);
+
+      //then construct Left Down operator
+      for(int i = 0;i < delta;++i){
+
+         //right operator to lower peps
+         peps_op.clear();
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         //add to tmp8
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,3,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+         //finally contract with bottom environment
+         Li_d[i].clear();
+         Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col],shape(0,1,2),0.0,Li_d[i]);
+
+      }
+
+      //finally make left unity
+
+      //add lower regular peps to tmp8
+      tmp7.clear();
+      Contract(1.0,tmp8,shape(0,3,5),(*this)(Ly-2,col),shape(0,1,2),0.0,tmp7);
+
+      //finally contract with bottom environment
+      L.clear();
+      Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col],shape(0,1,2),0.0,L);
+
    }
 
    return val;

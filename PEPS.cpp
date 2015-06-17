@@ -839,7 +839,6 @@ double PEPS<double>::energy(){
          Contract(1.0,tmp8bis,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,Li_u[i]);
 
          val += ham.gcoef_n(i) * Dot(Li_u[i],R[col]);
-         cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //2) the construct the 'real' Lu_i
          Contract(1.0,tmp8bis,shape(0,3,5,6),(*this)(0,col),shape(0,1,2,3),0.0,Li_u[i]);
@@ -898,7 +897,6 @@ double PEPS<double>::energy(){
          Contract(1.0,tmp8,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,Li_u[i]);
 
          val += ham.gcoef_nn(i) * Dot(Li_u[i],R[col+1]);
-         cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
 
       }
 
@@ -930,7 +928,6 @@ double PEPS<double>::energy(){
 
          //energy:
          val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
-         cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //2) then do the horizontal gate:
 
@@ -950,7 +947,6 @@ double PEPS<double>::energy(){
          Contract(1.0,tmp8,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,tmp5);
 
          val += ham.gcoef_n(i) * Dot(tmp5,R[col+1]);
-         cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
 
       }
 
@@ -986,7 +982,6 @@ double PEPS<double>::energy(){
       Contract(1.0,tmp8bis,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,Li_u[i]);
 
       val += ham.gcoef_n(i) * Dot(Li_u[i],R[Lx-1]);
-      cout << 0 << "\t" << Lx-1 << "\t" << i << "\t" << val << endl;
 
    }
 
@@ -1050,7 +1045,6 @@ double PEPS<double>::energy(){
 
             //add vertical energy contribution
             val += ham.gcoef_n(i) * Dot(LOi_u[i],RO[col]);
-            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
             //then construct Lu_i by adding regular peps to tmp9bis
             Contract(1.0,tmp9bis,shape(0,4,6),(*this)(row,col),shape(0,1,2),0.0,tmp8);
@@ -1127,7 +1121,6 @@ double PEPS<double>::energy(){
 
             //diagonal-lurd energy contribution
             val += ham.gcoef_nn(i) * Dot(tmp6,RO[col+1]);
-            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
          }
 
@@ -1163,7 +1156,6 @@ double PEPS<double>::energy(){
 
             //diagnoal-ldru energy:
             val += ham.gcoef_nn(i) * Dot(tmp6,RO[col+1]);
-            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
             //2) then do the horizontal gate:
 
@@ -1189,7 +1181,6 @@ double PEPS<double>::energy(){
 
             //horizontal energy contribution
             val += ham.gcoef_n(i) * Dot(tmp6,RO[col+1]);
-            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
          }
 
@@ -1232,7 +1223,6 @@ double PEPS<double>::energy(){
 
          //add vertical energy contribution
          val += ham.gcoef_n(i) * Dot(LOi_u[i],RO[Lx-1]);
-         cout << row << "\t" << Lx-1 << "\t" << i << "\t" << val << endl;
 
       }
 
@@ -1286,7 +1276,6 @@ double PEPS<double>::energy(){
 
          //vertical energy
          val += ham.gcoef_n(i) * Dot(tmp5,R[col]);
-         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //construct Lu
 
@@ -1368,7 +1357,6 @@ double PEPS<double>::energy(){
 
          //top row horizontal energy contribution
          val += ham.gcoef_n(i) * Dot(tmp5,R[col+1]);
-         cout << Ly-1 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //-- lurd diagonal --
 
@@ -1394,7 +1382,6 @@ double PEPS<double>::energy(){
 
          //lurd diagonal energy contribution
          val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
-         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
 
       }
  
@@ -1429,7 +1416,6 @@ double PEPS<double>::energy(){
 
          //ldru-diagonal energy contribution
          val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
-         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //bottom row horizontal
 
@@ -1455,7 +1441,6 @@ double PEPS<double>::energy(){
 
          //bottom row horizontal energy contribution
          val += ham.gcoef_n(i) * Dot(tmp5,R[col+1]);
-         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
 
       }
 
@@ -1496,7 +1481,6 @@ double PEPS<double>::energy(){
 
       //vertical energy
       val += ham.gcoef_n(i) * Dot(tmp5,R[Lx-1]);
-      cout << Ly-2 << "\t" << Lx-1 << "\t" << i << "\t" << val << endl;
 
    }
 

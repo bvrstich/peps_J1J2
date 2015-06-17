@@ -1455,6 +1455,44 @@ double PEPS<double>::energy(){
 
       }
 
+   }
+
+   //last row vertical update
+
+   //add top peps to left
+   tmp8.clear();
+   Contract(1.0,L,shape(0),(*this)(Ly-1,Lx-1),shape(0),0.0,tmp8);
+
+   //construct Left Up operator first
+   for(int i = 0;i < delta;++i){
+
+      //add operator to upper peps
+      peps_op.clear();
+      Contract(1.0,ham.gL(i),shape(j,k),(*this)(Ly-1,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      //add to tmp8
+      tmp7.clear();
+      Contract(1.0,tmp8,shape(0,4,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+      //add regular peps
+      tmp8bis.clear();
+      Contract(1.0,tmp7,shape(0,3),(*this)(Ly-2,Lx-1),shape(0,1),0.0,tmp8bis);
+
+      //right operator to lower peps
+      peps_op.clear();
+      Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,Lx-1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+      //add to tmp8bis
+      tmp7.clear();
+      Contract(1.0,tmp8bis,shape(0,3,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+      //finally contract with bottom environment
+      tmp5.clear();
+      Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[Lx-1],shape(0,1,2),0.0,tmp5);
+
+      //vertical energy
+      val += ham.gcoef_n(i) * Dot(tmp5,R[Lx-1]);
+      cout << Ly-2 << "\t" << Lx-1 << "\t" << i << "\t" << val << endl;
 
    }
 

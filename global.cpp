@@ -59,7 +59,7 @@ namespace global{
       J2 = 0.1*J2_in;
 
       //set the interaction
-      ham.set_J1J2(true);
+      ham.set_J1J2(false);
 
       trot = Trotter(tau);
 

@@ -150,35 +150,6 @@ void Hamiltonian::set_J1J2(bool ladder) {
       L[0] = 0.0; L[1] = 0.0; L[2] = 0.0;
       R[0] = 0.0; R[1] = 0.0; R[2] = 0.0;
 
-      L[0](0,0) = 1.0;
-      L[0](1,1) = 1.0;
-
-      L[1](0,0) = 1.0;
-      L[1](1,1) = 1.0;
-
-      L[2](0,0) = 1.0;
-      L[2](1,1) = 1.0;
-
-      R[0](0,0) = 1.0;
-      R[0](1,1) = 1.0;
-
-      R[1](0,0) = 1.0;
-      R[1](1,1) = 1.0;
-
-      R[2](0,0) = 1.0;
-      R[2](1,1) = 1.0;
-
-      //nearest-neigbour coefficients:
-      coef_n[0] = 1.0;//minus sign because of the Marshall sign rule
-      coef_n[1] = 1.0;//minus sign because of the Marshall sign rule
-      coef_n[2] = 1.0;
-      
-      //next-nearest neigbour coefficients:
-      coef_nn[0] = 1.0 * global::J2;
-      coef_nn[1] = 1.0 * global::J2;
-      coef_nn[2] = 1.0 * global::J2;
-
-/*
       //S+
       L[0](1,0) = 1.0;
       R[1](1,0) = 1.0;
@@ -186,6 +157,7 @@ void Hamiltonian::set_J1J2(bool ladder) {
       //S-
       L[1](0,1) = 1.0;
       R[0](0,1) = 1.0;
+
 
       //Sz
       L[2](0,0) = -0.5;
@@ -198,12 +170,12 @@ void Hamiltonian::set_J1J2(bool ladder) {
       coef_n[0] = -0.5;//add minus sign to use the Marshall sign rule
       coef_n[1] = -0.5;//add minus sign to use the Marshall sign rule
       coef_n[2] = 1.0;
-      
+
       //next-nearest neigbour coefficients:
       coef_nn[0] = 0.5 * global::J2;
       coef_nn[1] = 0.5 * global::J2;
       coef_nn[2] = 1.0 * global::J2;
-  */
+
    }
    else{
 

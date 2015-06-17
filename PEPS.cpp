@@ -898,6 +898,7 @@ double PEPS<double>::energy(){
          Contract(1.0,tmp8,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,Li_u[i]);
 
          val += ham.gcoef_nn(i) * Dot(Li_u[i],R[col+1]);
+         cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
 
       }
 
@@ -929,6 +930,7 @@ double PEPS<double>::energy(){
 
          //energy:
          val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
+         cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //2) then do the horizontal gate:
 
@@ -945,7 +947,7 @@ double PEPS<double>::energy(){
          Contract(1.0,ham.gR(i),shape(j,k),(*this)(0,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          tmp5.clear();
-         Contract(1.0,tmp8bis,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,tmp5);
+         Contract(1.0,tmp8,shape(0,3,5,6),peps_op,shape(0,1,2,3),0.0,tmp5);
 
          val += ham.gcoef_n(i) * Dot(tmp5,R[col+1]);
          cout << 0 << "\t" << col << "\t" << i << "\t" << val << endl;
@@ -1125,6 +1127,7 @@ double PEPS<double>::energy(){
 
             //diagonal-lurd energy contribution
             val += ham.gcoef_nn(i) * Dot(tmp6,RO[col+1]);
+            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
          }
 
@@ -1160,6 +1163,7 @@ double PEPS<double>::energy(){
 
             //diagnoal-ldru energy:
             val += ham.gcoef_nn(i) * Dot(tmp6,RO[col+1]);
+            cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
             //2) then do the horizontal gate:
 
@@ -1185,7 +1189,6 @@ double PEPS<double>::energy(){
 
             //horizontal energy contribution
             val += ham.gcoef_n(i) * Dot(tmp6,RO[col+1]);
-
             cout << row << "\t" << col << "\t" << i << "\t" << val << endl;
 
          }
@@ -1229,7 +1232,6 @@ double PEPS<double>::energy(){
 
          //add vertical energy contribution
          val += ham.gcoef_n(i) * Dot(LOi_u[i],RO[Lx-1]);
-
          cout << row << "\t" << Lx-1 << "\t" << i << "\t" << val << endl;
 
       }
@@ -1309,9 +1311,9 @@ double PEPS<double>::energy(){
       //then construct Left Down operator
       for(int i = 0;i < delta;++i){
 
-         //right operator to lower peps
+         //left operator to lower peps
          peps_op.clear();
-         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+         Contract(1.0,ham.gL(i),shape(j,k),(*this)(Ly-2,col),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
 
          //add to tmp8
          tmp7.clear();
@@ -1392,6 +1394,7 @@ double PEPS<double>::energy(){
 
          //lurd diagonal energy contribution
          val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
+         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
 
       }
  
@@ -1426,6 +1429,7 @@ double PEPS<double>::energy(){
 
          //ldru-diagonal energy contribution
          val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
+         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
 
          //bottom row horizontal
 

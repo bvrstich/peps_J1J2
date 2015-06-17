@@ -270,6 +270,12 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
    if(option == 'b'){
 
+#ifdef _DEBUG
+      cout << endl;
+      cout << "compression of bottom row\t"  << row << endl;
+      cout << endl;
+#endif
+
       std::vector< DArray<4> > R(Lx+1);
 
       //first construct rightmost operator
@@ -299,7 +305,9 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
       while(iter < comp_sweeps){
 
+#ifdef _DEBUG
          cout << iter  << "\t" << cost_function('b',row,0,peps,R) << endl;
+#endif
 
          //now for the rest of the rightgoing sweep.
          for(int i = 0;i < Lx-1;++i){
@@ -379,6 +387,12 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
    }
    else{
 
+#ifdef _DEBUG
+      cout << endl;
+      cout << "compression of top row\t"  << row << endl;
+      cout << endl;
+#endif
+
       //peps index is row+2!
       int prow = row+2;
 
@@ -411,7 +425,9 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
       while(iter < comp_sweeps){
 
+#ifdef _DEBUG
          cout << iter  << "\t" << cost_function('t',row,0,peps,R) << endl;
+#endif
 
          //now for the rest of the rightgoing sweep.
          for(int i = 0;i < Lx-1;++i){

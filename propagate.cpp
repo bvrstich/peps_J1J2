@@ -90,7 +90,7 @@ namespace propagate {
 
          }
 
-         //construct effective environment and right hand side for linear system of top site
+#ifdef _DEBUG
          DArray<8> N_eff;
          calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
 
@@ -112,11 +112,13 @@ namespace propagate {
          cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
          cout << endl;
 
-         // --- (c) --- initial guess: use SVD to initialize the tensors
          cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+#endif
 
+         // --- (c) --- initial guess: use SVD to initialize the tensors
          initialize(dir,row,col,lop,rop,peps); 
 
+#ifdef _DEBUG
          N_eff.clear();
          calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
 
@@ -137,6 +139,7 @@ namespace propagate {
 
          cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
          cout << endl;
+#endif
 
          // --- (d) --- sweeping update: ALS
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
@@ -197,7 +200,9 @@ namespace propagate {
 
          while(iter < n_sweeps){
 
+#ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+#endif
 
             // --(1)-- 'left' site
 
@@ -211,7 +216,9 @@ namespace propagate {
             //update 'left' peps
             Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
 
+#ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
+#endif
 
             // --(2)-- 'right' site
 
@@ -256,11 +263,13 @@ namespace propagate {
 
       for(int col = 0;col < Lx - 1;++col){
 
+#ifdef _DEBUG
          cout << endl;
          cout << "***************************************" << endl;
          cout << " Update site:\t(0," << col << ")" << endl;
          cout << "***************************************" << endl;
          cout << endl;
+#endif
 
          // --- (1) update the vertical pair on column 'col' ---
          update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
@@ -306,11 +315,13 @@ namespace propagate {
 
          for(int col = 0;col < Lx - 1;++col){
 
+#ifdef _DEBUG
             cout << endl;
             cout << "***************************************" << endl;
             cout << " Update site:\t(" << row << "," << col << ")" << endl;
             cout << "***************************************" << endl;
             cout << endl;
+#endif
 
             // --- (1) update the vertical pair on column 'col' ---
             update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
@@ -354,11 +365,13 @@ namespace propagate {
 
       for(int col = 0;col < Lx - 1;++col){
 
+#ifdef _DEBUG
          cout << endl;
          cout << "***************************************" << endl;
          cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
          cout << "***************************************" << endl;
          cout << endl;
+#endif
 
          // --- (1) update the vertical pair on column 'col' ---
          update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
@@ -3189,10 +3202,12 @@ namespace propagate {
          DArray<1> eig;
          diagonalize(N_eff,eig);
 
+#ifdef _DEBUG
          cout << endl;
          cout << "before canonicalization" << endl;
          cout << endl;
          cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+#endif
 
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          DArray<5> X;
@@ -3460,7 +3475,9 @@ namespace propagate {
          eig.clear();
          diagonalize(N_eff,eig);
 
+#ifdef _DEBUG
          cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+#endif
 
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          X.clear();
@@ -3761,11 +3778,13 @@ namespace propagate {
          DArray<1> eig;
          diagonalize(N_eff,eig);
 
+#ifdef _DEBUG
          cout << endl;
          cout << "before canonicalization" << endl;
          cout << endl;
 
          cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+#endif
 
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          DArray<5> X;
@@ -3963,7 +3982,9 @@ namespace propagate {
          eig.clear();
          diagonalize(N_eff,eig);
 
+#ifdef _DEBUG
          cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+#endif
 
          //are needed for the calculation of the positive approximant: physical dimension is last index (4)
          X.clear();

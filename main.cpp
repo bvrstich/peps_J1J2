@@ -41,28 +41,24 @@ int main(int argc,char *argv[]){
    PEPS<double> peps(D);
 
    peps.load("output/4x4/D=2");
+
    peps.grow_bond_dimension(D,0.001);
    peps.normalize();
 
-   global::env.calc('A',peps); 
-   global::env.test();
-
-   cout << peps.energy() << endl;
-
-//   for(int i = 0;i < 2000;++i){
+   for(int i = 0;i < 2000;++i){
 
       propagate::step(peps,10);
       peps.normalize();
 
       global::env.calc('A',peps); 
-      cout << "ENERGY\t:\t" << 0 << "\t" << peps.energy() << endl;
+      cout << i << "\t" << peps.energy() << endl;
 
- //  }
-   /*
-      tau *= 0.1;
-      global::stau(tau);
+   }
 
-      for(int i = 2000;i < 6000;++i){
+   tau *= 0.1;
+   global::stau(tau);
+
+   for(int i = 2000;i < 10000;++i){
 
       propagate::step(peps,4);
 
@@ -72,8 +68,8 @@ int main(int argc,char *argv[]){
       global::env.calc('A',peps);
       cout << i << "\t" << peps.energy() << endl;
 
-      }
-      */
+   }
+
    return 0;
 
 }

@@ -55,7 +55,7 @@ namespace propagate {
          std::vector< DArray<2> > R_r(4);
 
          // --- (b) --- canonicalize the environments around the sites to be updated
-         //canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
+         canonicalize(dir,row,col,peps,L,R,LI,RI,R_l,R_r);
 
          if(dir == VERTICAL){// (row,col) --> (row+1,col)
 
@@ -142,7 +142,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
-         //restore(dir,row,col,peps,R_l,R_r);
+         restore(dir,row,col,peps,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);

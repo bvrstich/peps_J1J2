@@ -1333,6 +1333,129 @@ double PEPS<double>::energy(){
       L.clear();
       Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col],shape(0,1,2),0.0,L);
 
+      // (B) close down the left operators
+      
+      //start with left-up
+      
+      //add top peps to left
+      for(int i = 0;i < delta;++i){
+
+         // -- top row horizontal -- 
+         tmp8.clear();
+         Contract(1.0,Li_u[i],shape(0),(*this)(Ly-1,col+1),shape(0),0.0,tmp8);
+
+         //add operator to upper peps
+         peps_op.clear();
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-1,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         //add to tmp8
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,4,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+         //add regular peps
+         tmp8bis.clear();
+         Contract(1.0,tmp7,shape(0,3),(*this)(Ly-2,col+1),shape(0,1),0.0,tmp8bis);
+
+         //add another regular lower peps to tmp8bis
+         tmp7.clear();
+         Contract(1.0,tmp8bis,shape(0,3,5),(*this)(Ly-2,col+1),shape(0,1,2),0.0,tmp7);
+
+         //finally contract with bottom environment
+         tmp5.clear();
+         Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col+1],shape(0,1,2),0.0,tmp5);
+
+         //top row horizontal energy contribution
+         val += ham.gcoef_n(i) * Dot(tmp5,R[col+1]);
+         cout << Ly-1 << "\t" << col << "\t" << i << "\t" << val << endl;
+
+         //-- lurd diagonal --
+
+         //add regular upper peps to tmp8
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,4,5),(*this)(Ly-1,col+1),shape(0,1,2),0.0,tmp7);
+
+         //add regular lower peps
+         tmp8.clear();
+         Contract(1.0,tmp7,shape(0,3),(*this)(Ly-2,col+1),shape(0,1),0.0,tmp8);
+
+         //add operator to lower peps
+         peps_op.clear();
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         //add to tmp8bis
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,3,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+         //finally contract with bottom environment
+         tmp5.clear();
+         Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col+1],shape(0,1,2),0.0,tmp5);
+
+         //lurd diagonal energy contribution
+         val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
+
+      }
+ 
+      //the nleft down
+      
+      //add top peps to left
+      for(int i = 0;i < delta;++i){
+
+         //-- ldru diagonal --
+         tmp8.clear();
+         Contract(1.0,Li_d[i],shape(0),(*this)(Ly-1,col+1),shape(0),0.0,tmp8);
+
+         //add operator to upper peps
+         peps_op.clear();
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-1,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         //add to tmp8
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,4,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+         //add regular peps
+         tmp8bis.clear();
+         Contract(1.0,tmp7,shape(0,3),(*this)(Ly-2,col+1),shape(0,1),0.0,tmp8bis);
+
+         //add another regular lower peps to tmp8bis
+         tmp7.clear();
+         Contract(1.0,tmp8bis,shape(0,3,5),(*this)(Ly-2,col+1),shape(0,1,2),0.0,tmp7);
+
+         //finally contract with bottom environment
+         tmp5.clear();
+         Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col+1],shape(0,1,2),0.0,tmp5);
+
+         //ldru-diagonal energy contribution
+         val += ham.gcoef_nn(i) * Dot(tmp5,R[col+1]);
+
+         //bottom row horizontal
+
+         //add regular upper peps to tmp8
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,4,5),(*this)(Ly-1,col+1),shape(0,1,2),0.0,tmp7);
+
+         //add regular lower peps
+         tmp8.clear();
+         Contract(1.0,tmp7,shape(0,3),(*this)(Ly-2,col+1),shape(0,1),0.0,tmp8);
+
+         //add operator to lower peps
+         peps_op.clear();
+         Contract(1.0,ham.gR(i),shape(j,k),(*this)(Ly-2,col+1),shape(l,m,k,n,o),0.0,peps_op,shape(l,m,j,n,o));
+
+         //add to tmp8bis
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(0,3,5),peps_op,shape(0,1,2),0.0,tmp7);
+
+         //finally contract with bottom environment
+         tmp5.clear();
+         Contract(1.0,tmp7,shape(0,3,5),env.gb(Ly-3)[col+1],shape(0,1,2),0.0,tmp5);
+
+         //bottom row horizontal energy contribution
+         val += ham.gcoef_n(i) * Dot(tmp5,R[col+1]);
+         cout << Ly-2 << "\t" << col << "\t" << i << "\t" << val << endl;
+
+      }
+
+
    }
 
    return val;

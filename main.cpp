@@ -39,13 +39,32 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L,J2,tau);
 
    PEPS<double> peps(D);
-
-   peps.load("output/4x4/D=2");
-
-   peps.grow_bond_dimension(D,0.001);
+   peps.initialize_jastrow(0.74);
+   /*
+   //peps.load("output/10x10/D=2");
+   //peps.grow_bond_dimension(D,0.001);
+   */
    peps.normalize();
 
-   for(int i = 0;i < 2000;++i){
+   propagate::step(peps,10);
+
+   peps.rescale_tensors();
+
+   global::env.calc('A',peps);
+   global::env.test();
+
+/*
+   for(int i = 0;i < 1000;++i){
+
+      propagate::step(peps,0);
+      peps.normalize();
+
+      global::env.calc('A',peps); 
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
+ 
+   for(int i = 1000;i < 5000;++i){
 
       propagate::step(peps,10);
       peps.normalize();
@@ -54,22 +73,8 @@ int main(int argc,char *argv[]){
       cout << i << "\t" << peps.energy() << endl;
 
    }
-
-   tau *= 0.1;
-   global::stau(tau);
-
-   for(int i = 2000;i < 10000;++i){
-
-      propagate::step(peps,4);
-
-      peps.rescale_tensors(1.0);
-      peps.normalize();
-
-      global::env.calc('A',peps);
-      cout << i << "\t" << peps.energy() << endl;
-
-   }
-
+ */ 
+ 
    return 0;
 
 }

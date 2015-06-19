@@ -248,11 +248,23 @@ namespace propagate {
 
       enum {i,j,k,l,m,n,o};
 
-      //calculate top and bottom environment
+      //'canonicalize' top environment
+      for(int row = Ly - 1;row > 1;--row)
+         shift_row('t',row,peps);
+
+      //calculate top environment
       env.calc('T',peps);
 
       //containers for the renormalized operators
       vector< DArray<5> > R(Lx);
+
+      //'canonicalize' the right peps for the bottom two rows
+      for(int col = Lx - 1;col > 0;--col){
+
+         shift_col('l',0,col,peps);
+         shift_col('l',1,col,peps);
+
+      }
 
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
@@ -284,8 +296,8 @@ namespace propagate {
          //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         shift_col(0,col,peps);
-         shift_col(1,col,peps);
+         shift_col('r',0,col,peps);
+         shift_col('r',1,col,peps);
 
          contractions::update_L('b',col,peps,L);
 
@@ -295,7 +307,7 @@ namespace propagate {
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
       //QR the complete row
-      shift_row(0,peps);
+      shift_row('b',0,peps);
       peps.rescale_tensors(0);
 
       //and make the new bottom environment
@@ -306,6 +318,14 @@ namespace propagate {
 
          //containers for the renormalized operators
          vector< DArray<6> > RO(Lx);
+
+         //'canonicalize' the right peps for two rows to be updates
+         for(int col = Lx - 1;col > 0;--col){
+
+            shift_col('l',row,col,peps);
+            shift_col('l',row+1,col,peps);
+
+         }
 
          //initialize the right operators for the bottom row
          contractions::init_ro(row,peps,RO);
@@ -336,8 +356,8 @@ namespace propagate {
             //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
-            shift_col(row,col,peps);
-            shift_col(row+1,col,peps);
+            shift_col('r',row,col,peps);
+            shift_col('r',row+1,col,peps);
 
             contractions::update_L(row,col,peps,LO);
 
@@ -347,7 +367,7 @@ namespace propagate {
          update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
          //QR the complete row
-         shift_row(row,peps);
+         shift_row('b',row,peps);
          peps.rescale_tensors(row);
 
          //update the environment
@@ -356,6 +376,15 @@ namespace propagate {
       }
 
       // finally row == Lx-2
+      
+      //'canonicalize' the right peps for the top two rows
+      for(int col = Lx - 1;col > 0;--col){
+
+         shift_col('l',Ly-2,col,peps);
+         shift_col('l',Ly-1,col,peps);
+
+      }
+
 
       //initialize the right operators for the top two rows
       contractions::init_ro('t',peps,R);
@@ -389,8 +418,8 @@ namespace propagate {
          //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         shift_col(Ly-2,col,peps);
-         shift_col(Ly-1,col,peps);
+         shift_col('r',Ly-2,col,peps);
+         shift_col('r',Ly-1,col,peps);
 
          contractions::update_L('t',col,peps,L);
 
@@ -398,12 +427,6 @@ namespace propagate {
 
       //one last vertical update
       update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-      
-      shift_row(Ly-2,peps);
-      peps.rescale_tensors(Ly-2);
-
-      //for top row just rescale the tensors
-      peps.rescale_tensors(Ly-1);
 
    }
 
@@ -4415,28 +4438,101 @@ namespace propagate {
 
    /**
     * shift the singular values to the next site in the sweep, i.e. do QR and past R to the right
+    * @param option shift to left or shift to right
+    * @param row index
+    * @param col index
+    * @param peps object containing all the tensors
     */
-   void shift_col(int row,int col,PEPS<double> &peps){
+   void shift_col(char option,int row,int col,PEPS<double> &peps){
 
-      //QR
-      DArray<2> tmp2;
-      Geqrf(peps(row,col),tmp2);
+      if(option == 'r'){//shift to the right
 
-      //add to left side of next tensor
-      DArray<5> tmp5;
-      Contract(1.0,tmp2,shape(1),peps(row,col+1),shape(0),0.0,tmp5);
+         //QR
+         DArray<2> tmp2;
+         Geqrf(peps(row,col),tmp2);
 
-      peps(row,col+1) = std::move(tmp5);
+         //add to left side of next tensor
+         DArray<5> tmp5;
+         Contract(1.0,tmp2,shape(1),peps(row,col+1),shape(0),0.0,tmp5);
+
+         peps(row,col+1) = std::move(tmp5);
+
+      }
+      else{//shift to the left
+
+         //LQ
+         DArray<2> tmp2;
+         Gelqf(tmp2,peps(row,col));
+
+         //add to left side of next tensor
+         DArray<5> tmp5;
+         Contract(1.0,peps(row,col-1),shape(4),tmp2,shape(0),0.0,tmp5);
+
+         peps(row,col-1) = std::move(tmp5);
+
+      }
 
    }
 
    /**
     * shift the singular values to the next row in the sweep, i.e. do QR and past R to the upper row
+    * @param option top or bottom shift?
+    * @param row what row are you on
+    * @param peps object containing the tensors
     */
-   void shift_row(int row,PEPS<double> &peps){
+   void shift_row(char option,int row,PEPS<double> &peps){
 
-      //QR
-      if(row < Ly - 1){
+      if(option == 'b'){
+
+         //QR
+         if(row < Ly - 1){
+
+            DArray<2> tmp2;
+
+            for(int col = 0;col < Ly;++col){
+
+               DArray<5> tmp5;
+               Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
+
+               Geqrf(tmp5,tmp2);
+
+               Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
+
+               //add to down side of upper tensor
+               tmp5.clear();
+               Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
+
+               Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
+
+            }
+
+         }
+         else{
+
+            DArray<2> tmp2;
+
+            for(int col = 0;col < Ly;++col){
+
+               DArray<5> tmp5;
+               Permute(peps(row,col),shape(0,1,2,4,3),tmp5);
+
+               Geqrf(tmp5,tmp2);
+
+               Permute(tmp5,shape(0,1,2,4,3),peps(row,col));
+
+               //add to up side of lower tensor
+               tmp5.clear();
+               Contract(1.0,tmp2,shape(1),peps(row-1,col),shape(1),0.0,tmp5);
+
+               Permute(tmp5,shape(1,0,2,3,4),peps(row-1,col));
+
+
+            }
+
+         }
+
+      }
+      else{//top: shift the QR downwards
 
          DArray<2> tmp2;
 
@@ -4454,22 +4550,6 @@ namespace propagate {
             Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
 
             Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
-
-         }
-
-      }
-      else{
-
-         DArray<2> tmp2;
-
-         for(int col = 0;col < Ly;++col){
-
-            DArray<5> tmp5;
-            Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
-
-            Geqrf(tmp5,tmp2);
-
-            Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
 
          }
 

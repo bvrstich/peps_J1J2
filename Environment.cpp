@@ -272,7 +272,7 @@ void Environment::add_layer(const char option,int row,PEPS<double> &peps){
 
 #ifdef _DEBUG
       cout << endl;
-      cout << "compression of bottom row\t"  << row << endl;
+      cout << "compression of bottom row\t" << row << endl;
       cout << endl;
 #endif
 
@@ -663,12 +663,13 @@ void Environment::init_svd(char option,int row,const PEPS<double> &peps){
          DArray<4> tmp4bis;
          Contract(1.0,b[row][col],shape(3),R,shape(0),0.0,tmp4bis);
 
-         //QR (well, really LQ)
+         //svd
+         S.clear();
          R.clear();
-         Gelqf(R,tmp4bis);
+         Gesvd('S','S',tmp4bis,S,R,b[row][col],D_aux);
 
-         //move Q to environment
-         b[row][col] = std::move(tmp4bis);
+         //paste S to VT for next iteration
+         Dimm(R,S);
 
       }
 
@@ -768,12 +769,12 @@ void Environment::init_svd(char option,int row,const PEPS<double> &peps){
          DArray<4> tmp4bis;
          Contract(1.0,t[row][col],shape(3),R,shape(0),0.0,tmp4bis);
 
-         //QR (well, really LQ)
+         //svd
+         S.clear();
          R.clear();
-         Gelqf(R,tmp4bis);
+         Gesvd('S','S',tmp4bis,S,R,t[row][col],D_aux);
 
-         //move Q to environment
-         t[row][col] = std::move(tmp4bis);
+         Dimm(R,S);
 
       }
 

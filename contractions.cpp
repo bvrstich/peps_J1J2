@@ -228,4 +228,87 @@ namespace contractions {
 
    }
 
+   /** 
+    * init the right renormalized operator for the middle rows: 
+    * @param row index of the lowest row
+    * @param peps The PEPS object
+    * @param R vector containing the right operators on exit
+    */
+   double rescale_norm(int row,PEPS<double> &peps,vector< DArray<6> > &RO){
+
+      DArray<8> tmp8;
+      DArray<8> tmp8bis;
+
+      DArray<9> tmp9;
+      DArray<9> tmp9bis;
+
+      DArray<6> tmp6;
+
+      //first add bottom to right unity
+      tmp8.clear();
+      Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[0],RO[0],0.0,tmp8);
+
+      tmp8bis.clear();
+      Permute(tmp8,shape(2,7,0,1,3,4,5,6),tmp8bis);
+
+      //add regular peps on lower site
+      tmp9.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row,0),tmp8bis,0.0,tmp9);
+
+      tmp9bis.clear();
+      Permute(tmp9,shape(2,4,8,0,1,3,5,6,7),tmp9bis);
+
+      //and another regular peps on lower site
+      tmp8.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row,0),tmp9bis,0.0,tmp8);
+
+      tmp8bis.clear();
+      Permute(tmp8,shape(3,7,1,6,0,2,4,5),tmp8bis);
+
+      //add regular peps on upper site
+      tmp9.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,0),tmp8bis,0.0,tmp9);
+
+      tmp9bis.clear();
+      Permute(tmp9,shape(2,3,4,0,1,5,6,7,8),tmp9bis);
+
+      //yet another regular on upper site
+      tmp8.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps(row+1,0),tmp9bis,0.0,tmp8);
+
+      tmp8bis.clear();
+      Permute(tmp8,shape(1,3,7,0,2,4,5,6),tmp8bis);
+
+      //finally top environment for closure
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[0],tmp8bis,0.0,tmp6);
+
+      //---------------------
+      //--- rescale stuff ---
+      //---------------------
+      double full_nrm = tmp6(0,0,0,0,0,0);
+
+      //first bottom environment
+      env.gb(row-1).scal(1.0/full_nrm);
+
+      //then the R operators
+      double nrm = pow(full_nrm,1.0/(double)Lx);
+      double scl = 1.0;
+
+      for(int col = Lx - 2;col >= 0;--col){
+
+         scl *= nrm;
+         Scal(1.0/scl,RO[col]);
+
+      }
+
+      //lastly rscale the tensors themselves
+      nrm = sqrt(nrm);
+
+      for(int col = 0;col < Lx;++col)
+         Scal(1.0/nrm,peps(row-1,col));
+
+      return full_nrm;
+
+   }
+
 }

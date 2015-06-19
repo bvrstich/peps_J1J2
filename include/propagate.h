@@ -90,9 +90,9 @@ namespace propagate {
 
    void stabilize(const PROP_DIR &,int,int,PEPS<double> &, DArray<5> &,std::vector< DArray<5> > &R);
 
-   void shift_col(int,int,PEPS<double> &);
+   void shift_col(char,int,int,PEPS<double> &);
 
-   void shift_row(int,PEPS<double> &);
+   void shift_row(char option,int,PEPS<double> &);
 
 }
 

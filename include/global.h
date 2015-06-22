@@ -57,6 +57,9 @@ namespace global {
    //!Environment object, needed for basically everything when calculating
    extern Environment env;
 
+   //!number to rescale to
+   extern double scal_num;
+
    //!initializer
    void init(int,int,int,int,int,int,double);
 

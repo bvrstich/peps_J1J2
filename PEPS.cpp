@@ -142,26 +142,28 @@ void PEPS<T>::sD(int D_in) {
 }
 
 /**
- * rescale all the tensors, set largest value to one
+ * rescale all the tensors, set largest value to num
+ * @param num number to rescale to
  */
 template<>
-void PEPS<double>::rescale_tensors(){
+void PEPS<double>::rescale_tensors(double num){
 
    for(int row = 0;row < Ly;++row)
       for(int col = 0;col < Lx;++col)
-         (*this)(row,col).rescale();
+         (*this)(row,col).rescale(num);
 
 }
 
 /**
  * @param row the row index...
+ * @param num number to rescale to
  * rescale all the tensors, set largest value on row 'row' to one
  */
 template<>
-void PEPS<double>::rescale_tensors(int row){
+void PEPS<double>::rescale_tensors(int row,double num){
 
    for(int col = 0;col < Lx;++col)
-      (*this)(row,col).rescale();
+      (*this)(row,col).rescale(num);
 
 }
 

@@ -19,6 +19,8 @@ namespace contractions {
 
    double rescale_norm(int row,PEPS<double> &,vector< DArray<6> > &RO);
 
+   double rescale_norm(char,PEPS<double> &,vector< DArray<5> > &R);
+
    void update_L(char option,int col,const PEPS<double> &,DArray<5> &L);
 
    void update_L(int row,int col,const PEPS<double> &,DArray<6> &LO);

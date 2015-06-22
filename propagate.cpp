@@ -251,6 +251,8 @@ namespace propagate {
       //'canonicalize' top environment
       for(int row = Ly - 1;row > 1;--row)
          shift_row('t',row,peps);
+      
+      peps.rescale_tensors(scal_num);
 
       //calculate top environment
       env.calc('T',peps);
@@ -268,6 +270,8 @@ namespace propagate {
 
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
+
+      cout << contractions::rescale_norm('b',peps,R) << endl;
 
       //row == 0
       DArray<5> L(1,1,1,1,1);
@@ -308,7 +312,7 @@ namespace propagate {
 
       //QR the complete row
       shift_row('b',0,peps);
-      peps.rescale_tensors(0);
+      peps.rescale_tensors(0,scal_num);
 
       //and make the new bottom environment
       env.gb(0).fill('b',peps);
@@ -329,6 +333,8 @@ namespace propagate {
 
          //initialize the right operators for the bottom row
          contractions::init_ro(row,peps,RO);
+
+         contractions::rescale_norm(row,peps,RO);
 
          DArray<6> LO(1,1,1,1,1,1);
          LO = 1.0;
@@ -368,7 +374,7 @@ namespace propagate {
 
          //QR the complete row
          shift_row('b',row,peps);
-         peps.rescale_tensors(row);
+         peps.rescale_tensors(row,scal_num);
 
          //update the environment
          env.add_layer('b',row,peps);
@@ -388,6 +394,8 @@ namespace propagate {
 
       //initialize the right operators for the top two rows
       contractions::init_ro('t',peps,R);
+
+      contractions::rescale_norm('t',peps,R);
 
       L.resize(shape(1,1,1,1,1));
       L = 1.0;
@@ -4484,56 +4492,6 @@ namespace propagate {
 
       if(option == 'b'){
 
-         //QR
-         if(row < Ly - 1){
-
-            DArray<2> tmp2;
-
-            for(int col = 0;col < Ly;++col){
-
-               DArray<5> tmp5;
-               Permute(peps(row,col),shape(0,2,3,4,1),tmp5);
-
-               Geqrf(tmp5,tmp2);
-
-               Permute(tmp5,shape(0,4,1,2,3),peps(row,col));
-
-               //add to down side of upper tensor
-               tmp5.clear();
-               Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
-
-               Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
-
-            }
-
-         }
-         else{
-
-            DArray<2> tmp2;
-
-            for(int col = 0;col < Ly;++col){
-
-               DArray<5> tmp5;
-               Permute(peps(row,col),shape(0,1,2,4,3),tmp5);
-
-               Geqrf(tmp5,tmp2);
-
-               Permute(tmp5,shape(0,1,2,4,3),peps(row,col));
-
-               //add to up side of lower tensor
-               tmp5.clear();
-               Contract(1.0,tmp2,shape(1),peps(row-1,col),shape(1),0.0,tmp5);
-
-               Permute(tmp5,shape(1,0,2,3,4),peps(row-1,col));
-
-
-            }
-
-         }
-
-      }
-      else{//top: shift the QR downwards
-
          DArray<2> tmp2;
 
          for(int col = 0;col < Ly;++col){
@@ -4550,6 +4508,29 @@ namespace propagate {
             Contract(1.0,tmp2,shape(1),peps(row+1,col),shape(3),0.0,tmp5);
 
             Permute(tmp5,shape(1,2,3,0,4),peps(row+1,col));
+
+         }
+
+      }
+      else{//top: shift the QR downwards
+
+         DArray<2> tmp2;
+
+         for(int col = 0;col < Ly;++col){
+
+            DArray<5> tmp5;
+            Permute(peps(row,col),shape(0,1,2,4,3),tmp5);
+
+            Geqrf(tmp5,tmp2);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(row,col));
+
+            //add to up side of lower tensor
+            tmp5.clear();
+            Contract(1.0,tmp2,shape(1),peps(row-1,col),shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(1,0,2,3,4),peps(row-1,col));
+
 
          }
 

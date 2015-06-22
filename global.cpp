@@ -27,6 +27,8 @@ namespace global{
 
    double J2;
 
+   double scal_num;
+
    Random RN;
 
    DArray<2> I;
@@ -73,6 +75,9 @@ namespace global{
 
       //set the number of sweeps for environment contraction
       comp_sweeps = 10;
+
+      //set the rescaling number
+      scal_num = 1.0;
 
       //initialize/allocate the environment
       env = Environment(D_in,D_aux,comp_sweeps);

@@ -310,5 +310,118 @@ namespace contractions {
       return full_nrm;
 
    }
+   /** 
+    * init the right renormalized operator for the middle rows: 
+    * @param row index of the lowest row
+    * @param peps The PEPS object
+    * @param R vector containing the right operators on exit
+    */
+   double rescale_norm(char option,PEPS<double> &peps,vector< DArray<5> > &R){
+
+      if(option == 'b'){
+
+         DArray<7> tmp7;
+         Contract(1.0,env.gt(0)[0],shape(3),R[0],shape(0),0.0,tmp7);
+
+         DArray<8> tmp8;
+         Contract(1.0,tmp7,shape(1,3),peps(1,0),shape(1,4),0.0,tmp8);
+
+         tmp7.clear();
+         Contract(1.0,tmp8,shape(1,6,2),peps(1,0),shape(1,2,4),0.0,tmp7);
+
+         tmp8.clear();
+         Contract(1.0,tmp7,shape(4,1),peps(0,0),shape(1,4),0.0,tmp8);
+
+         DArray<5> tmp5;
+         Contract(1.0,tmp8,shape(4,6,7,1),peps(0,0),shape(1,2,3,4),0.0,tmp5);
+
+         //---------------------
+         //--- rescale stuff ---
+         //---------------------
+         double full_nrm = tmp5(0,0,0,0,0);
+
+         double nrm = pow(full_nrm,1.0/(double)Ly);
+
+         double scl = 1.0;
+
+         for(int row = Ly - 3;row >= 0;--row){
+
+            scl *= nrm;
+            env.gt(row).scal(1.0/scl);
+
+         }
+
+         //rescale the R tensors
+         scl = pow(scl,1.0/(double)Lx);
+
+         nrm = pow(nrm,1.0/(double)Lx);
+
+         nrm = scl*nrm*nrm;
+
+         scl = 1.0;
+
+         for(int col = Ly - 2;col >= 0;--col){
+
+            scl *= nrm;
+            Scal(1.0/scl,R[col]);
+
+         }
+
+         //finally rescale all the tensors
+         peps.scal(1.0/sqrt(full_nrm));
+
+         return full_nrm;
+
+      }
+      else{ //top 2 rows
+
+         DArray<7> tmp7;
+         DArray<8> tmp8;
+
+         tmp7.clear();
+         Contract(1.0,env.gb(Ly-3)[0],shape(3),R[0],shape(4),0.0,tmp7);
+
+         tmp8.clear();
+         Contract(1.0,peps(Ly-2,0),shape(3,4),tmp7,shape(2,6),0.0,tmp8);
+
+         tmp7.clear();
+         Contract(1.0,peps(Ly-2,0),shape(2,3,4),tmp8,shape(2,4,7),0.0,tmp7);
+
+         tmp8.clear();
+         Contract(1.0,peps(Ly-1,0),shape(3,4),tmp7,shape(3,6),0.0,tmp8);
+
+         DArray<5> tmp5;
+         Contract(1.0,peps(Ly-1,0),shape(1,2,3,4),tmp8,shape(1,2,4,7),0.0,tmp5);
+
+         //---------------------
+         //--- rescale stuff ---
+         //---------------------
+         double full_nrm = tmp5(0,0,0,0,0);
+
+         //first bottom environment
+         env.gb(Ly-3).scal(1.0/full_nrm);
+
+         //then the R operators
+         double nrm = pow(full_nrm,1.0/(double)Lx);
+         double scl = 1.0;
+
+         for(int col = Lx - 2;col >= 0;--col){
+
+            scl *= nrm;
+            Scal(1.0/scl,R[col]);
+
+         }
+
+         //lastly rescale the tensors themselves
+         nrm = sqrt(nrm);
+
+         for(int col = 0;col < Lx;++col)
+            Scal(1.0/nrm,peps(Ly-3,col));
+
+         return full_nrm;
+
+      }
+
+   }
 
 }

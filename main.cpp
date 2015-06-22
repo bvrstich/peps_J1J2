@@ -38,43 +38,38 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau);
 
-   PEPS<double> peps(D);
-   peps.initialize_jastrow(0.74);
-   /*
-   //peps.load("output/10x10/D=2");
-   //peps.grow_bond_dimension(D,0.001);
-   */
+   PEPS<double> peps;
+
+   peps.load("output/10x10/D=2");
+   peps.grow_bond_dimension(D,0.001);
+
+   peps.rescale_tensors(global::scal_num);
    peps.normalize();
 
-   propagate::step(peps,10);
-
-   peps.rescale_tensors();
-
-   global::env.calc('A',peps);
-   global::env.test();
-
-/*
-   for(int i = 0;i < 1000;++i){
+   for(int i = 0;i < 250;++i){
 
       propagate::step(peps,0);
+      peps.rescale_tensors(global::scal_num);
       peps.normalize();
 
       global::env.calc('A',peps); 
       cout << i << "\t" << peps.energy() << endl;
 
    }
- 
-   for(int i = 1000;i < 5000;++i){
 
-      propagate::step(peps,10);
+   for(int i = 250;i < 5000;++i){
+
+      propagate::step(peps,1);
+      peps.rescale_tensors(global::scal_num);
       peps.normalize();
 
       global::env.calc('A',peps); 
       cout << i << "\t" << peps.energy() << endl;
 
    }
- */ 
- 
+
+   peps.save("output/10x10/D=3");
+
    return 0;
 
 }

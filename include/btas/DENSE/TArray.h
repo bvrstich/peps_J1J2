@@ -813,7 +813,7 @@ public:
    }
 
    //rescale the largest number of the tensor to one
-   T rescale(){
+   T rescale(T num){
 
       T max = 0;
 
@@ -821,7 +821,7 @@ public:
          if(std::abs(*it) > max)
             max = std::abs(*it);
       
-      this->scale((T)1.0/max);
+      this->scale((T)num/max);
 
       return max;
 

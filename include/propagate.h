@@ -94,6 +94,8 @@ namespace propagate {
 
    void shift_row(char option,int,PEPS<double> &);
 
+   void regularize(DArray<8> &N_eff,double);
+
 }
 
 #endif

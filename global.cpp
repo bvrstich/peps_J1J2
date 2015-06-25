@@ -29,6 +29,8 @@ namespace global{
 
    double scal_num;
 
+   double reg_const;
+
    Random RN;
 
    DArray<2> I;
@@ -47,7 +49,7 @@ namespace global{
     * @param J2_in input next-nearest neighbour coupling
     * @param tau the time step of the imaginary time evolution
     */
-   void init(int D_in,int D_aux_in,int d_in,int Lx_in,int Ly_in,int J2_in,double tau){
+   void init(int D_in,int D_aux_in,int d_in,int Lx_in,int Ly_in,int J2_in,double tau,int noise){
 
       Lx = Lx_in;
       Ly = Ly_in;
@@ -78,6 +80,9 @@ namespace global{
 
       //set the rescaling number
       scal_num = 1.0;
+
+      //constant times the unit vector to add to the effective environment (regularizes the linear system)
+      reg_const = pow(10.0,(double)noise);
 
       //initialize/allocate the environment
       env = Environment(D_in,D_aux,comp_sweeps);

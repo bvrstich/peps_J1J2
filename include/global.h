@@ -60,8 +60,11 @@ namespace global {
    //!number to rescale to
    extern double scal_num;
 
+   //!constant which multiplies a unit matrix to be added to the environment to regularize the linear sytem
+   extern double reg_const;
+
    //!initializer
-   void init(int,int,int,int,int,int,double);
+   void init(int,int,int,int,int,int,double,int);
 
    //!set the timestep
    void stau(double);

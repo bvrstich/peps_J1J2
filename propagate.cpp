@@ -208,6 +208,8 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of top site
             calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+            regularize(N_eff,reg_const);
+
             calc_rhs(dir,row,col,peps,lop,rop,rhs,L,R,LI,RI,b_L,b_R,true);
 
             //solve the system
@@ -224,6 +226,8 @@ namespace propagate {
 
             //construct effective environment and right hand side for linear system of bottom site
             calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+            regularize(N_eff,reg_const);
+
             calc_rhs(dir,row,col,peps,lop,rop,rhs,L,R,LI,RI,b_L,b_R,false);
 
             //solve the system
@@ -271,7 +275,7 @@ namespace propagate {
       //initialize the right operators for the bottom row
       contractions::init_ro('b',peps,R);
 
-      cout << contractions::rescale_norm('b',peps,R) << endl;
+      contractions::rescale_norm('b',peps,R);
 
       //row == 0
       DArray<5> L(1,1,1,1,1);
@@ -4535,6 +4539,20 @@ namespace propagate {
          }
 
       }
+
+   }
+
+   /**
+    * regularize the effective environment by adding a scaled unit matrix to it
+    * @param N_eff the environemnt, changed on exit
+    * @param num constant by which to mupliply the unit matrix
+    */
+   void regularize(DArray<8> &N_eff,double num){
+
+      int dim = N_eff.shape(0) * N_eff.shape(1) * N_eff.shape(2) * N_eff.shape(3);
+
+      for(int i = 0;i < dim;++i)
+         N_eff.data()[i + dim*i] += num;
 
    }
 

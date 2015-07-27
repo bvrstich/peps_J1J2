@@ -1583,237 +1583,35 @@ namespace propagate {
 
             if(row == 0){
 
-               if(col == 0){
+               //first left intermediate:
 
-                  //create left and right intermediary operators: right
+               //add lower left peps to L
+               DArray<8> tmp8;
+               Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
 
-                  //attach top environment to right side
-                  DArray<7> tmp7;
-                  Contract(1.0,env.gt(row)[col + 1],shape(3),R,shape(0),0.0,tmp7);
+               //and again
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(3,5,6),peps(row,col),shape(0,2,3),0.0,tmp7);
 
-                  //add upper right peps to it
-                  DArray<8> tmp8;
-                  Contract(1.0,tmp7,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp8);
+               LI7.clear();
+               Permute(tmp7,shape(0,1,2,5,3,6,4),LI7);
 
-                  //and another
-                  tmp7.clear();
-                  Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp7);
+               //right
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col+1],R,0.0,RI7);
 
-                  Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
+               //add top right peps
+               tmp8.clear();
+               Contract(1.0,peps(row+1,col+1),shape(1,4),RI7,shape(1,3),0.0,tmp8);
 
-                  //b_R is just equal to RI7 for LURD! so leave empty
+               //and again
+               tmp7.clear();
+               Contract(1.0,peps(row+1,col+1),shape(1,2,4),tmp8,shape(4,1,5),0.0,tmp7);
 
-                  //left: connect bottom left peps to itself
-                  DArray<4> tmp4;
-                  Contract(1.0,peps(row,col),shape(0,2,3),peps(row,col),shape(0,2,3),0.0,tmp4);
-
-                  DArray<4> tmp4bis;
-                  Permute(tmp4,shape(0,2,1,3),tmp4bis);
-
-                  LI7 = tmp4bis.reshape_clear( shape(1,1,1,D,D,D,D) );
-
-                  //for b_L contract mop with peps(row,col)
-                  Contract(1.0,mop,shape(0,2,3),peps(row,col),shape(0,2,3),0.0,tmp4);
-
-                  Permute(tmp4,shape(0,2,1,3),tmp4bis);
-
-                  b_L = tmp4bis.reshape_clear( shape(1,1,1,D,D,D,D) );
-
-               }
-               else if(col < Lx - 2){
-
-                  //create left and right intermediary operators: right
-
-                  //attach top environment to right side
-                  DArray<7> tmp7;
-                  Contract(1.0,env.gt(row)[col + 1],shape(3),R,shape(0),0.0,tmp7);
-
-                  //add upper right peps to it
-                  DArray<8> tmp8;
-                  Contract(1.0,tmp7,shape(1,3),peps(row+1,col+1),shape(1,4),0.0,tmp8);
-
-                  //and another
-                  tmp7.clear();
-                  Contract(1.0,tmp8,shape(1,6,2),peps(row+1,col+1),shape(1,2,4),0.0,tmp7);
-
-                  Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
-
-                  //b_R is just equal to RI7 for LURD! so leave empty
-
-                  //left: connect bottom left peps to L
-                  tmp8.clear();
-                  Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
-
-                  //add another peps to make LI7
-                  tmp7.clear();
-                  Contract(1.0,tmp8,shape(3,5,6),peps(row,col),shape(0,2,3),0.0,tmp7);
-
-                  LI7.clear();
-                  Permute(tmp7,shape(0,1,2,5,3,6,4),LI7);
-
-                  //for b_L contract tmp8 with mop
-                  tmp7.clear();
-                  Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
-
-                  b_L.clear();
-                  Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
-
-               }
-               else{//col == Lx - 2
-
-                  //create left and right intermediary operators: right
-
-                  //attach top environment to upper peps
-                  DArray<5> tmp5;
-                  Contract(1.0,env.gt(row)[col + 1],shape(2,3),peps(row+1,col+1),shape(1,4),0.0,tmp5);
-
-                  //add another one to it to form RI7
-                  DArray<6> tmp6;
-                  Contract(1.0,tmp5,shape(1,3),peps(row+1,col+1),shape(1,2),0.0,tmp6);
-
-                  DArray<6> tmp6bis;
-                  Permute(tmp6,shape(0,3,1,4,2,5),tmp6bis);
-
-                  RI7 = tmp6bis.reshape_clear( shape(env.gt(row)[col+1].shape(0),D,D,D,D,1,1) );
-
-                  //b_R is just equal to RI7 for LURD! so leave empty
-
-                  //left: connect bottom left peps to L
-                  DArray<8> tmp8;
-                  Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
-
-                  //add another peps to make LI7
-                  DArray<7> tmp7;
-                  Contract(1.0,tmp8,shape(3,5,6),peps(row,col),shape(0,2,3),0.0,tmp7);
-
-                  LI7.clear();
-                  Permute(tmp7,shape(0,1,2,5,3,6,4),LI7);
-
-                  //for b_L contract tmp8 with mop
-                  tmp7.clear();
-                  Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
-
-                  b_L.clear();
-                  Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
-
-               }
+               RI7.clear();
+               Permute(tmp7,shape(4,2,0,3,1,5,6),RI7);
 
             }
             else{// row == Ly - 2
-
-               if(col == 0){
-
-                  //add top peps to right
-                  DArray<8> tmp8;
-                  Contract(1.0,peps(row+1,col+1),shape(4),R,shape(0),0.0,tmp8);
-
-                  //and another
-                  DArray<7> tmp7;
-                  Contract(1.0,peps(row+1,col+1),shape(1,2,4),tmp8,shape(1,2,4),0.0,tmp7);
-
-                  RI7.clear();
-                  Permute(tmp7,shape(2,0,3,1,4,5,6),RI7);
-
-                  //b_R is equal to RI7 for LURD
-
-                  //left
-
-                  //add bottom peps to bottom env
-                  DArray<5> tmp5;
-                  Contract(1.0,peps(row,col),shape(0,3),env.gb(row-1)[col],shape(0,2),0.0,tmp5);
-
-                  //and again
-                  DArray<6> tmp6;
-                  Contract(1.0,peps(row,col),shape(2,3),tmp5,shape(1,3),0.0,tmp6);
-
-                  DArray<6> tmp6bis;
-                  Permute(tmp6,shape(0,1,3,2,4,5),tmp6bis);
-
-                  LI7 = tmp6bis.reshape_clear( shape(1,1,D,D,D,D,env.gb(Ly-3)[col].shape(3)) );
-
-                  //add mop to tmp5 to construct b_L
-                  Contract(1.0,mop,shape(2,3),tmp5,shape(1,3),0.0,tmp6);
-
-                  Permute(tmp6,shape(0,1,3,2,4,5),tmp6bis);
-
-                  b_L = tmp6bis.reshape_clear( shape(1,1,D,D,D,D,env.gb(Ly-3)[col].shape(3)) );
-
-               }
-               else if(col < Lx - 2){
-
-                  //right
-
-                  //add top peps to right
-                  DArray<8> tmp8;
-                  Contract(1.0,peps(row+1,col+1),shape(4),R,shape(0),0.0,tmp8);
-
-                  //and another
-                  DArray<7> tmp7;
-                  Contract(1.0,peps(row+1,col+1),shape(1,2,4),tmp8,shape(1,2,4),0.0,tmp7);
-
-                  RI7.clear();
-                  Permute(tmp7,shape(2,0,3,1,4,5,6),RI7);
-
-                  //b_R is equal to RI7 for LURD
-
-                  //left
-
-                  //add bottom env to left
-                  Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Ly-3)[col],0.0,LI7);
-
-                  //add bottom peps to intermediate
-                  tmp8.clear();
-                  Contract(1.0,LI7,shape(3,5),peps(row,col),shape(0,3),0.0,tmp8);
-
-                  //add second bottom peps
-                  tmp7.clear();
-                  Contract(1.0,tmp8,shape(2,6,3),peps(row,col),shape(0,2,3),0.0,tmp7);
-
-                  LI7.clear();
-                  Permute(tmp7,shape(0,1,5,3,6,4,2),LI7);
-
-                  //for b_L construction, add mop to tmp8
-                  Contract(1.0,tmp8,shape(2,6,3),mop,shape(0,2,3),0.0,tmp7);
-
-                  Permute(tmp7,shape(0,1,5,3,6,4,2),b_L);
-
-               }
-               else{//col == Lx - 2
-
-                  //right
-                  DArray<4> tmp4;
-                  Contract(1.0,peps(row+1,col+1),shape(1,2,4),peps(row+1,col+1),shape(1,2,4),0.0,tmp4);
-
-                  DArray<4> tmp4bis;
-                  Permute(tmp4,shape(0,2,1,3),tmp4bis);
-
-                  RI7 = tmp4bis.reshape_clear( shape(D,D,D,D,1,1,1) );
-
-                  //no b_R
-
-                  //left
-
-                  //add bottom env to left
-                  LI7.clear();
-                  Gemm(CblasNoTrans,CblasNoTrans,1.0,L,env.gb(Ly-3)[col],0.0,LI7);
-
-                  //add bottom peps to intermediate
-                  DArray<8> tmp8;
-                  Contract(1.0,LI7,shape(3,5),peps(row,col),shape(0,3),0.0,tmp8);
-
-                  //add second bottom peps
-                  DArray<7> tmp7;
-                  Contract(1.0,tmp8,shape(2,6,3),peps(row,col),shape(0,2,3),0.0,tmp7);
-
-                  LI7.clear();
-                  Permute(tmp7,shape(0,1,5,3,6,4,2),LI7);
-
-                  //for b_L construction, add mop to tmp8
-                  Contract(1.0,tmp8,shape(2,6,3),mop,shape(0,2,3),0.0,tmp7);
-
-                  Permute(tmp7,shape(0,1,5,3,6,4,2),b_L);
-
-               }
 
             }
 

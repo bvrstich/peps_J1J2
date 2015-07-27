@@ -51,9 +51,9 @@ namespace propagate {
 
    //construct intermediate objects for N_eff construction
    template<size_t M>
-      void construct_intermediate(const PROP_DIR &,int,int,const PEPS<double> &,const DArray<5> &,
+      void construct_intermediate(const PROP_DIR &,int,int,const PEPS<double> &,
             
-            const DArray<M> &,const DArray<M> &,DArray<M+2> &,DArray<M+2> &,DArray<M+2> &,DArray<M+2> &);
+            const DArray<M> &,const DArray<M> &,DArray<M+2> &,DArray<M+2> &);
 
    //linear systems construct
    template<size_t M>

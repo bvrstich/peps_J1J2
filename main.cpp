@@ -41,8 +41,9 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L,J2,tau,noise);
 
    PEPS<double> peps(D);
-   peps.rescale_tensors(global::scal_num);
-   peps.normalize();
+   //peps.load("output/4x4/D=2");
+
+   //peps.grow_bond_dimension(3,0.001);
 
    propagate::step(peps,10);
 

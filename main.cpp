@@ -40,10 +40,10 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau,noise);
 
-   PEPS<double> peps(D);
-   //peps.load("output/4x4/D=2");
+   PEPS<double> peps;
+   peps.load("output/4x4/D=2");
 
-   //peps.grow_bond_dimension(3,0.001);
+   peps.grow_bond_dimension(3,0.001);
 
    propagate::step(peps,10);
 

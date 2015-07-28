@@ -3861,14 +3861,26 @@ cout << endl;
 
       }
 
-      //LEFT SITE
+      //--- LEFT SITE ---
+
       if(peps(lrow,lcol).shape(0) > 1){//left
 
-         //add to right side of tensor
+         //add to left side of tensor
          DArray<5> tmp5;
          Contract(1.0,R_l[0],shape(0),peps(lrow,lcol),shape(0),0.0,tmp5);
 
          peps(lrow,lcol) = std::move(tmp5);
+
+         if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//diagonal needs more restoring
+
+            //invert back to original
+            invert(R_l[0]);
+
+            //and multiply with left tensor
+            tmp5.clear();
+            Contract(1.0,peps(lrow,lcol-1),shape(4),R_l[0],shape(1),0.0,tmp5);
+
+         }
 
       }
 
@@ -3893,6 +3905,38 @@ cout << endl;
                Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
 
             }
+
+         }
+         else if(dir == DIAGONAL_LURD){//diagonal needs more restoring
+
+            if(row == 0){
+
+               invert(R_l[1]);
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gt(0)[lcol],shape(1),R_l[1],shape(0),0.0,tmp4);
+
+               env.gt(0)[lcol].clear();
+               Contract(1.0,tmp4,shape(1),R_l[1],shape(0),0.0,env.gt(0)[lcol]);
+
+               Permute(env.gt(0)[lcol],shape(0,2,3,1),tmp4);
+
+               env.gt(0)[lcol] = std::move(tmp4);
+
+            }
+            else{//other stuff, later
+
+            }
+
+         }
+         else if(dir == DIAGONAL_LDRU){
+
+            invert(R_l[1]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
 
          }
 
@@ -3927,6 +3971,16 @@ cout << endl;
             }
 
          }
+         else if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//some more restoration
+
+            invert(R_l[2]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(lrow-1,lcol),shape(1),R_l[2],shape(0),0.0,tmp5);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(lrow+1,lcol));
+
+         }
 
       }
 
@@ -3938,10 +3992,20 @@ cout << endl;
 
          peps(lrow,lcol) = std::move(tmp5);
 
+         if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//some more restoration
+
+            invert(R_l[3]);
+
+            DArray<5> tmp5;
+            Contract(1.0,R_l[3],shape(0),peps(lrow,lcol+1),shape(0),0.0,tmp5);
+
+            peps(lrow,lcol+1) = std::move(tmp5);
+
+         }
+
       }
 
       //RIGHT SITE
-
       if(peps(rrow,rcol).shape(0) > 1 && dir != HORIZONTAL){//left
 
          //add to right side of tensor
@@ -3949,6 +4013,17 @@ cout << endl;
          Contract(1.0,R_r[0],shape(0),peps(rrow,rcol),shape(0),0.0,tmp5);
 
          peps(rrow,rcol) = std::move(tmp5);
+
+         if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//some more restoration
+
+            invert(R_r[0]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow,rcol-1),shape(4),R_r[0],shape(1),0.0,tmp5);
+
+            peps(rrow,rcol-1) = std::move(tmp5);
+
+         }
 
       }
 
@@ -3971,6 +4046,38 @@ cout << endl;
                Contract(1.0,peps(row+1,col+1),shape(3),R_r[1],shape(0),0.0,tmp5);
 
                Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col+1));
+
+            }
+
+         }
+         else if(dir == DIAGONAL_LURD){
+
+            invert(R_r[1]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow+1,rcol),shape(3),R_r[1],shape(0),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(rrow+1,rcol));
+
+         }
+         else if(dir == DIAGONAL_LDRU){
+
+            if(row == 0){
+
+               invert(R_r[1]);
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gt(0)[rcol],shape(1),R_r[1],shape(0),0.0,tmp4);
+
+               env.gt(0)[rcol].clear();
+               Contract(1.0,tmp4,shape(1),R_r[1],shape(0),0.0,env.gt(0)[rcol]);
+
+               Permute(env.gt(0)[rcol],shape(0,2,3,1),tmp4);
+
+               env.gt(0)[rcol] = std::move(tmp4);
+
+            }
+            else{//later
 
             }
 
@@ -4007,6 +4114,16 @@ cout << endl;
             }
 
          }
+         else if(dir == DIAGONAL_LURD || dir == DIAGONAL_LDRU){
+
+            invert(R_r[2]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow-1,rcol),shape(1),R_r[2],shape(0),0.0,tmp5);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(rrow-1,rcol));
+
+         }
 
       }
 
@@ -4017,6 +4134,17 @@ cout << endl;
          Contract(1.0,peps(rrow,rcol),shape(4),R_r[3],shape(1),0.0,tmp5);
 
          peps(rrow,rcol) = std::move(tmp5);
+
+         if(dir == DIAGONAL_LURD || dir == DIAGONAL_LDRU){
+
+            invert(R_r[3]);
+
+            DArray<5> tmp5;
+            Contract(1.0,R_r[3],shape(0),peps(rrow,rcol+1),shape(0),0.0,tmp5);
+
+            peps(rrow,rcol+1) = std::move(tmp5);
+
+         }
 
       }
 

@@ -314,6 +314,28 @@ namespace debug {
 
                // --- (2) calculate 'b' part of overlap
 
+               //L
+               tmp8.clear();
+               Contract(1.0,peps(row+1,col),shape(0,3),b_L,shape(2,4),0.0,tmp8);
+
+               DArray<8> tmp8bis;
+               Contract(1.0,lop,shape(0,2,4),tmp8,shape(4,1,5),0.0,tmp8bis);
+
+               DArray<6> tmp6_left;
+               Contract(1.0,env.gt(0)[col],shape(0,1,2),tmp8bis,shape(5,0,3),0.0,tmp6_left);
+
+               //R
+               tmp8.clear();
+               Contract(1.0,RI7,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp8);
+
+               DArray<6> tmp6;
+               Contract(1.0,tmp8,shape(3,6,7,4),rop,shape(1,2,4,5),0.0,tmp6);
+
+               DArray<6> tmp6_right;
+               Permute(tmp6,shape(0,5,1,2,4,3),tmp6_right);
+
+               val -= 2.0 * Dot(tmp6_left,tmp6_right);
+  
                return val;
 
             }

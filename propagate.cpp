@@ -265,8 +265,8 @@ namespace propagate {
       DArray<5> L(1,1,1,1,1);
       L = 1.0;
 
-      //for(int col = 0;col < Lx - 1;++col){
-int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
+
 #ifdef _DEBUG
          cout << endl;
          cout << "***************************************" << endl;
@@ -286,7 +286,7 @@ int col = 0;
 
          // --- (4) update diagonal LD-RU
          update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
-/*
+
          //do a QR decomposition of the updated peps on 'col'
          shift_col('r',0,col,peps);
          shift_col('r',1,col,peps);
@@ -297,7 +297,7 @@ int col = 0;
 
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
- 
+/*
       //QR the complete row
       shift_row('b',0,peps);
       peps.rescale_tensors(0,scal_num);
@@ -4045,14 +4045,35 @@ cout << endl;
 
             peps(lrow,lcol) = std::move(tmp5);
 
-            if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//diagonal needs more restoring
+            if(dir == DIAGONAL_LURD){//diagonal needs more restoring
 
                //invert back to original
                invert(R_l[0]);
 
-               //and multiply with left tensor
+               //add to L
                tmp5.clear();
-               Contract(1.0,peps(lrow,lcol-1),shape(4),R_l[0],shape(1),0.0,tmp5);
+               Contract(1.0,L,shape(1),R_l[0],shape(1),0.0,tmp5);
+
+               //and again
+               L.clear();
+               Contract(1.0,tmp5,shape(1),R_l[0],shape(1),0.0,L);
+
+               Permute(L,shape(0,3,4,1,2),tmp5);
+
+               L = std::move(tmp5);
+
+            }
+            else if(dir == DIAGONAL_LDRU){
+
+               //invert back to original
+               invert(R_l[0]);
+
+               tmp5.clear();
+               Contract(1.0,L,shape(3),R_l[0],shape(1),0.0,tmp5);
+
+               //and again
+               L.clear();
+               Contract(1.0,tmp5,shape(3),R_l[0],shape(1),0.0,L);
 
             }
 

@@ -278,8 +278,8 @@ cout << endl;
       DArray<5> L(1,1,1,1,1);
       L = 1.0;
 
-      //     for(int col = 0;col < Lx - 1;++col){
-      int col = 0;
+           for(int col = 0;col < Lx - 1;++col){
+
 #ifdef _DEBUG
       cout << endl;
       cout << "***************************************" << endl;
@@ -301,13 +301,13 @@ cout << endl;
       update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
       //do a QR decomposition of the updated peps on 'col'
-      shift_col('r',0,col,peps);
-      shift_col('r',1,col,peps);
+      //shift_col('r',0,col,peps);
+      //shift_col('r',1,col,peps);
 
       contractions::update_L('b',col,peps,L);
-      /*
+      
          }
-
+/*
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
 
@@ -2813,6 +2813,30 @@ cout << endl;
 
                peps(lrow,lcol-1) = std::move(tmp5);
 
+               //for consistency with right environment construction, multiply with LI7 
+               if(dir == DIAGONAL_LURD){
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(1),R_l[0],shape(1),0.0,tmp7);
+
+                  //and again
+                  Contract(1.0,tmp7,shape(1),R_l[0],shape(1),0.0,LI7);
+
+                  Permute(LI7,shape(0,5,6,1,2,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
+               else{//DIAGONAL_LDRU
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(5),R_l[0],shape(1),0.0,tmp7);
+
+                  //and again
+                  Contract(1.0,tmp7,shape(5),R_l[0],shape(1),0.0,LI7);
+
+               }
+
             }
 
          }
@@ -2883,6 +2907,19 @@ cout << endl;
                Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
 
                Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
+
+               //add to LI7 for consistency
+               DArray<7> tmp7;
+               Contract(1.0,LI7,shape(3),R_l[1],shape(0),0.0,tmp7);
+
+               //and again
+               LI7.clear();
+               Contract(1.0,tmp7,shape(3),R_l[1],shape(0),0.0,LI7);
+
+               tmp7.clear();
+               Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+
+               LI7 = std::move(tmp7);
 
             }
 
@@ -2961,6 +2998,22 @@ cout << endl;
 
                Permute(tmp5,shape(0,4,1,2,3),peps(lrow-1,lcol));
 
+               if(dir == DIAGONAL_LURD){//change LI7 for consistency with right environment later
+
+                  DArray<7> tmp7;
+                  Contract(1.0,LI7,shape(3),R_l[2],shape(0),0.0,tmp7);
+
+                  //and again
+                  LI7.clear();
+                  Contract(1.0,tmp7,shape(3),R_l[2],shape(0),0.0,LI7);
+
+                  tmp7.clear();
+                  Permute(LI7,shape(0,1,2,5,6,3,4),tmp7);
+
+                  LI7 = std::move(tmp7);
+
+               }
+
             }
 
          }
@@ -3016,6 +3069,33 @@ cout << endl;
                Contract(1.0,R_l[3],shape(0),peps(lrow,lcol+1),shape(0),0.0,tmp5);
 
                peps(lrow,lcol+1) = std::move(tmp5);
+
+               //change RI7 as well for consistency when calculating right environment
+               if(dir == DIAGONAL_LURD){
+
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(1),R_l[3],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(1),R_l[3],shape(0),0.0,RI7);
+
+                  tmp7.clear();
+                  Permute(RI7,shape(0,5,6,1,2,3,4),tmp7);
+
+                  RI7 = std::move(tmp7);
+
+               }
+               else{//diagonal ldru
+
+                  DArray<7> tmp7;
+                  Contract(1.0,RI7,shape(5),R_l[3],shape(0),0.0,tmp7);
+
+                  //and again
+                  RI7.clear();
+                  Contract(1.0,tmp7,shape(5),R_l[3],shape(0),0.0,RI7);
+
+               }
 
             }
 

@@ -91,7 +91,7 @@ namespace propagate {
          }
 
          // --- (c) --- initial guess: use SVD to initialize the tensors
-         initialize(dir,row,col,lop,rop,peps); 
+         //initialize(dir,row,col,lop,rop,peps); 
 
          //recalculate the intermediates for diagonals
          if(dir == DIAGONAL_LURD || dir == DIAGONAL_LDRU){
@@ -129,7 +129,7 @@ namespace propagate {
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
-         restore(dir,row,col,peps,R_l,R_r);
+         restore(dir,row,col,peps,L,R,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
          equilibrate(dir,row,col,peps);
@@ -182,12 +182,12 @@ namespace propagate {
 
          int iter = 0;
 
-         while(iter < n_sweeps){
+         //while(iter < n_sweeps){
 
 #ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 #endif
-
+/*
             // --(1)-- 'left' site
 
             //construct effective environment and right hand side for linear system of top site
@@ -224,7 +224,7 @@ namespace propagate {
             ++iter;
 
          }
-
+*/
       }
 
    /**
@@ -265,8 +265,8 @@ namespace propagate {
       DArray<5> L(1,1,1,1,1);
       L = 1.0;
 
-      for(int col = 0;col < Lx - 1;++col){
-
+      //for(int col = 0;col < Lx - 1;++col){
+int col = 0;
 #ifdef _DEBUG
          cout << endl;
          cout << "***************************************" << endl;
@@ -286,7 +286,7 @@ namespace propagate {
 
          // --- (4) update diagonal LD-RU
          update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
-
+/*
          //do a QR decomposition of the updated peps on 'col'
          shift_col('r',0,col,peps);
          shift_col('r',1,col,peps);
@@ -297,7 +297,7 @@ namespace propagate {
 
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-      /*
+ 
       //QR the complete row
       shift_row('b',0,peps);
       peps.rescale_tensors(0,scal_num);
@@ -3395,7 +3395,7 @@ cout << endl;
             Contract(1.0,peps(rrow,rcol),shape(4),R_r[3],shape(1),0.0,tmp5);
 
             peps(rrow,rcol) = std::move(tmp5);
-
+  
             //add  inverse to environment, for upper and lower layer
             invert(R_r[3]);
 
@@ -3477,13 +3477,29 @@ cout << endl;
                }
 
             }
-            else{//diagonal
+            else if(dir == DIAGONAL_LURD){//change the R tensor
 
-               //add to left side of right tensor
                DArray<5> tmp5;
-               Contract(1.0,R_r[3],shape(0),peps(rrow,rcol+1),shape(0),0.0,tmp5);
+               Contract(1.0,R,shape(3),R_r[3],shape(0),0.0,tmp5);
 
-               peps(rrow,rcol+1) = std::move(tmp5);
+               //and again
+               R.clear();
+               Contract(1.0,tmp5,shape(3),R_r[3],shape(0),0.0,R);
+
+            }
+            else{//diagonal ldru
+
+               DArray<5> tmp5;
+               Contract(1.0,R,shape(1),R_r[3],shape(0),0.0,tmp5);
+
+               //and again
+               R.clear();
+               Contract(1.0,tmp5,shape(1),R_r[3],shape(0),0.0,R);
+
+               tmp5.clear();
+               Permute(R,shape(0,3,4,1,2),tmp5);
+
+               R = std::move(tmp5);
 
             }
 
@@ -3963,131 +3979,134 @@ cout << endl;
     * @param row the row index of the bottom site
     * @param col column index of the vertical column
     * @param peps, full PEPS object before update
+    * @param L left environment
+    * @param R right environment
     * @param R_l vector of DArray<2> objects containing the inverse R of the QR decompostion (left site)
     * @param R_r vector of DArray<2> objects containing the inverse R of the QR decompostion (right site)
     */
-   void restore(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, 
+   template<>
+      void restore(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<5> &L,DArray<5> &R,
 
-         std::vector< DArray<2> > &R_l, std::vector< DArray<2> > &R_r){
+            std::vector< DArray<2> > &R_l, std::vector< DArray<2> > &R_r){
 
-      //set left and right indices
-      int lrow = row;
-      int rrow = row;
+         //set left and right indices
+         int lrow = row;
+         int rrow = row;
 
-      int lcol = col;
-      int rcol = col;
+         int lcol = col;
+         int rcol = col;
 
-      if(dir == VERTICAL)
-         rrow++;
-      else if(dir == HORIZONTAL)
-         rcol++;
-      else if(dir == DIAGONAL_LURD){
+         if(dir == VERTICAL)
+            rrow++;
+         else if(dir == HORIZONTAL)
+            rcol++;
+         else if(dir == DIAGONAL_LURD){
 
-         lrow++;
-         rcol++;
+            lrow++;
+            rcol++;
 
-      }
-      else{//DIAGONAL_LDRU
+         }
+         else{//DIAGONAL_LDRU
 
-         rrow++;
-         rcol++;
-
-      }
-
-      //--- LEFT SITE ---
-
-      if(peps(lrow,lcol).shape(0) > 1){//left
-
-         //add to left side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,R_l[0],shape(0),peps(lrow,lcol),shape(0),0.0,tmp5);
-
-         peps(lrow,lcol) = std::move(tmp5);
-
-         if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//diagonal needs more restoring
-
-            //invert back to original
-            invert(R_l[0]);
-
-            //and multiply with left tensor
-            tmp5.clear();
-            Contract(1.0,peps(lrow,lcol-1),shape(4),R_l[0],shape(1),0.0,tmp5);
+            rrow++;
+            rcol++;
 
          }
 
-      }
+         //--- LEFT SITE ---
 
-      if(peps(rrow,rcol).shape(1) > 1 && dir != VERTICAL ){//up
+         if(peps(lrow,lcol).shape(0) > 1){//left
 
-         //add to up side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(lrow,lcol),shape(1),R_l[1],shape(1),0.0,tmp5);
+            //add to left side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,R_l[0],shape(0),peps(lrow,lcol),shape(0),0.0,tmp5);
 
-         Permute(tmp5,shape(0,4,1,2,3),peps(lrow,lcol));
+            peps(lrow,lcol) = std::move(tmp5);
 
-         if(dir == HORIZONTAL){
+            if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//diagonal needs more restoring
 
-            if(row == Ly - 2){
+               //invert back to original
+               invert(R_l[0]);
 
-               //restore the upper tensor
+               //and multiply with left tensor
+               tmp5.clear();
+               Contract(1.0,peps(lrow,lcol-1),shape(4),R_l[0],shape(1),0.0,tmp5);
+
+            }
+
+         }
+
+         if(peps(rrow,rcol).shape(1) > 1 && dir != VERTICAL ){//up
+
+            //add to up side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(lrow,lcol),shape(1),R_l[1],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(lrow,lcol));
+
+            if(dir == HORIZONTAL){
+
+               if(row == Ly - 2){
+
+                  //restore the upper tensor
+                  invert(R_l[1]);
+
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
+
+                  Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
+
+               }
+
+            }
+            else if(dir == DIAGONAL_LURD){//diagonal needs more restoring
+
+               if(row == 0){
+
+                  invert(R_l[1]);
+
+                  DArray<4> tmp4;
+                  Contract(1.0,env.gt(0)[lcol],shape(1),R_l[1],shape(0),0.0,tmp4);
+
+                  env.gt(0)[lcol].clear();
+                  Contract(1.0,tmp4,shape(1),R_l[1],shape(0),0.0,env.gt(0)[lcol]);
+
+                  Permute(env.gt(0)[lcol],shape(0,2,3,1),tmp4);
+
+                  env.gt(0)[lcol] = std::move(tmp4);
+
+               }
+               else{//other stuff, later
+
+               }
+
+            }
+            else if(dir == DIAGONAL_LDRU){
+
                invert(R_l[1]);
 
                DArray<5> tmp5;
-               Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
+               Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
 
-               Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
-
-            }
-
-         }
-         else if(dir == DIAGONAL_LURD){//diagonal needs more restoring
-
-            if(row == 0){
-
-               invert(R_l[1]);
-
-               DArray<4> tmp4;
-               Contract(1.0,env.gt(0)[lcol],shape(1),R_l[1],shape(0),0.0,tmp4);
-
-               env.gt(0)[lcol].clear();
-               Contract(1.0,tmp4,shape(1),R_l[1],shape(0),0.0,env.gt(0)[lcol]);
-
-               Permute(env.gt(0)[lcol],shape(0,2,3,1),tmp4);
-
-               env.gt(0)[lcol] = std::move(tmp4);
-
-            }
-            else{//other stuff, later
+               Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
 
             }
 
          }
-         else if(dir == DIAGONAL_LDRU){
 
-            invert(R_l[1]);
+         if(peps(lrow,lcol).shape(3) > 1){//down
 
+            //add to up side of tensor
             DArray<5> tmp5;
-            Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
+            Contract(1.0,peps(lrow,lcol),shape(3),R_l[2],shape(1),0.0,tmp5);
 
-            Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
+            Permute(tmp5,shape(0,1,2,4,3),peps(lrow,lcol));
 
-         }
+            if(dir == HORIZONTAL){//possibly extra term
 
-      }
+               if(row > 0 && row < Ly - 2){//for middle rows
 
-      if(peps(lrow,lcol).shape(3) > 1){//down
-
-         //add to up side of tensor
-         DArray<5> tmp5;
-         Contract(1.0,peps(lrow,lcol),shape(3),R_l[2],shape(1),0.0,tmp5);
-
-         Permute(tmp5,shape(0,1,2,4,3),peps(lrow,lcol));
-
-         if(dir == HORIZONTAL){//possibly extra term
-
-            if(row > 0 && row < Ly - 2){//for middle rows
-
-               invert(R_l[2]);
+                  invert(R_l[2]);
 
                DArray<4> tmp4;
                Contract(1.0,env.gb(row-1)[col],shape(1),R_l[2],shape(0),0.0,tmp4);
@@ -4111,7 +4130,7 @@ cout << endl;
             DArray<5> tmp5;
             Contract(1.0,peps(lrow-1,lcol),shape(1),R_l[2],shape(0),0.0,tmp5);
 
-            Permute(tmp5,shape(0,4,1,2,3),peps(lrow+1,lcol));
+            Permute(tmp5,shape(0,4,1,2,3),peps(lrow-1,lcol));
 
          }
 
@@ -4268,14 +4287,338 @@ cout << endl;
 
          peps(rrow,rcol) = std::move(tmp5);
 
-         if(dir == DIAGONAL_LURD || dir == DIAGONAL_LDRU){
+         //set back the R tensors
+         if(dir == DIAGONAL_LURD){
 
-            invert(R_r[3]);
+         }
+         else if(dir == DIAGONAL_LDRU){
+
+         }
+
+      }
+
+   }
+
+
+   /** 
+    * restore the tensors to their original state, i.e. undo canonicalization
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row the row index of the bottom site
+    * @param col column index of the vertical column
+    * @param LO left environment
+    * @param RO right environment
+    * @param peps, full PEPS object before update
+    * @param R_l vector of DArray<2> objects containing the inverse R of the QR decompostion (left site)
+    * @param R_r vector of DArray<2> objects containing the inverse R of the QR decompostion (right site)
+    */
+   template<>
+      void restore(const PROP_DIR &dir,int row,int col,PEPS<double> &peps, DArray<6> &LO,DArray<6> &RO,
+
+            std::vector< DArray<2> > &R_l, std::vector< DArray<2> > &R_r){
+
+         //set left and right indices
+         int lrow = row;
+         int rrow = row;
+
+         int lcol = col;
+         int rcol = col;
+
+         if(dir == VERTICAL)
+            rrow++;
+         else if(dir == HORIZONTAL)
+            rcol++;
+         else if(dir == DIAGONAL_LURD){
+
+            lrow++;
+            rcol++;
+
+         }
+         else{//DIAGONAL_LDRU
+
+            rrow++;
+            rcol++;
+
+         }
+
+         //--- LEFT SITE ---
+
+         if(peps(lrow,lcol).shape(0) > 1){//left
+
+            //add to left side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,R_l[0],shape(0),peps(lrow,lcol),shape(0),0.0,tmp5);
+
+            peps(lrow,lcol) = std::move(tmp5);
+
+            if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//diagonal needs more restoring
+
+               //invert back to original
+               invert(R_l[0]);
+
+               //and multiply with left tensor
+               tmp5.clear();
+               Contract(1.0,peps(lrow,lcol-1),shape(4),R_l[0],shape(1),0.0,tmp5);
+
+            }
+
+         }
+
+         if(peps(rrow,rcol).shape(1) > 1 && dir != VERTICAL ){//up
+
+            //add to up side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(lrow,lcol),shape(1),R_l[1],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(lrow,lcol));
+
+            if(dir == HORIZONTAL){
+
+               if(row == Ly - 2){
+
+                  //restore the upper tensor
+                  invert(R_l[1]);
+
+                  DArray<5> tmp5;
+                  Contract(1.0,peps(row+1,col),shape(3),R_l[1],shape(0),0.0,tmp5);
+
+                  Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col));
+
+               }
+
+            }
+            else if(dir == DIAGONAL_LURD){//diagonal needs more restoring
+
+               if(row == 0){
+
+                  invert(R_l[1]);
+
+                  DArray<4> tmp4;
+                  Contract(1.0,env.gt(0)[lcol],shape(1),R_l[1],shape(0),0.0,tmp4);
+
+                  env.gt(0)[lcol].clear();
+                  Contract(1.0,tmp4,shape(1),R_l[1],shape(0),0.0,env.gt(0)[lcol]);
+
+                  Permute(env.gt(0)[lcol],shape(0,2,3,1),tmp4);
+
+                  env.gt(0)[lcol] = std::move(tmp4);
+
+               }
+               else{//other stuff, later
+
+               }
+
+            }
+            else if(dir == DIAGONAL_LDRU){
+
+               invert(R_l[1]);
+
+               DArray<5> tmp5;
+               Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
+
+               Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
+
+            }
+
+         }
+
+         if(peps(lrow,lcol).shape(3) > 1){//down
+
+            //add to up side of tensor
+            DArray<5> tmp5;
+            Contract(1.0,peps(lrow,lcol),shape(3),R_l[2],shape(1),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(lrow,lcol));
+
+            if(dir == HORIZONTAL){//possibly extra term
+
+               if(row > 0 && row < Ly - 2){//for middle rows
+
+                  invert(R_l[2]);
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gb(row-1)[col],shape(1),R_l[2],shape(0),0.0,tmp4);
+
+               //and again
+               env.gb(row-1)[col].clear();
+               Contract(1.0,tmp4,shape(1),R_l[2],shape(0),0.0,env.gb(row-1)[col]);
+
+               tmp4.clear();
+               Permute(env.gb(row-1)[col],shape(0,2,3,1),tmp4);
+
+               env.gb(row-1)[col] = std::move(tmp4);
+
+            }
+
+         }
+         else if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//some more restoration
+
+            invert(R_l[2]);
 
             DArray<5> tmp5;
-            Contract(1.0,R_r[3],shape(0),peps(rrow,rcol+1),shape(0),0.0,tmp5);
+            Contract(1.0,peps(lrow-1,lcol),shape(1),R_l[2],shape(0),0.0,tmp5);
 
-            peps(rrow,rcol+1) = std::move(tmp5);
+            Permute(tmp5,shape(0,4,1,2,3),peps(lrow-1,lcol));
+
+         }
+
+      }
+
+      if(peps(lrow,lcol).shape(4) > 1 && dir != HORIZONTAL){//right
+
+         //add to right side of tensor
+         DArray<5> tmp5;
+         Contract(1.0,peps(lrow,lcol),shape(4),R_l[3],shape(1),0.0,tmp5);
+
+         peps(lrow,lcol) = std::move(tmp5);
+
+         if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//some more restoration
+
+            invert(R_l[3]);
+
+            DArray<5> tmp5;
+            Contract(1.0,R_l[3],shape(0),peps(lrow,lcol+1),shape(0),0.0,tmp5);
+
+            peps(lrow,lcol+1) = std::move(tmp5);
+
+         }
+
+      }
+
+      //RIGHT SITE
+      if(peps(rrow,rcol).shape(0) > 1 && dir != HORIZONTAL){//left
+
+         //add to right side of tensor
+         DArray<5> tmp5;
+         Contract(1.0,R_r[0],shape(0),peps(rrow,rcol),shape(0),0.0,tmp5);
+
+         peps(rrow,rcol) = std::move(tmp5);
+
+         if(dir == DIAGONAL_LDRU || dir == DIAGONAL_LURD){//some more restoration
+
+            invert(R_r[0]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow,rcol-1),shape(4),R_r[0],shape(1),0.0,tmp5);
+
+            peps(rrow,rcol-1) = std::move(tmp5);
+
+         }
+
+      }
+
+      if(peps(rrow,rcol).shape(1) > 1){//up
+
+         //add to up side of tensor
+         DArray<5> tmp5;
+         Contract(1.0,peps(rrow,rcol),shape(1),R_r[1],shape(1),0.0,tmp5);
+
+         Permute(tmp5,shape(0,4,1,2,3),peps(rrow,rcol));
+
+         if(dir == HORIZONTAL){
+
+            if(row == Ly - 2){
+
+               //restore the upper tensor
+               invert(R_r[1]);
+
+               DArray<5> tmp5;
+               Contract(1.0,peps(row+1,col+1),shape(3),R_r[1],shape(0),0.0,tmp5);
+
+               Permute(tmp5,shape(0,1,2,4,3),peps(row+1,col+1));
+
+            }
+
+         }
+         else if(dir == DIAGONAL_LURD){
+
+            invert(R_r[1]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow+1,rcol),shape(3),R_r[1],shape(0),0.0,tmp5);
+
+            Permute(tmp5,shape(0,1,2,4,3),peps(rrow+1,rcol));
+
+         }
+         else if(dir == DIAGONAL_LDRU){
+
+            if(row == 0){
+
+               invert(R_r[1]);
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gt(0)[rcol],shape(1),R_r[1],shape(0),0.0,tmp4);
+
+               env.gt(0)[rcol].clear();
+               Contract(1.0,tmp4,shape(1),R_r[1],shape(0),0.0,env.gt(0)[rcol]);
+
+               Permute(env.gt(0)[rcol],shape(0,2,3,1),tmp4);
+
+               env.gt(0)[rcol] = std::move(tmp4);
+
+            }
+            else{//later
+
+            }
+
+         }
+
+      }
+
+      if(peps(rrow,rcol).shape(3) > 1 && dir != VERTICAL){//down
+
+         //add to up side of tensor
+         DArray<5> tmp5;
+         Contract(1.0,peps(rrow,rcol),shape(3),R_r[2],shape(1),0.0,tmp5);
+
+         Permute(tmp5,shape(0,1,2,4,3),peps(rrow,rcol));
+
+         if(dir == HORIZONTAL){//possibly extra term
+
+            if(row > 0 && row < Lx - 2){//for middle rows
+
+               invert(R_r[2]);
+
+               DArray<4> tmp4;
+               Contract(1.0,env.gb(row-1)[col+1],shape(1),R_r[2],shape(0),0.0,tmp4);
+
+               //and again
+               env.gb(row-1)[col+1].clear();
+               Contract(1.0,tmp4,shape(1),R_r[2],shape(0),0.0,env.gb(row-1)[col+1]);
+
+               tmp4.clear();
+               Permute(env.gb(row-1)[col+1],shape(0,2,3,1),tmp4);
+
+               env.gb(row-1)[col+1] = std::move(tmp4);
+
+            }
+
+         }
+         else if(dir == DIAGONAL_LURD || dir == DIAGONAL_LDRU){
+
+            invert(R_r[2]);
+
+            DArray<5> tmp5;
+            Contract(1.0,peps(rrow-1,rcol),shape(1),R_r[2],shape(0),0.0,tmp5);
+
+            Permute(tmp5,shape(0,4,1,2,3),peps(rrow-1,rcol));
+
+         }
+
+      }
+
+      if(peps(rrow,rcol).shape(4) > 1){//right
+
+         //add to right side of tensor
+         DArray<5> tmp5;
+         Contract(1.0,peps(rrow,rcol),shape(4),R_r[3],shape(1),0.0,tmp5);
+
+         peps(rrow,rcol) = std::move(tmp5);
+
+         //set back the R tensors
+         if(dir == DIAGONAL_LURD){
+
+         }
+         else if(dir == DIAGONAL_LDRU){
 
          }
 

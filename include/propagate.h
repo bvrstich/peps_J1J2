@@ -43,6 +43,10 @@ namespace propagate {
             
             std::vector< DArray<2> > &, std::vector< DArray<2> > &);
 
+   //undo canonicalization of tensors
+   template<size_t M>
+      void restore(const PROP_DIR &,int,int,PEPS<double> &,DArray<M> &,DArray<M> &,std::vector< DArray<2> > &,std::vector< DArray<2> > &);
+
    //sweeping sections
    template<size_t M>
       void sweep(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &,
@@ -85,8 +89,6 @@ namespace propagate {
    //set the tensors on equal footing
    void equilibrate(const PROP_DIR &,int,int,PEPS<double> &);
 
-   //undo canonicalization of tensors
-   void restore(const PROP_DIR &,int,int,PEPS<double> &,std::vector< DArray<2> > &,std::vector< DArray<2> > &);
 
    void diagonalize(DArray<8> &,DArray<1> &);
 

@@ -292,53 +292,27 @@ namespace debug {
             if(row == 0){
 
                // --- (1) calculate overlap of approximated state:
+               
+               //L
+               DArray<8> tmp8;
+               Contract(1.0,peps(row+1,col),shape(0,3),LI7,shape(2,4),0.0,tmp8);
 
-               //right side
-               DArray<8> tmp8_right;
-               Contract(1.0,RI7,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp8_right);
-
-               //and again
-               DArray<5> tmp5_right;
-               Contract(1.0,tmp8_right,shape(3,6,7,4),peps(row,col+1),shape(1,2,3,4),0.0,tmp5_right);
-
-               //left side
-               DArray<8> tmp8_left;
-               Contract(1.0,LI7,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp8_left);
-
-               //add another
                DArray<7> tmp7;
-               Contract(1.0,tmp8_left,shape(1,6,2),peps(row+1,col),shape(0,2,3),0.0,tmp7);
+               Contract(1.0,peps(row+1,col),shape(0,2,3),tmp8,shape(4,1,5),0.0,tmp7);
 
-               //add top environment to intermediate
                DArray<5> tmp5_left;
-               Contract(1.0,tmp7,shape(0,5,3),env.gt(row)[col],shape(0,1,2),0.0,tmp5_left);
+               Contract(1.0,env.gt(0)[col],shape(0,1,2),tmp7,shape(4,0,2),0.0,tmp5_left);
 
-               DArray<5> tmp5;
-               Permute(tmp5_left,shape(4,3,2,1,0),tmp5);
+               //R
+               tmp8.clear();
+               Contract(1.0,RI7,shape(3,5),peps(row,col+1),shape(1,4),0.0,tmp8);
 
-               double val = Dot(tmp5,tmp5_right);
+               DArray<5> tmp5_right;
+               Contract(1.0,tmp8,shape(3,6,7,4),peps(row,col+1),shape(1,2,3,4),0.0,tmp5_right);
+
+               double val = Dot(tmp5_left,tmp5_right);
 
                // --- (2) calculate 'b' part of overlap
-
-               //add right operator to tmp8_right
-               DArray<6> tmp6_right;
-               Contract(1.0,tmp8_right,shape(3,6,7,4),rop,shape(1,2,4,5),0.0,tmp6_right);
-
-               //add top peps to b_L
-               tmp8_left.clear();
-               Contract(1.0,b_L,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp8_left);
-
-               DArray<8> tmp8bis;
-               Contract(1.0,tmp8_left,shape(1,6,2),lop,shape(0,2,4),0.0,tmp8bis);
-
-               //add top environment to intermediate
-               DArray<6> tmp6_left;
-               Contract(1.0,tmp8bis,shape(0,5,3),env.gt(row)[col],shape(0,1,2),0.0,tmp6_left);
-
-               DArray<6> tmp6bis;
-               Permute(tmp6_left,shape(5,4,2,1,0,3),tmp6bis);
-
-               val -= 2.0 * Dot(tmp6bis,tmp6_right);
 
                return val;
 

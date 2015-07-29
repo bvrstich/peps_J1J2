@@ -37,6 +37,9 @@ namespace propagate {
          DArray<M+2> LI;
          DArray<M+2> RI;
 
+         DArray<M+2> b_L;
+         DArray<M+2> b_R;
+
          //construct for left and right operators acting the correct peps elements
          DArray<6> lop;
          DArray<6> rop;
@@ -86,66 +89,50 @@ namespace propagate {
             Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
-         /*
-#ifdef _DEBUG
-DArray<8> N_eff;
-calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
-
-DArray<1> eig;
-diagonalize(N_eff,eig);
-
-cout << endl;
-cout << "initial" << endl;
-cout << endl;
-
-cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
-
-N_eff.clear();
-calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
-
-eig.clear();
-diagonalize(N_eff,eig);
-
-cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
-cout << endl;
-
-cout << -1 << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
-#endif
 
          // --- (c) --- initial guess: use SVD to initialize the tensors
          initialize(dir,row,col,lop,rop,peps); 
 
+         //recalculate the intermediates for diagonals
+         if(dir == DIAGONAL_LURD || dir == DIAGONAL_LDRU){
+
+            construct_intermediate(dir,row,col,peps,L,R,LI,RI);
+
+            construct_intermediate_rhs(dir,row,col,peps,mop,L,R,b_L,b_R);
+
+         }
+
 #ifdef _DEBUG
-N_eff.clear();
-calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
+         DArray<8> N_eff;
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,true);
 
-eig.clear();
-diagonalize(N_eff,eig);
+         DArray<1> eig;
+         diagonalize(N_eff,eig);
 
-cout << endl;
-cout << "after svd" << endl;
-cout << endl;
+         cout << endl;
+         cout << "after svd" << endl;
+         cout << endl;
 
-cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+         cout << "(left)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
 
-N_eff.clear();
-calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
+         N_eff.clear();
+         calc_N_eff(dir,row,col,peps,N_eff,L,R,LI,RI,false);
 
-eig.clear();
-diagonalize(N_eff,eig);
+         eig.clear();
+         diagonalize(N_eff,eig);
 
-cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
-cout << endl;
+         cout << "(right)\t" << std::scientific << eig(eig.size() - 1) / eig(0) << endl;
+         cout << endl;
 #endif
 
          // --- (d) --- sweeping update: ALS
          sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
-         */
+
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
          restore(dir,row,col,peps,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
-         //         equilibrate(dir,row,col,peps);
+         equilibrate(dir,row,col,peps);
 
       }
 
@@ -278,39 +265,39 @@ cout << endl;
       DArray<5> L(1,1,1,1,1);
       L = 1.0;
 
-           for(int col = 0;col < Lx - 1;++col){
+      for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
-      cout << endl;
-      cout << "***************************************" << endl;
-      cout << " Update site:\t(0," << col << ")" << endl;
-      cout << "***************************************" << endl;
-      cout << endl;
+         cout << endl;
+         cout << "***************************************" << endl;
+         cout << " Update site:\t(0," << col << ")" << endl;
+         cout << "***************************************" << endl;
+         cout << endl;
 #endif
 
-      // --- (1) update the vertical pair on column 'col' ---
-      update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
+         // --- (1) update the vertical pair on column 'col' ---
+         update(VERTICAL,0,col,peps,L,R[col],n_sweeps); 
 
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-      update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+         update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-      //do a QR decomposition of the updated peps on 'col'
-      //shift_col('r',0,col,peps);
-      //shift_col('r',1,col,peps);
+         //do a QR decomposition of the updated peps on 'col'
+         shift_col('r',0,col,peps);
+         shift_col('r',1,col,peps);
 
-      contractions::update_L('b',col,peps,L);
-      
-         }
-/*
+         contractions::update_L('b',col,peps,L);
+
+      }
+
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-
+      /*
       //QR the complete row
       shift_row('b',0,peps);
       peps.rescale_tensors(0,scal_num);
@@ -380,63 +367,63 @@ cout << endl;
       //update the environment
       env.add_layer('b',row,peps);
 
-   }
+      }
 
-   // finally row == Lx-2
+      // finally row == Lx-2
 
-   //'canonicalize' the right peps for the top two rows
-   for(int col = Lx - 1;col > 0;--col){
+      //'canonicalize' the right peps for the top two rows
+      for(int col = Lx - 1;col > 0;--col){
 
-      shift_col('l',Ly-2,col,peps);
-      shift_col('l',Ly-1,col,peps);
+         shift_col('l',Ly-2,col,peps);
+         shift_col('l',Ly-1,col,peps);
 
-   }
+      }
 
 
-   //initialize the right operators for the top two rows
-   contractions::init_ro('t',peps,R);
+      //initialize the right operators for the top two rows
+      contractions::init_ro('t',peps,R);
 
-   contractions::rescale_norm('t',peps,R);
+      contractions::rescale_norm('t',peps,R);
 
-   L.resize(shape(1,1,1,1,1));
-   L = 1.0;
+      L.resize(shape(1,1,1,1,1));
+      L = 1.0;
 
-   for(int col = 0;col < Lx - 1;++col){
+      for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
-      cout << endl;
-      cout << "***************************************" << endl;
-      cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
-      cout << "***************************************" << endl;
-      cout << endl;
+         cout << endl;
+         cout << "***************************************" << endl;
+         cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
+         cout << "***************************************" << endl;
+         cout << endl;
 #endif
 
-      // --- (1) update the vertical pair on column 'col' ---
-      update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         // --- (1) update the vertical pair on column 'col' ---
+         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
-      // --- (2a) update the horizontal pair on row Ly-2 column 'col'-'col+1' ---
-      update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2a) update the horizontal pair on row Ly-2 column 'col'-'col+1' ---
+         update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (2b) update the horizontal pair on row Ly-1 column 'col'-'col+1' ---
-      update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2b) update the horizontal pair on row Ly-1 column 'col'-'col+1' ---
+         update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-      //do a QR decomposition of the updated peps on 'col'
-      shift_col('r',Ly-2,col,peps);
-      shift_col('r',Ly-1,col,peps);
+         //do a QR decomposition of the updated peps on 'col'
+         shift_col('r',Ly-2,col,peps);
+         shift_col('r',Ly-1,col,peps);
 
-      contractions::update_L('t',col,peps,L);
+         contractions::update_L('t',col,peps,L);
 
-   }
+      }
 
-   //one last vertical update
-   update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-   */
+      //one last vertical update
+      update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
+      */
    }
 
    /** 
@@ -1499,6 +1486,7 @@ cout << endl;
             if(row == 0){
 
                //right
+               RI7.clear();
                Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col+1],R,0.0,RI7);
 
                DArray<8> tmp8;
@@ -1511,6 +1499,7 @@ cout << endl;
                Permute(tmp7,shape(0,3,5,4,6,1,2),RI7);
 
                //left
+               LI7.clear();
                Gemm(CblasTrans,CblasNoTrans,1.0,L,env.gt(0)[col],0.0,LI7);
 
                tmp8.clear();
@@ -1591,6 +1580,7 @@ cout << endl;
                Permute(tmp7,shape(0,1,2,5,3,6,4),LI7);
 
                //right
+               RI7.clear();
                Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(0)[col+1],R,0.0,RI7);
 
                //add top right peps
@@ -1650,6 +1640,69 @@ cout << endl;
          }
 
       }
+
+   /**
+    * function that calculates intermediate objects that do not change during the sweeping update.
+    * By precalculating them a lot of work is avoided
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row row index of the bottom peps of the vertical pair
+    * @param col column index
+    * @param peps full PEPS object
+    * @param L left contracted environment around the pair
+    * @param R right contracted environment around the pair
+    * @param b_L Left intermediate object to be constructed on output
+    * @param b_R Right intermediate object to be constructed on output
+    */
+   template<>
+      void construct_intermediate_rhs(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,
+
+            const DArray<5> &mop, const DArray<5> &L,const DArray<5> &R,DArray<7> &b_L,DArray<7> &b_R){
+
+         if(dir == DIAGONAL_LURD){
+
+            if(row == 0){//only b_L here
+
+               //add lower left peps to L
+               DArray<8> tmp8;
+               Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
+
+               //add mop on top
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
+
+               b_L.clear();
+               Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
+
+            }
+            else{// row == Ly - 2
+
+            }
+
+         }
+         else{//DIAGONAL LDRU
+
+            if(row == 0){//only b_R
+
+               //right, add right lower peps to R
+               DArray<8> tmp8;
+               Contract(1.0,peps(row,col+1),shape(4),R,shape(4),0.0,tmp8);
+
+               //and add mop to top
+               DArray<7> tmp7;
+               Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
+
+               b_R.clear();
+               Permute(tmp7,shape(4,5,6,1,3,0,2),b_R);
+
+            }
+            else{// row == Ly - 2
+
+            }
+
+         }
+
+      }
+
 
    /**
     * function that calculates intermediate objects that do not change during the sweeping update.

@@ -182,7 +182,7 @@ namespace propagate {
 
          int iter = 0;
 
-         //while(iter < n_sweeps){
+         while(iter < n_sweeps){
 
 #ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
@@ -201,7 +201,7 @@ namespace propagate {
 
             //update 'left' peps
             Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
-/*
+
 #ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 #endif
@@ -224,7 +224,7 @@ namespace propagate {
             ++iter;
 
          }
-*/
+
       }
 
    /**
@@ -265,8 +265,7 @@ namespace propagate {
       DArray<5> L(1,1,1,1,1);
       L = 1.0;
 
-      //for(int col = 0;col < Lx - 1;++col){
-int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
          cout << endl;
@@ -293,12 +292,12 @@ int col = 0;
          shift_col('r',1,col,peps);
 
          contractions::update_L('b',col,peps,L);
-/*
-      //}
+
+      }
 
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-
+      /*
       //QR the complete row
       shift_row('b',0,peps);
       peps.rescale_tensors(0,scal_num);

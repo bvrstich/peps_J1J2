@@ -126,7 +126,7 @@ namespace propagate {
 #endif
 
          // --- (d) --- sweeping update: ALS
-//         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
+         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
 
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
          restore(dir,row,col,peps,L,R,R_l,R_r);
@@ -306,77 +306,76 @@ namespace propagate {
       env.gb(0).fill('b',peps);
 
       //all middle rows:
-      //for(int row = 1;row < Lx - 2;++row){
-      int row = 1;
+      for(int row = 1;row < Lx - 2;++row){
 
-      //containers for the renormalized operators
-      vector< DArray<6> > RO(Lx);
+         //containers for the renormalized operators
+         vector< DArray<6> > RO(Lx);
 
-      //'canonicalize' the right peps for two rows to be updates
-      for(int col = Lx - 1;col > 0;--col){
+         //'canonicalize' the right peps for two rows to be updates
+         for(int col = Lx - 1;col > 0;--col){
 
-         shift_col('l',row,col,peps);
-         shift_col('l',row+1,col,peps);
+            shift_col('l',row,col,peps);
+            shift_col('l',row+1,col,peps);
 
-      }
+         }
 
-      //initialize the right operators for the bottom row
-      contractions::init_ro(row,peps,RO);
+         //initialize the right operators for the bottom row
+         contractions::init_ro(row,peps,RO);
 
-      contractions::rescale_norm(row,peps,RO);
+         contractions::rescale_norm(row,peps,RO);
 
-      DArray<6> LO(1,1,1,1,1,1);
-      LO = 1.0;
+         DArray<6> LO(1,1,1,1,1,1);
+         LO = 1.0;
 
-      for(int col = 0;col < Lx - 1;++col){
+         for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
-         cout << endl;
-         cout << "***************************************" << endl;
-         cout << " Update site:\t(" << row << "," << col << ")" << endl;
-         cout << "***************************************" << endl;
-         cout << endl;
+            cout << endl;
+            cout << "***************************************" << endl;
+            cout << " Update site:\t(" << row << "," << col << ")" << endl;
+            cout << "***************************************" << endl;
+            cout << endl;
 #endif
 
-         // --- (1) update the vertical pair on column 'col' ---
-         update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+            // --- (1) update the vertical pair on column 'col' ---
+            update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
-         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-         update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+            update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-         // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (3) update diagonal LU-RD
+            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-         // --- (4) update diagonal LD-RU
-         update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+            // --- (4) update diagonal LD-RU
+            update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-         //do a QR decomposition of the updated peps on 'col'
-         shift_col('r',row,col,peps);
-         shift_col('r',row+1,col,peps);
+            //do a QR decomposition of the updated peps on 'col'
+            shift_col('r',row,col,peps);
+            shift_col('r',row+1,col,peps);
 
-         contractions::update_L(row,col,peps,LO);
+            contractions::update_L(row,col,peps,LO);
+
+         }
+
+         //one last vertical update
+         update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
+
+         //QR the complete row
+         shift_row('b',row,peps);
+         peps.rescale_tensors(row,scal_num);
+
+         //update the environment
+         env.add_layer('b',row,peps);
 
       }
-      
-      //one last vertical update
-      update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
-
-      //QR the complete row
-      shift_row('b',row,peps);
-      peps.rescale_tensors(row,scal_num);
-
-      //update the environment
-      env.add_layer('b',row,peps);
 /*
-      //}
-
       // finally row == Lx-2
 
       //'canonicalize' the right peps for the top two rows
       for(int col = Lx - 1;col > 0;--col){
 
-      shift_col('l',Ly-2,col,peps);
-      shift_col('l',Ly-1,col,peps);
+         shift_col('l',Ly-2,col,peps);
+         shift_col('l',Ly-1,col,peps);
 
       }
 
@@ -392,33 +391,33 @@ namespace propagate {
       for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
-cout << endl;
-cout << "***************************************" << endl;
-cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
-cout << "***************************************" << endl;
-cout << endl;
+         cout << endl;
+         cout << "***************************************" << endl;
+         cout << " Update site:\t(" << Lx-2 << "," << col << ")" << endl;
+         cout << "***************************************" << endl;
+         cout << endl;
 #endif
 
-      // --- (1) update the vertical pair on column 'col' ---
-      update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
+         // --- (1) update the vertical pair on column 'col' ---
+         update(VERTICAL,Ly-2,col,peps,L,R[col],n_sweeps); 
 
-      // --- (2a) update the horizontal pair on row Ly-2 column 'col'-'col+1' ---
-      update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2a) update the horizontal pair on row Ly-2 column 'col'-'col+1' ---
+         update(HORIZONTAL,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (2b) update the horizontal pair on row Ly-1 column 'col'-'col+1' ---
-      update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
+         // --- (2b) update the horizontal pair on row Ly-1 column 'col'-'col+1' ---
+         update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
-      //do a QR decomposition of the updated peps on 'col'
-      shift_col('r',Ly-2,col,peps);
-      shift_col('r',Ly-1,col,peps);
+         //do a QR decomposition of the updated peps on 'col'
+         shift_col('r',Ly-2,col,peps);
+         shift_col('r',Ly-1,col,peps);
 
-      contractions::update_L('t',col,peps,L);
+         contractions::update_L('t',col,peps,L);
 
       }
 
@@ -2845,6 +2844,134 @@ cout << endl;
 
                rhs.clear();
                Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+            }
+
+         }
+         else if(dir == DIAGONAL_LURD){
+
+            if(left){//left site of gate, so site (row+1,col) environment
+
+               //add right peps to intermediate
+               DArray<9> tmp9;
+               Contract(1.0,RI8,shape(4,6),peps(row,col+1),shape(1,4),0.0,tmp9);
+
+               //add right operator
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(3,7,4),rop,shape(1,2,5),0.0,tmp9bis);
+
+               //add bottom environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(8,5,3),env.gb(row-1)[col+1],shape(1,2,3),0.0,tmp7);
+
+               //and top environment
+               tmp9.clear();
+               Gemm(CblasNoTrans,CblasNoTrans,1.0,env.gt(row)[col],tmp7,0.0,tmp9);
+
+               //now add left operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(1,7,3),lop,shape(1,3,5),0.0,tmp9bis);
+
+               //attach b_L to right side
+               DArray<5> tmp5;
+               Contract(1.0,b_L,shape(0,1,3,5,6,7),tmp9bis,shape(0,6,8,4,3,5),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,2,1,3,4),rhs);
+
+            }
+            else{//right site of gate, so site (row,col+1) environment
+
+               //add left-up peps to b_L
+               DArray<9> tmp9;
+               Contract(1.0,b_L,shape(2,4),peps(row+1,col),shape(0,3),0.0,tmp9);
+
+               //add left operator to intermediate
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(1,7,2),lop,shape(0,2,4),0.0,tmp9bis);
+
+               //now contract with top environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(0,6,4),env.gt(row)[col],shape(0,1,2),0.0,tmp7);
+
+               //and next bottom environment
+               tmp9.clear();
+               Contract(1.0,tmp7,shape(2),env.gb(row-1)[col+1],shape(0),0.0,tmp9);
+
+               //finally add right operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(0,3,6),rop,shape(0,3,4),0.0,tmp9bis);
+
+               //and contract with RI8 (same as b_R for lurd) to make right hand side
+               DArray<5> tmp5;
+               Contract(1.0,tmp9bis,shape(3,2,1,6,8,5),RI8,shape(0,1,2,3,5,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,3,1,4,2),rhs);
+
+            }
+
+         }
+         else{//dir == DIAGONAL_LDRU
+
+            if(left){//left site of gate, so site (row,col) environment
+
+               //add upper right peps to intermediate b_R
+               DArray<9> tmp9;
+               Contract(1.0,peps(row+1,col+1),shape(3,4),b_R,shape(4,2),0.0,tmp9);
+
+               //and right operator to intermediate
+               DArray<9> tmp9bis;
+               Contract(1.0,rop,shape(2,4,5),tmp9,shape(2,5,4),0.0,tmp9bis);
+
+               //add top environment
+               DArray<7> tmp7;
+               Contract(1.0,env.gt(row)[col+1],shape(1,2,3),tmp9bis,shape(1,4,5),0.0,tmp7);
+
+               //add bottom envirnoment
+               tmp9.clear();
+               Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col],tmp7,0.0,tmp9);
+
+               //finally add left operator
+               tmp9bis.clear();
+               Contract(1.0,lop,shape(3,4,5),tmp9,shape(5,1,7),0.0,tmp9bis);
+
+               //now attach to LI8 (which is b_L)
+               DArray<5> tmp5;
+               Contract(1.0,LI8,shape(0,1,2,3,5,7),tmp9bis,shape(5,6,7,1,0,3),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(1,0,3,4,2),rhs);
+
+            }
+            else{//right site of gate, so site (row+1,col+1) environment
+
+               //add bottom left peps to intermediate LI8
+               DArray<9> tmp9;
+               Contract(1.0,LI8,shape(6,4),peps(row,col),shape(0,1),0.0,tmp9);
+
+               //add left operator to tmp9
+               DArray<9> tmp9bis;
+               Contract(1.0,tmp9,shape(4,3,6),lop,shape(0,1,2),0.0,tmp9bis);
+
+               //add bottom environment
+               DArray<7> tmp7;
+               Contract(1.0,tmp9bis,shape(3,7,4),env.gb(row-1)[col],shape(0,1,2),0.0,tmp7);
+
+               //add next top envirnoment
+               tmp9.clear();
+               Gemm(CblasTrans,CblasNoTrans,1.0,tmp7,env.gt(row)[col+1],0.0,tmp9);
+
+               //add right operator
+               tmp9bis.clear();
+               Contract(1.0,tmp9,shape(0,6,3),rop,shape(0,1,3),0.0,tmp9bis);
+
+               //connect tmp9bis with b_R to construct right hand side of equation
+               DArray<5> tmp5;
+               Contract(1.0,tmp9bis,shape(5,8,7,2,1,3),b_R,shape(0,1,3,5,6,7),0.0,tmp5);
+
+               rhs.clear();
+               Permute(tmp5,shape(0,1,4,3,2),rhs);
 
             }
 

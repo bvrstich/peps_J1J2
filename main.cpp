@@ -35,7 +35,7 @@ int main(int argc,char *argv[]){
 
    int noise = atoi(argv[6]);
 
-   double tau = 0.01;
+   double tau = 0.0;
 
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau,noise);

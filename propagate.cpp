@@ -89,7 +89,7 @@ namespace propagate {
             Contract(1.0,peps(row+1,col+1),shape(i,j,k,l,m),global::trot.gRO_nn(),shape(k,o,n),0.0,rop,shape(i,j,n,o,l,m));
 
          }
-/*
+
          // --- (c) --- initial guess: use SVD to initialize the tensors
          initialize(dir,row,col,lop,rop,peps); 
 
@@ -126,13 +126,13 @@ namespace propagate {
 #endif
 
          // --- (d) --- sweeping update: ALS
-         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
-*/
+//         sweep(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R,n_iter);
+
          // --- (e) --- restore the tensors, i.e. undo the canonicalization
          restore(dir,row,col,peps,L,R,R_l,R_r);
 
          // --- (f) --- set top and bottom back on equal footing
-//         equilibrate(dir,row,col,peps);
+         equilibrate(dir,row,col,peps);
 
       }
 
@@ -288,8 +288,8 @@ namespace propagate {
          update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         //shift_col('r',0,col,peps);
-         //shift_col('r',1,col,peps);
+         shift_col('r',0,col,peps);
+         shift_col('r',1,col,peps);
 
          contractions::update_L('b',col,peps,L);
 
@@ -331,33 +331,33 @@ namespace propagate {
       for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
-      cout << endl;
-      cout << "***************************************" << endl;
-      cout << " Update site:\t(" << row << "," << col << ")" << endl;
-      cout << "***************************************" << endl;
-      cout << endl;
+         cout << endl;
+         cout << "***************************************" << endl;
+         cout << " Update site:\t(" << row << "," << col << ")" << endl;
+         cout << "***************************************" << endl;
+         cout << endl;
 #endif
 
-      // --- (1) update the vertical pair on column 'col' ---
-      update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
+         // --- (1) update the vertical pair on column 'col' ---
+         update(VERTICAL,row,col,peps,LO,RO[col],n_sweeps); 
 
-      // --- (2) update the horizontal pair on column 'col'-'col+1' ---
-      update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
+         // --- (2) update the horizontal pair on column 'col'-'col+1' ---
+         update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      // --- (3) update diagonal LU-RD
-      update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+         // --- (3) update diagonal LU-RD
+         update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      // --- (4) update diagonal LD-RU
-      update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+         // --- (4) update diagonal LD-RU
+         update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
-      //do a QR decomposition of the updated peps on 'col'
-      //shift_col('r',row,col,peps);
-      //shift_col('r',row+1,col,peps);
+         //do a QR decomposition of the updated peps on 'col'
+         shift_col('r',row,col,peps);
+         shift_col('r',row+1,col,peps);
 
-      contractions::update_L(row,col,peps,LO);
+         contractions::update_L(row,col,peps,LO);
 
       }
-      /*
+      
       //one last vertical update
       update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
 
@@ -367,7 +367,7 @@ namespace propagate {
 
       //update the environment
       env.add_layer('b',row,peps);
-
+/*
       //}
 
       // finally row == Lx-2
@@ -1441,69 +1441,6 @@ cout << endl;
     * @param row row index of the bottom peps of the vertical pair
     * @param col column index
     * @param peps full PEPS object
-    * @param L left contracted environment around the pair
-    * @param R right contracted environment around the pair
-    * @param b_L Left intermediate object to be constructed on output
-    * @param b_R Right intermediate object to be constructed on output
-    */
-   template<>
-      void construct_intermediate_rhs(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,
-
-            const DArray<5> &mop, const DArray<5> &L,const DArray<5> &R,DArray<7> &b_L,DArray<7> &b_R){
-
-         if(dir == DIAGONAL_LURD){
-
-            if(row == 0){//only b_L here
-
-               //add lower left peps to L
-               DArray<8> tmp8;
-               Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
-
-               //add mop on top
-               DArray<7> tmp7;
-               Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
-
-               b_L.clear();
-               Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
-
-            }
-            else{// row == Ly - 2
-
-            }
-
-         }
-         else{//DIAGONAL LDRU
-
-            if(row == 0){//only b_R
-
-               //right, add right lower peps to R
-               DArray<8> tmp8;
-               Contract(1.0,peps(row,col+1),shape(4),R,shape(4),0.0,tmp8);
-
-               //and add mop to top
-               DArray<7> tmp7;
-               Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
-
-               b_R.clear();
-               Permute(tmp7,shape(4,5,6,1,3,0,2),b_R);
-
-            }
-            else{// row == Ly - 2
-
-            }
-
-         }
-
-      }
-
-
-   /**
-    * function that calculates intermediate objects that do not change during the sweeping update.
-    * By precalculating them a lot of work is avoided
-    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
-    * @param row row index of the bottom peps of the vertical pair
-    * @param col column index
-    * @param peps full PEPS object
     * @param LO left contracted environment around the pair
     * @param RO right contracted environment around the pair
     * @param LI8 Left intermediate object to be constructed on output
@@ -1601,6 +1538,7 @@ cout << endl;
             Permute(tmp8,shape(5,6,7,1,3,0,2,4),RI8);
 
             //left
+            LI8.clear();
             Gemm(CblasTrans,CblasNoTrans,1.0,LO,env.gt(row)[col],0.0,LI8);
 
             tmp9.clear();
@@ -1611,6 +1549,120 @@ cout << endl;
 
             LI8.clear();
             Permute(tmp8,shape(3,5,7,4,6,0,1,2),LI8);
+
+         }
+
+      }
+
+   /**
+    * function that calculates intermediate objects that do not change during the sweeping update.
+    * By precalculating them a lot of work is avoided
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row row index of the bottom peps of the vertical pair
+    * @param col column index
+    * @param peps full PEPS object
+    * @param L left contracted environment around the pair
+    * @param R right contracted environment around the pair
+    * @param b_L Left intermediate object to be constructed on output
+    * @param b_R Right intermediate object to be constructed on output
+    */
+   template<>
+      void construct_intermediate_rhs(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,
+
+            const DArray<5> &mop, const DArray<5> &L,const DArray<5> &R,DArray<7> &b_L,DArray<7> &b_R){
+
+         if(dir == DIAGONAL_LURD){
+
+            if(row == 0){//only b_L here
+
+               //add lower left peps to L
+               DArray<8> tmp8;
+               Contract(1.0,L,shape(4),peps(row,col),shape(0),0.0,tmp8);
+
+               //add mop on top
+               DArray<7> tmp7;
+               Contract(1.0,tmp8,shape(3,5,6),mop,shape(0,2,3),0.0,tmp7);
+
+               b_L.clear();
+               Permute(tmp7,shape(0,1,2,5,3,6,4),b_L);
+
+            }
+            else{// row == Ly - 2
+
+            }
+
+         }
+         else{//DIAGONAL LDRU
+
+            if(row == 0){//only b_R
+
+               //right, add right lower peps to R
+               DArray<8> tmp8;
+               Contract(1.0,peps(row,col+1),shape(4),R,shape(4),0.0,tmp8);
+
+               //and add mop to top
+               DArray<7> tmp7;
+               Contract(1.0,mop,shape(2,3,4),tmp8,shape(2,3,7),0.0,tmp7);
+
+               b_R.clear();
+               Permute(tmp7,shape(4,5,6,1,3,0,2),b_R);
+
+            }
+            else{// row == Ly - 2
+
+            }
+
+         }
+
+      }
+
+   /**
+    * function that calculates intermediate objects that do not change during the sweeping update.
+    * By precalculating them a lot of work is avoided
+    * @param dir vertical, horizontal,diagonal lurd or diagonal ldru update
+    * @param row row index of the bottom peps of the vertical pair
+    * @param col column index
+    * @param peps full PEPS object
+    * @param LO left contracted environment around the pair
+    * @param RO right contracted environment around the pair
+    * @param b_L Left intermediate object to be constructed on output
+    * @param b_R Right intermediate object to be constructed on output
+    */
+   template<>
+      void construct_intermediate_rhs(const PROP_DIR &dir,int row,int col,const PEPS<double> &peps,
+
+            const DArray<5> &mop, const DArray<6> &LO,const DArray<6> &RO,DArray<8> &b_L,DArray<8> &b_R){
+
+         if(dir == DIAGONAL_LURD){
+
+            //only LI8 differs from b_L
+            b_L.clear();
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,LO,env.gb(row-1)[col],0.0,b_L);
+
+            DArray<9> tmp9;
+            Contract(1.0,b_L,shape(3,5),mop,shape(0,3),0.0,tmp9);
+
+            DArray<8> tmp8;
+            Contract(1.0,tmp9,shape(3,7,4),peps(row,col),shape(0,2,3),0.0,tmp8);
+
+            b_L.clear();
+            Permute(tmp8,shape(0,1,2,4,6,5,7,3),b_L);
+
+         }
+         else{//DIAGONAL LDRU
+
+            // right RI8 differs from b_R
+            b_R.clear();
+            Gemm(CblasNoTrans,CblasTrans,1.0,env.gb(row-1)[col+1],RO,0.0,b_R);
+
+            DArray<9> tmp9;
+            Contract(1.0,peps(row,col+1),shape(3,4),b_R,shape(2,7),0.0,tmp9);
+
+            DArray<8> tmp8;
+            Contract(1.0,mop,shape(2,3,4),tmp9,shape(2,4,8),0.0,tmp8);
+
+            b_R.clear();
+            Permute(tmp8,shape(5,6,7,1,3,0,2,4),b_R);
 
          }
 

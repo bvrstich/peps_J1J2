@@ -288,8 +288,8 @@ namespace propagate {
          update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
-         shift_col('r',0,col,peps);
-         shift_col('r',1,col,peps);
+         //shift_col('r',0,col,peps);
+         //shift_col('r',1,col,peps);
 
          contractions::update_L('b',col,peps,L);
 
@@ -315,8 +315,8 @@ namespace propagate {
       //'canonicalize' the right peps for two rows to be updates
       for(int col = Lx - 1;col > 0;--col){
 
-      shift_col('l',row,col,peps);
-      shift_col('l',row+1,col,peps);
+         shift_col('l',row,col,peps);
+         shift_col('l',row+1,col,peps);
 
       }
 
@@ -328,8 +328,7 @@ namespace propagate {
       DArray<6> LO(1,1,1,1,1,1);
       LO = 1.0;
 
-      //for(int col = 0;col < Lx - 1;++col){
-      int col = 0;
+      for(int col = 0;col < Lx - 1;++col){
 
 #ifdef _DEBUG
       cout << endl;
@@ -352,12 +351,12 @@ namespace propagate {
       update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
       //do a QR decomposition of the updated peps on 'col'
-      shift_col('r',row,col,peps);
-      shift_col('r',row+1,col,peps);
+      //shift_col('r',row,col,peps);
+      //shift_col('r',row+1,col,peps);
 
       contractions::update_L(row,col,peps,LO);
 
-      //}
+      }
       /*
       //one last vertical update
       update(VERTICAL,row,Lx-1,peps,LO,RO[Lx-1],n_sweeps); 
@@ -3730,6 +3729,18 @@ cout << endl;
             }
             else{//diagonal LDRU
 
+               //LO
+               DArray<6> tmp6;
+               Contract(1.0,LO,shape(3),R_l[0],shape(1),0.0,tmp6);
+
+               //and again
+               LO.clear();
+               Contract(1.0,tmp6,shape(3),R_l[0],shape(1),0.0,LO);
+
+               Permute(LO,shape(0,1,2,4,5,3),tmp6);
+
+               LO = std::move(tmp6);
+
                //LI8
                DArray<8> tmp8;
                Contract(1.0,LI8,shape(5),R_l[0],shape(1),0.0,tmp8);
@@ -3811,9 +3822,9 @@ cout << endl;
 
                //add to up side of tensor
                DArray<5> tmp5;
-               Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(1),0.0,tmp5);
+               Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
 
-               Permute(tmp5,shape(0,1,2,4,3),peps(lrow,lcol));
+               Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
 
             }
 
@@ -3889,7 +3900,7 @@ cout << endl;
             }
 
          }
-         
+
          if(N_eff.shape(3) > 1 && dir != HORIZONTAL){//right
 
             Permute(X,shape(0,1,2,4,3),X_copy);
@@ -4029,7 +4040,7 @@ cout << endl;
             }
 
          }
-         
+
          if(N_eff.shape(1) > 1){//up
 
             Permute(X,shape(0,2,3,4,1),X_copy);
@@ -4101,7 +4112,7 @@ cout << endl;
             }
 
          }
-         
+
          if(N_eff.shape(2) > 1 && dir != VERTICAL){//down
 
             Permute(X,shape(0,1,3,4,2),X_copy);
@@ -4660,7 +4671,7 @@ cout << endl;
 
             peps(lrow,lcol) = std::move(tmp5);
 
-            if(dir == DIAGONAL_LDRU){//diagonal needs more restoring
+            if(dir == DIAGONAL_LURD){//diagonal needs more restoring
 
                //invert back to original
                invert(R_l[0]);
@@ -4732,9 +4743,9 @@ cout << endl;
 
                //add to up side of tensor
                DArray<5> tmp5;
-               Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(1),0.0,tmp5);
+               Contract(1.0,peps(lrow+1,lcol),shape(3),R_l[1],shape(0),0.0,tmp5);
 
-               Permute(tmp5,shape(0,1,2,4,3),peps(lrow,lcol));
+               Permute(tmp5,shape(0,1,2,4,3),peps(lrow+1,lcol));
 
             }
 

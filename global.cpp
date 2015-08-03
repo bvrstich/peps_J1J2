@@ -79,7 +79,7 @@ namespace global{
       comp_sweeps = 10;
 
       //set the rescaling number
-      scal_num = 0.95;
+      scal_num = 0.7;
 
       //constant times the unit vector to add to the effective environment (regularizes the linear system)
       reg_const = pow(10.0,(double)noise);

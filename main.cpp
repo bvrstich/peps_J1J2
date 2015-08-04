@@ -40,18 +40,37 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau,noise);
 
-   PEPS<double> peps;
+   PEPS<double> peps(D);
    peps.initialize_jastrow(0.74);
    peps.normalize();
 
-   global::env.calc('A',peps);
-   cout << peps.energy() << endl;
+   peps.rescale_tensors(global::scal_num);
+   peps.normalize();
 
-   propagate::step(peps,0);
+   for(int i = 0;i < 1000;++i){
 
-   global::env.calc('A',peps);
-   cout << peps.energy() << endl;
+      propagate::step(peps,10);
+      peps.rescale_tensors(global::scal_num);
+      peps.normalize();
 
-   return 0;
+      global::env.calc('A',peps); 
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
+
+
+   tau *= 0.1;
+   global::stau(tau);
+
+   for(int i = 1000;i < 5000;++i){
+
+      propagate::step(peps,10);
+      peps.rescale_tensors(global::scal_num);
+      peps.normalize();
+
+      global::env.calc('A',peps); 
+      cout << i << "\t" << peps.energy() << endl;
+
+   }
 
 }

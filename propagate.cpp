@@ -182,7 +182,7 @@ namespace propagate {
 
          int iter = 0;
 
-         //while(iter < n_sweeps){
+         while(iter < n_sweeps){
 
 #ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
@@ -201,7 +201,7 @@ namespace propagate {
 
             //update 'left' peps
             Permute(rhs,shape(0,1,4,2,3),peps(l_row,l_col));
-/*
+
 #ifdef _DEBUG
             cout << iter << "\t" << debug::cost_function(dir,row,col,peps,lop,rop,L,R,LI,RI,b_L,b_R) << endl;
 #endif
@@ -223,8 +223,8 @@ namespace propagate {
             //repeat until converged
             ++iter;
 
-         //}
-*/
+         }
+
       }
 
    /**
@@ -282,10 +282,10 @@ namespace propagate {
          update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
-         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
          shift_col('r',0,col,peps);
@@ -344,10 +344,10 @@ namespace propagate {
             update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
-            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (4) update diagonal LD-RU
-            update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+            //update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
             shift_col('r',row,col,peps);
@@ -408,10 +408,10 @@ namespace propagate {
          update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
-         update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         //update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
          shift_col('r',Ly-2,col,peps);

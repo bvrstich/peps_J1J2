@@ -40,13 +40,17 @@ int main(int argc,char *argv[]){
    //initialize some statics dimensions
    global::init(D,D_aux,d,L,L,J2,tau,noise);
 
-   PEPS<double> peps(D);
+   PEPS<double> peps;
+   peps.initialize_jastrow(0.74);
    peps.normalize();
 
-   //peps.load("output/4x4/D=2");
-   //peps.grow_bond_dimension(3,0.001);
+   global::env.calc('A',peps);
+   cout << peps.energy() << endl;
 
-   propagate::step(peps,10);
+   propagate::step(peps,0);
+
+   global::env.calc('A',peps);
+   cout << peps.energy() << endl;
 
    return 0;
 

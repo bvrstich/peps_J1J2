@@ -65,12 +65,6 @@ namespace propagate {
             
             const DArray<5> &,const DArray<M> &,const DArray<M> &,DArray<M+2> &,DArray<M+2> &);
 
-   //linear systems construct
-   template<size_t M>
-      void construct_lin_sys(const PROP_DIR &,int,int,PEPS<double> &,const DArray<6> &,const DArray<6> &, DArray<8> &,DArray<5> &,
-
-            const DArray<M> &,const DArray<M> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,const DArray<M+2> &,bool);
-   
    //calculate the effective environment
    template<size_t M>
       void calc_N_eff(const PROP_DIR &,int,int,PEPS<double> &, DArray<8> &, const DArray<M> &,const DArray<M> &, 

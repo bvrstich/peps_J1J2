@@ -282,10 +282,10 @@ namespace propagate {
          update(HORIZONTAL,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         //update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
+         update(DIAGONAL_LURD,0,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
-         //update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
+         update(DIAGONAL_LDRU,0,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
          shift_col('r',0,col,peps);
@@ -297,7 +297,7 @@ namespace propagate {
 
       //one last vertical update
       update(VERTICAL,0,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-  
+
       //QR the complete row
       shift_row('b',0,peps);
       peps.rescale_tensors(0,scal_num);
@@ -344,10 +344,10 @@ namespace propagate {
             update(HORIZONTAL,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (3) update diagonal LU-RD
-            //update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(DIAGONAL_LURD,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             // --- (4) update diagonal LD-RU
-            //update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
+            update(DIAGONAL_LDRU,row,col,peps,LO,RO[col+1],n_sweeps); 
 
             //do a QR decomposition of the updated peps on 'col'
             shift_col('r',row,col,peps);
@@ -408,10 +408,10 @@ namespace propagate {
          update(HORIZONTAL,Ly-1,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (3) update diagonal LU-RD
-         //update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         update(DIAGONAL_LURD,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          // --- (4) update diagonal LD-RU
-         //update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
+         update(DIAGONAL_LDRU,Ly-2,col,peps,L,R[col+1],n_sweeps); 
 
          //do a QR decomposition of the updated peps on 'col'
          shift_col('r',Ly-2,col,peps);
@@ -423,7 +423,7 @@ namespace propagate {
 
       //one last vertical update
       update(VERTICAL,Ly-2,Lx-1,peps,L,R[Lx-1],n_sweeps); 
-    
+ 
    }
 
    /** 
@@ -5056,7 +5056,7 @@ namespace propagate {
                env.gb(row-1)[col] = std::move(tmp4);
 
             }
-            else{//diagonal lurd, some more restoration
+            else if(dir == DIAGONAL_LURD){//diagonal lurd, some more restoration
 
                invert(R_l[2]);
 

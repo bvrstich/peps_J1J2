@@ -58,7 +58,6 @@ int main(int argc,char *argv[]){
 
    }
 
-
    tau *= 0.1;
    global::stau(tau);
 
@@ -72,5 +71,7 @@ int main(int argc,char *argv[]){
       cout << i << "\t" << peps.energy() << endl;
 
    }
+
+   return 0;
 
 }

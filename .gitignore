@@ -11,7 +11,7 @@ callgrind.out.*
 peps
 tags
 docs/
-test
+test*
 output
 input
 makefile
